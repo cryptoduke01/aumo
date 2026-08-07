@@ -1,0 +1,27 @@
+# deps
+node_modules/
+.pnp/
+.pnp.js
+
+# env / secrets — never commit
+.env
+.env.*
+!.env.example
+
+# next.js / web build
+web/.next/
+web/out/
+web/build/
+
+# foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/dry-run/
+
+# agent build
+agent/dist/
+
+# misc
+.DS_Store
+*.log
+coverage/
