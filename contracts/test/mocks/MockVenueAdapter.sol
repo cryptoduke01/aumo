@@ -2,11 +2,14 @@
 pragma solidity 0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IVenueAdapter} from "../../src/interfaces/IVenueAdapter.sol";
 
 /// @dev Stand-in yield venue for tests. Holds the asset per depositor and can simulate yield
 ///      via accrue(). Real adapters wrap Aave supply / STBL RWA-yield on X Layer.
 contract MockVenueAdapter is IVenueAdapter {
+    using SafeERC20 for IERC20;
+
     IERC20 public immutable token;
     mapping(address => uint256) public position; // account => asset value held
 
@@ -19,7 +22,7 @@ contract MockVenueAdapter is IVenueAdapter {
     }
 
     function deposit(uint256 amount) external returns (uint256) {
-        token.transferFrom(msg.sender, address(this), amount);
+        token.safeTransferFrom(msg.sender, address(this), amount);
         position[msg.sender] += amount;
         return amount;
     }
@@ -28,7 +31,7 @@ contract MockVenueAdapter is IVenueAdapter {
         uint256 bal = position[msg.sender];
         uint256 amt = amount > bal ? bal : amount;
         position[msg.sender] = bal - amt;
-        token.transfer(msg.sender, amt);
+        token.safeTransfer(msg.sender, amt);
         return amt;
     }
 
