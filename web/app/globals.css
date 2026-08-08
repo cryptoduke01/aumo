@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+/* Dark-first. Interim Aumo palette from brand.md — swap these values when branding lands. */
+:root {
+  --background: #0a0b0d;
+  --card: #101215;
+  --card-2: #16191e;
+  --foreground: #eae8e3;
+  --muted-foreground: #8a8f98;
+  --border: #1e2126;
+  --primary: #c8a96a;
+  --primary-foreground: #0a0b0d;
+  --positive: #5bb98b;
+  --negative: #d98a76;
+  --ring: #c8a96a;
+  --radius: 0.5rem;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #f7f6f2;
+    --card: #ffffff;
+    --card-2: #f0eee8;
+    --foreground: #14161a;
+    --muted-foreground: #5a6069;
+    --border: #e4e2dc;
+    --primary: #a9863f;
+    --primary-foreground: #ffffff;
+    --positive: #2e9e6b;
+    --negative: #c25b42;
+    --ring: #a9863f;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-card: var(--card);
+  --color-card-2: var(--card-2);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular figures for all data readouts. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
