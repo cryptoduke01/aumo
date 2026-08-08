@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import type { MarketSnapshot } from "../types.js";
 import type { Plan } from "../brain/plan.js";
 import type { MoveResult } from "./execute.js";
+import type { AgentIdentity } from "../identity.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RECEIPTS_DIR = join(__dirname, "..", "..", "receipts");
@@ -19,6 +20,8 @@ const jsonSafe = (x: unknown) =>
  */
 export interface DecisionRecord {
   takenAt: string;
+  agent: AgentIdentity;
+  policyFingerprint: string;
   vault: string;
   snapshot: unknown;
   plan: unknown;
@@ -29,9 +32,12 @@ export function record(
   snap: MarketSnapshot,
   plan: Plan,
   execution: MoveResult[] | null,
+  ctx: { identity: AgentIdentity; policyFingerprint: string },
 ): DecisionRecord {
   const rec: DecisionRecord = {
     takenAt: snap.takenAt,
+    agent: ctx.identity,
+    policyFingerprint: ctx.policyFingerprint,
     vault: snap.vault.address,
     snapshot: jsonSafe(snap),
     plan: jsonSafe(plan),

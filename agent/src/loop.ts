@@ -5,12 +5,18 @@ import { buildPlan, type Plan } from "./brain/plan.js";
 import { reason } from "./brain/reason.js";
 import { execute, type MoveResult } from "./act/execute.js";
 import { record } from "./act/receipts.js";
+import { buildIdentity, policyFingerprint, renderBanner } from "./identity.js";
 import type { MarketSnapshot } from "./types.js";
 
 const fmt = (x: bigint, dec: number) =>
   (Number(x) / 10 ** dec).toLocaleString("en-US", { maximumFractionDigits: 2 });
 
-function printReport(snap: MarketSnapshot, plan: Plan, exec: MoveResult[] | null) {
+function printReport(
+  snap: MarketSnapshot,
+  plan: Plan,
+  exec: MoveResult[] | null,
+  fingerprint: string,
+) {
   const d = snap.vault.decimals;
   const s = snap.vault.symbol;
   console.log("\n──────────────────────────────────────────────");
@@ -22,6 +28,7 @@ function printReport(snap: MarketSnapshot, plan: Plan, exec: MoveResult[] | null
       d,
     )} ${s}${snap.vault.paused ? " · PAUSED" : ""}`,
   );
+  console.log(` policy ${fingerprint.slice(0, 18)}…`);
 
   console.log("\n Risk engine:");
   for (const r of plan.risks) {
@@ -69,7 +76,9 @@ function printReport(snap: MarketSnapshot, plan: Plan, exec: MoveResult[] | null
 /** One full cycle: sense → score → reason → (execute) → record. */
 export async function tick(cfg: Config, opts: { dryRun?: boolean } = {}): Promise<void> {
   const { publicClient, walletClient, agentAddress } = makeClients(cfg);
+  const identity = buildIdentity(cfg);
   const snap = await sense(publicClient, cfg);
+  const fingerprint = policyFingerprint(snap.vault, cfg);
 
   const base = buildPlan(snap, {
     appetite: cfg.appetite,
@@ -91,13 +100,14 @@ export async function tick(cfg: Config, opts: { dryRun?: boolean } = {}): Promis
     if (plan.moves.length > 0) exec = await execute(plan, walletClient, publicClient, cfg.vaultAddress);
   }
 
-  printReport(snap, plan, exec);
-  record(snap, plan, exec);
+  printReport(snap, plan, exec, fingerprint);
+  record(snap, plan, exec, { identity, policyFingerprint: fingerprint });
 }
 
 /** Repeat a tick every cfg.loopIntervalMs. */
 export async function runLoop(cfg: Config): Promise<void> {
-  console.log(`Aumo loop started · interval ${cfg.loopIntervalMs / 1000}s · execute=${cfg.execute}`);
+  console.log(renderBanner(buildIdentity(cfg)));
+  console.log(`\nAumo loop started · interval ${cfg.loopIntervalMs / 1000}s · execute=${cfg.execute}`);
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {

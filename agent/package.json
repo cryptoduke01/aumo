@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Aumo agent — the reasoning brain and risk engine that allocates the vault within on-chain guardrails.",
   "scripts": {
+    "identity": "tsx src/index.ts identity",
     "plan": "tsx src/index.ts plan",
     "tick": "tsx src/index.ts tick",
     "loop": "tsx src/index.ts loop",

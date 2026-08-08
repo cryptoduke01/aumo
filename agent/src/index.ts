@@ -1,12 +1,14 @@
 import { loadConfig } from "./config.js";
 import { tick, runLoop } from "./loop.js";
+import { buildIdentity, renderBanner } from "./identity.js";
 
 const HELP = `Aumo agent
 
 Usage:
-  npm run plan     Sense, score, and reason. Never sends transactions.
-  npm run tick     One cycle. Sends transactions only if EXECUTE=1.
-  npm run loop     Repeat tick every LOOP_INTERVAL_SECONDS.
+  npm run identity   Print the agent's identity card.
+  npm run plan       Sense, score, and reason. Never sends transactions.
+  npm run tick       One cycle. Sends transactions only if EXECUTE=1.
+  npm run loop       Repeat tick every LOOP_INTERVAL_SECONDS.
 `;
 
 async function main() {
@@ -14,6 +16,12 @@ async function main() {
   const cfg = loadConfig();
 
   switch (cmd) {
+    case "identity": {
+      const id = buildIdentity(cfg);
+      console.log(renderBanner(id));
+      console.log("\n" + JSON.stringify(id, null, 2));
+      break;
+    }
     case "plan":
       await tick(cfg, { dryRun: true });
       break;
