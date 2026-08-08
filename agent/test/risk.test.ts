@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { scoreVenue, bandOf, BAND_RANK } from "../src/risk/engine.js";
-import { venue } from "./helpers.js";
+import { scoreVenue, scorePortfolio, bandOf, BAND_RANK } from "../src/risk/engine.js";
+import { venue, VENUE_A, VENUE_B } from "./helpers.js";
 
 test("band thresholds map score to band", () => {
   assert.equal(bandOf(0.0), "low");
@@ -31,7 +31,47 @@ test("thinner exit liquidity raises the score and is flagged", () => {
   const deep = scoreVenue(venue({ tvlUsd: 1_000_000, liquidityUsd: 800_000 }), 6, 1000);
   const thin = scoreVenue(venue({ tvlUsd: 1_000_000, liquidityUsd: 50_000 }), 6, 1000);
   assert.ok(thin.riskScore > deep.riskScore);
-  assert.ok(thin.notes.some((n) => n.includes("thin exit liquidity")));
+  assert.ok(thin.notes.some((n) => n.includes("thin venue liquidity")));
+});
+
+test("liquidity risk rises when our position is large vs withdrawable liquidity", () => {
+  // Same venue depth; only OUR position size differs.
+  const small = scoreVenue(
+    venue({ tvlUsd: 1_000_000, liquidityUsd: 200_000, allocatedPrincipal: 1_000_000n }), // 1 USDT0
+    6,
+    1_000_000,
+  );
+  const large = scoreVenue(
+    venue({ tvlUsd: 1_000_000, liquidityUsd: 200_000, allocatedPrincipal: 300_000_000_000n }), // 300k > 200k liq
+    6,
+    1_000_000,
+  );
+  assert.ok(large.liquidityRisk > small.liquidityRisk);
+  assert.ok(large.notes.some((n) => n.includes("large vs withdrawable")));
+});
+
+test("concentration is correlation-aware: correlated venues do not diversify", () => {
+  const portfolio = 2_000_000; // units
+  const half = 1_000_000_000_000n; // 1M USDT0 (6dp) in each venue
+  const sameKind = scorePortfolio(
+    [
+      venue({ address: VENUE_A, kind: "lending", allocatedPrincipal: half }),
+      venue({ address: VENUE_B, kind: "lending", allocatedPrincipal: half }),
+    ],
+    6,
+    portfolio,
+  );
+  const crossKind = scorePortfolio(
+    [
+      venue({ address: VENUE_A, kind: "lending", allocatedPrincipal: half }),
+      venue({ address: VENUE_B, kind: "rwa", allocatedPrincipal: half }),
+    ],
+    6,
+    portfolio,
+  );
+  // A 50/50 split across two lending venues is more concentrated than across lending + RWA.
+  assert.ok(sameKind[0]!.correlatedExposure > crossKind[0]!.correlatedExposure);
+  assert.ok(sameKind[0]!.concentrationRisk > crossKind[0]!.concentrationRisk);
 });
 
 test("peg deviation is bounded and flagged past 50bps", () => {

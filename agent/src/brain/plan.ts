@@ -1,5 +1,5 @@
 import type { Address, MarketSnapshot, Regime, RiskBand } from "../types.js";
-import { BAND_RANK, scoreVenue, type VenueRisk } from "../risk/engine.js";
+import { BAND_RANK, scorePortfolio, type VenueRisk } from "../risk/engine.js";
 
 export interface Move {
   venue: Address;
@@ -54,7 +54,7 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
   const unit = 10 ** vault.decimals;
   const portfolioUnits = (Number(vault.idle) + Number(vault.totalDeployed)) / unit;
 
-  const risks = snap.venues.map((v) => scoreVenue(v, vault.decimals, portfolioUnits));
+  const risks = scorePortfolio(snap.venues, vault.decimals, portfolioUnits);
   const riskByAddr = new Map(risks.map((r) => [r.address.toLowerCase(), r]));
 
   const moves: Move[] = [];
