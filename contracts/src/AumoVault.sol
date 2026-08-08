@@ -117,7 +117,7 @@ contract AumoVault is Ownable2Step, Pausable, ReentrancyGuard {
 
     /// @dev Disabled: a fund-holding vault must never become ownerless. Transfer is two-step
     ///      (Ownable2Step), so ownership cannot be handed to a wrong/dead address by mistake.
-    function renounceOwnership() public override onlyOwner {
+    function renounceOwnership() public view override onlyOwner {
         revert RenounceDisabled();
     }
 
