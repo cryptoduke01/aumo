@@ -7,11 +7,15 @@ import type { Address, RiskBand, VenueMeta } from "./types.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 
-function req(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing required env: ${name}`);
-  return v;
+function envOr(name: string, fallback: string): string {
+  const v = process.env[name]?.trim();
+  return v && v.length ? v : fallback;
 }
+
+// Defaults target the X Layer testnet deployment so a bare container (e.g. a fresh
+// Railway deploy with no vars set) boots into a safe dry-run instead of crashing.
+const DEFAULT_RPC = "https://testrpc.xlayer.tech";
+const DEFAULT_VAULT = "0x52Fc89beD432e068a0a837065fbCFaDb3573A55e";
 
 function bandFrom(v: string | undefined): RiskBand {
   const b = (v ?? "moderate").toLowerCase();
@@ -53,8 +57,8 @@ export function loadConfig(): Config {
   return {
     chainId: Number(process.env.CHAIN_ID ?? feed.chainId ?? 1952),
     chainName: process.env.CHAIN_NAME ?? "X Layer Testnet",
-    rpcUrl: req("RPC_URL"),
-    vaultAddress: req("VAULT_ADDRESS") as Address,
+    rpcUrl: envOr("RPC_URL", DEFAULT_RPC),
+    vaultAddress: envOr("VAULT_ADDRESS", DEFAULT_VAULT) as Address,
     agentPrivateKey: key,
     anthropicKey: process.env.ANTHROPIC_API_KEY?.trim() || undefined,
     model: process.env.AUMO_MODEL ?? "claude-sonnet-4-5",
