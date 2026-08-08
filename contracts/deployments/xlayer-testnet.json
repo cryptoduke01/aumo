@@ -5,8 +5,10 @@
   "note": "Testnet has no real USDT0 / Aave / STBL, so this deployment uses a mock USDT0 + mock venue to prove the end-to-end flow on-chain. Real venues integrate on mainnet.",
   "contracts": {
     "AumoVault": "0x52Fc89beD432e068a0a837065fbCFaDb3573A55e",
+    "AumoPool": "0xD2B241B59793dcDBA5a0fa37a8764afc3Bb8Bd80",
     "TestUSDT0": "0xFc440733d882f28012B190b11Bbec56b44508448",
     "MockVenue": "0xB6bF363394FD900cb00605A43a3F6b8a4D1fE05e"
   },
+  "note2": "AumoVault = single-owner treasury. AumoPool = multi-depositor ERC-4626 (anyone deposits for shares); both share the same agent + guardrails and the same mock venue (positions are per-caller).",
   "ownerAgent": "0x197ED5B2313fA482EC271861360E839A8eF75731"
 }
