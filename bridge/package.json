@@ -1,0 +1,24 @@
+{
+  "name": "@aumo/bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deposit bridge — moves USDT0 onto X Layer from any supported chain via LayerZero's native OFT.",
+  "scripts": {
+    "quote": "tsx src/index.ts quote",
+    "send": "tsx src/index.ts send",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "viem": "^2.55.11"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.11",
+    "typescript": "^7.0.2"
+  }
+}
