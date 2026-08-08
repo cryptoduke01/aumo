@@ -1,0 +1,28 @@
+{
+  "chainId": 196,
+  "note": "Template for the X Layer mainnet venue set. Replace addresses with the deployed Aumo adapters for each venue. Market metrics (apyBps, tvlUsd, liquidityUsd, utilization, pegDeviationBps) should be wired to live protocol reads / oracles, not hardcoded; protocolRisk is a curated base score per venue.",
+  "venues": [
+    {
+      "address": "0x0000000000000000000000000000000000000000",
+      "name": "Aave v3 (USDT0)",
+      "kind": "lending",
+      "apyBps": 0,
+      "tvlUsd": 0,
+      "liquidityUsd": 0,
+      "utilization": 0,
+      "protocolRisk": 0.08,
+      "pegDeviationBps": 0
+    },
+    {
+      "address": "0x0000000000000000000000000000000000000000",
+      "name": "STBL (RWA yield)",
+      "kind": "rwa",
+      "apyBps": 0,
+      "tvlUsd": 0,
+      "liquidityUsd": 0,
+      "utilization": 0,
+      "protocolRisk": 0.18,
+      "pegDeviationBps": 0
+    }
+  ]
+}

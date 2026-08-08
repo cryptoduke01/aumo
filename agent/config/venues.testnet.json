@@ -1,0 +1,17 @@
+{
+  "chainId": 1952,
+  "note": "X Layer testnet has no real USDT0 / Aave / STBL. This venue is the deployed mock adapter; its market metrics are illustrative so the risk engine and brain have real-shaped data to reason over. On mainnet these fields come from live protocol reads and oracles.",
+  "venues": [
+    {
+      "address": "0xB6bF363394FD900cb00605A43a3F6b8a4D1fE05e",
+      "name": "MockYield",
+      "kind": "mock",
+      "apyBps": 850,
+      "tvlUsd": 5000000,
+      "liquidityUsd": 1400000,
+      "utilization": 0.71,
+      "protocolRisk": 0.35,
+      "pegDeviationBps": 10
+    }
+  ]
+}

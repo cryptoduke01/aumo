@@ -1,0 +1,27 @@
+{
+  "name": "@aumo/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Aumo agent — the reasoning brain and risk engine that allocates the vault within on-chain guardrails.",
+  "scripts": {
+    "plan": "tsx src/index.ts plan",
+    "tick": "tsx src/index.ts tick",
+    "loop": "tsx src/index.ts loop",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.116.0",
+    "dotenv": "^17.4.2",
+    "viem": "^2.55.11",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.11",
+    "typescript": "^7.0.2"
+  }
+}
