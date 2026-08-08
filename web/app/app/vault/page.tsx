@@ -1,0 +1,212 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { formatUnits, parseUnits, maxUint256 } from "viem";
+import {
+  useAccount,
+  useChainId,
+  useReadContracts,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from "wagmi";
+import { POOL, USDT0, poolAbi, erc20Abi, xlayerTestnet } from "@/lib/chain";
+import { Panel, Label, Stat, Badge } from "@/components/ui";
+import { ConnectButton } from "@/components/wallet";
+import { txUrl } from "@/lib/agent";
+
+const DEC = 6;
+const fmt = (v: bigint | undefined, max = 2) =>
+  v === undefined ? "—" : (Number(v) / 10 ** DEC).toLocaleString("en-US", { maximumFractionDigits: max });
+
+const primaryBtn =
+  "inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+
+export default function VaultPage() {
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const wrongChain = isConnected && chainId !== xlayerTestnet.id;
+
+  const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
+  const [amount, setAmount] = useState("");
+
+  const reads = useReadContracts({
+    contracts: [
+      { address: USDT0, abi: erc20Abi, functionName: "balanceOf", args: [address!] },
+      { address: USDT0, abi: erc20Abi, functionName: "allowance", args: [address!, POOL] },
+      { address: POOL, abi: poolAbi, functionName: "maxWithdraw", args: [address!] },
+      { address: POOL, abi: poolAbi, functionName: "totalAssets" },
+    ],
+    query: { enabled: Boolean(address) && !wrongChain, refetchInterval: 12_000 },
+  });
+
+  const walletBal = reads.data?.[0]?.result as bigint | undefined;
+  const allowance = reads.data?.[1]?.result as bigint | undefined;
+  const position = reads.data?.[2]?.result as bigint | undefined; // your redeemable USDT0
+  const tvl = reads.data?.[3]?.result as bigint | undefined;
+
+  const { writeContract, data: hash, isPending, reset, error } = useWriteContract();
+  const receipt = useWaitForTransactionReceipt({ hash });
+
+  // Refresh balances and clear the form once a transaction confirms.
+  useEffect(() => {
+    if (receipt.isSuccess) {
+      reads.refetch();
+      setAmount("");
+      const t = setTimeout(() => reset(), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [receipt.isSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const amountWei = useMemo(() => {
+    try {
+      return amount ? parseUnits(amount, DEC) : 0n;
+    } catch {
+      return 0n;
+    }
+  }, [amount]);
+
+  const max = tab === "deposit" ? walletBal : position;
+  const overMax = max !== undefined && amountWei > max;
+  const needsApproval = tab === "deposit" && (allowance ?? 0n) < amountWei;
+  const busy = isPending || receipt.isLoading;
+
+  function submit() {
+    if (!address || amountWei <= 0n) return;
+    if (tab === "deposit") {
+      if (needsApproval) {
+        writeContract({ address: USDT0, abi: erc20Abi, functionName: "approve", args: [POOL, maxUint256] });
+      } else {
+        writeContract({ address: POOL, abi: poolAbi, functionName: "deposit", args: [amountWei, address] });
+      }
+    } else {
+      writeContract({ address: POOL, abi: poolAbi, functionName: "withdraw", args: [amountWei, address, address] });
+    }
+  }
+
+  const label = !isConnected
+    ? "Connect wallet"
+    : wrongChain
+      ? "Wrong network"
+      : amountWei <= 0n
+        ? "Enter an amount"
+        : overMax
+          ? "Insufficient balance"
+          : busy
+            ? "Confirming…"
+            : tab === "deposit"
+              ? needsApproval
+                ? "Approve USDT0"
+                : "Deposit"
+              : "Withdraw";
+
+  return (
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
+      <header className="flex flex-col gap-1 border-b border-border pb-6">
+        <h1 className="text-xl font-semibold tracking-tight">Deposit</h1>
+        <span className="text-xs text-muted-foreground">
+          Deposit USDT0 into the pool for shares. The agent puts the pooled balance to work; yield
+          accrues to every depositor.
+        </span>
+      </header>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Position + pool */}
+        <div className="flex flex-col gap-6">
+          <Panel className="grid grid-cols-2 divide-x divide-border">
+            <Stat label="Your position" value={`${fmt(position)}`} sub="USDT0 redeemable" accent />
+            <Stat
+              label="Pool TVL"
+              value={fmt(tvl, 0)}
+              sub={position && tvl && tvl > 0n ? `${((Number(position) / Number(tvl)) * 100).toFixed(2)}% yours` : "USDT0"}
+            />
+          </Panel>
+          <Panel className="p-5">
+            <Label>Wallet</Label>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">USDT0 balance</span>
+              <span className="tnum font-mono text-sm">{fmt(walletBal)}</span>
+            </div>
+            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+              Testnet. You need X Layer testnet USDT0 and a little OKB for gas. Shares are ERC-4626 and
+              redeem for your pro-rata slice of the pool at any time.
+            </p>
+          </Panel>
+        </div>
+
+        {/* Action */}
+        <Panel className="flex flex-col p-5">
+          <div className="mb-5 flex rounded-lg border border-border p-1">
+            {(["deposit", "withdraw"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => { setTab(t); setAmount(""); reset(); }}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  tab === t ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Label>Amount</Label>
+              <button
+                className="text-xs text-primary hover:underline disabled:opacity-40"
+                disabled={max === undefined}
+                onClick={() => max !== undefined && setAmount(formatUnits(max, DEC))}
+              >
+                Max {fmt(max)}
+              </button>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-card-2 px-3 py-2.5 focus-within:border-primary">
+              <input
+                inputMode="decimal"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                className="tnum w-full bg-transparent font-mono text-lg outline-none placeholder:text-muted-foreground"
+                aria-label={`${tab} amount in USDT0`}
+              />
+              <span className="text-sm text-muted-foreground">USDT0</span>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            {!isConnected ? (
+              <ConnectButton />
+            ) : (
+              <button className={primaryBtn} disabled={busy || wrongChain || amountWei <= 0n || overMax} onClick={submit}>
+                {label}
+              </button>
+            )}
+          </div>
+
+          {needsApproval && !busy && amountWei > 0n && !overMax ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              One-time approval so the pool can pull your USDT0, then deposit.
+            </p>
+          ) : null}
+
+          {hash ? (
+            <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-card-2 px-3 py-2 text-xs">
+              <span className="text-muted-foreground">
+                {receipt.isLoading ? "Confirming…" : receipt.isSuccess ? "Confirmed" : "Submitted"}
+              </span>
+              <a className="text-primary hover:underline" href={txUrl(hash)} target="_blank" rel="noreferrer">
+                view ↗
+              </a>
+            </div>
+          ) : null}
+
+          {error ? (
+            <p className="mt-3 text-xs text-negative">
+              {error.message.split("\n")[0].slice(0, 120)}
+            </p>
+          ) : null}
+        </Panel>
+      </div>
+    </div>
+  );
+}
