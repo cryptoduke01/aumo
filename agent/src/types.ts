@@ -19,6 +19,13 @@ export interface VaultState {
   paused: boolean;
 }
 
+/** Optional live-market source. When present, its reads override the static metrics. */
+export interface VenueFeed {
+  source: "aave";
+  pool: Address; // Aave v3 Pool
+  underlying: Address; // the reserve asset (USDT0)
+}
+
 /** Market metadata for a venue (from the feed). */
 export interface VenueMeta {
   address: Address;
@@ -30,6 +37,7 @@ export interface VenueMeta {
   utilization: number; // 0..1 (lending)
   protocolRisk: number; // 0..1 curated base risk
   pegDeviationBps: number; // yield-asset deviation from $1
+  feed?: VenueFeed; // when set, live reads replace the static market metrics
 }
 
 /** Venue metadata joined with its live on-chain position. */

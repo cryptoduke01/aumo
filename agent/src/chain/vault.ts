@@ -1,6 +1,7 @@
 import type { PublicClient } from "viem";
 import { vaultAbi, erc20Abi } from "./abi.js";
 import type { Address, VaultState, VenueMeta, VenueState } from "../types.js";
+import { readAaveMarket } from "../sense/aaveFeed.js";
 
 export async function readVaultState(
   pc: PublicClient,
@@ -61,5 +62,22 @@ export async function readVenueState(
     pc.readContract({ ...c, functionName: "allocated", args: [meta.address] }),
     pc.readContract({ ...c, functionName: "venueBalance", args: [meta.address] }),
   ]);
-  return { ...meta, allowed, allocatedPrincipal, liveBalance };
+
+  // Live market data overrides the static config when a feed is configured.
+  let market = {
+    apyBps: meta.apyBps,
+    tvlUsd: meta.tvlUsd,
+    liquidityUsd: meta.liquidityUsd,
+    utilization: meta.utilization,
+  };
+  if (meta.feed?.source === "aave") {
+    try {
+      const m = await readAaveMarket(pc, meta.feed.pool, meta.feed.underlying);
+      market = { apyBps: m.apyBps, tvlUsd: m.tvlUsd, liquidityUsd: m.liquidityUsd, utilization: m.utilization };
+    } catch {
+      // fall back to static metrics if the live read fails
+    }
+  }
+
+  return { ...meta, ...market, allowed, allocatedPrincipal, liveBalance };
 }
