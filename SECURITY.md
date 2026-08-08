@@ -41,5 +41,5 @@ Control lives in the contract, not the agent.
 
 ## Reporting a vulnerability
 
-Email **security@aumo.finance** with details and reproduction. Please do not open a public issue
+Email **info@aumo.finance** with details and reproduction. Please do not open a public issue
 for security reports. We aim to acknowledge within 48 hours.
