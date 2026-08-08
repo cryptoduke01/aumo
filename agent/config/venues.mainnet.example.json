@@ -1,6 +1,6 @@
 {
   "chainId": 196,
-  "note": "Template for the X Layer mainnet venue set. Replace addresses with the deployed Aumo adapters for each venue. Market metrics (apyBps, tvlUsd, liquidityUsd, utilization, pegDeviationBps) should be wired to live protocol reads / oracles, not hardcoded; protocolRisk is a curated base score per venue.",
+  "note": "X Layer mainnet venue set. The `address` of each venue is the deployed Aumo adapter for that venue (from DeployMainnet), NOT the underlying protocol. Copy this to venues.mainnet.json and fill the adapter address after deploy. Verified on-chain reference addresses: base asset USDT0 (USD₮0, 6dp) 0x779Ded0c9e1022225f8E0630b35a9b54bE713736; Aave v3 Pool 0xE3F3Caefdd7180F884c01E57f65Df979Af84f116; aXlrUSDT0 0xF356ae412dB5df43BD3a10746f7ad4e1C4De4297. Market metrics (apyBps, tvlUsd, liquidityUsd, utilization) should be wired to live reads; protocolRisk is a curated base score.",
   "venues": [
     {
       "address": "0x0000000000000000000000000000000000000000",
