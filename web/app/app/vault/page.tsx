@@ -5,6 +5,7 @@ import { formatUnits, parseUnits, maxUint256 } from "viem";
 import {
   useAccount,
   useChainId,
+  useReadContract,
   useReadContracts,
   useWaitForTransactionReceipt,
   useWriteContract,
@@ -12,6 +13,7 @@ import {
 import { POOL, USDT0, poolAbi, erc20Abi, xlayerTestnet } from "@/lib/chain";
 import { Panel, Label, Stat, Badge } from "@/components/ui";
 import { ConnectButton } from "@/components/wallet";
+import { BridgeIn } from "@/components/bridge-in";
 import { txUrl } from "@/lib/agent";
 
 const DEC = 6;
@@ -29,12 +31,20 @@ export default function VaultPage() {
   const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
 
+  // Pool TVL is public — always read it, even before a wallet connects.
+  const tvlRead = useReadContract({
+    address: POOL,
+    abi: poolAbi,
+    functionName: "totalAssets",
+    query: { refetchInterval: 12_000 },
+  });
+  const tvl = tvlRead.data as bigint | undefined;
+
   const reads = useReadContracts({
     contracts: [
       { address: USDT0, abi: erc20Abi, functionName: "balanceOf", args: [address!] },
       { address: USDT0, abi: erc20Abi, functionName: "allowance", args: [address!, POOL] },
       { address: POOL, abi: poolAbi, functionName: "maxWithdraw", args: [address!] },
-      { address: POOL, abi: poolAbi, functionName: "totalAssets" },
     ],
     query: { enabled: Boolean(address) && !wrongChain, refetchInterval: 12_000 },
   });
@@ -42,7 +52,6 @@ export default function VaultPage() {
   const walletBal = reads.data?.[0]?.result as bigint | undefined;
   const allowance = reads.data?.[1]?.result as bigint | undefined;
   const position = reads.data?.[2]?.result as bigint | undefined; // your redeemable USDT0
-  const tvl = reads.data?.[3]?.result as bigint | undefined;
 
   const { writeContract, data: hash, isPending, reset, error } = useWriteContract();
   const receipt = useWaitForTransactionReceipt({ hash });
@@ -206,6 +215,10 @@ export default function VaultPage() {
             </p>
           ) : null}
         </Panel>
+      </div>
+
+      <div className="max-w-md">
+        <BridgeIn />
       </div>
     </div>
   );
