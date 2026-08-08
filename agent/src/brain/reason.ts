@@ -7,12 +7,39 @@ import { SYSTEM_PROMPT } from "./prompt.js";
 const REGIME_RANK: Record<Regime, number> = { defensive: 0, cautious: 1, calm: 2 };
 const BAND_RANK: Record<RiskBand, number> = { low: 0, moderate: 1, elevated: 2, high: 3 };
 
-const LlmReply = z.object({
+export const LlmReply = z.object({
   regime: z.enum(["calm", "cautious", "defensive"]),
   appetite: z.enum(["low", "moderate", "elevated"]),
   veto: z.array(z.string()).default([]),
   narrative: z.string().min(1),
 });
+export type LlmReplyT = z.infer<typeof LlmReply>;
+
+/**
+ * The safety kernel of the reasoning layer, extracted pure so it can be tested
+ * without the network. The model's choices are folded against the engine's so the
+ * result is never looser: regime moves only toward defensive, appetite only toward
+ * low, and vetoes only ever remove venues.
+ */
+export function resolveTighten(
+  base: { regime: Regime; appetite: RiskBand },
+  reply: { regime: Regime; appetite: RiskBand; veto: string[] },
+): { regime: Regime; appetite: RiskBand; deny: Set<string> } {
+  const regime: Regime =
+    REGIME_RANK[reply.regime] < REGIME_RANK[base.regime] ? reply.regime : base.regime;
+  const appetite: RiskBand =
+    BAND_RANK[reply.appetite] < BAND_RANK[base.appetite] ? reply.appetite : base.appetite;
+  const deny = new Set(reply.veto.map((a) => a.toLowerCase()));
+  return { regime, appetite, deny };
+}
+
+/** Pull the first JSON object out of a model reply that may include prose or fences. */
+export function extractJson(text: string): string {
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start < 0 || end < 0 || end < start) throw new Error("no JSON object in model reply");
+  return text.slice(start, end + 1);
+}
 
 function modelView(snap: MarketSnapshot, base: Plan) {
   const dec = snap.vault.decimals;
@@ -98,8 +125,7 @@ export async function reason(snap: MarketSnapshot, base: Plan, cfg: Config): Pro
     const text = msg.content
       .map((b) => (b.type === "text" ? b.text : ""))
       .join("\n");
-    const jsonStr = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
-    reply = LlmReply.parse(JSON.parse(jsonStr));
+    reply = LlmReply.parse(JSON.parse(extractJson(text)));
   } catch (err) {
     // Any failure (no network, bad JSON, timeout) falls back to the safe core.
     return {
@@ -111,11 +137,7 @@ export async function reason(snap: MarketSnapshot, base: Plan, cfg: Config): Pro
   }
 
   // Enforce tighten-only: pick the more conservative of engine vs model.
-  const regime: Regime =
-    REGIME_RANK[reply.regime] < REGIME_RANK[base.regime] ? reply.regime : base.regime;
-  const appetite: RiskBand =
-    BAND_RANK[reply.appetite] < BAND_RANK[base.appetite] ? reply.appetite : base.appetite;
-  const deny = new Set(reply.veto.map((a) => a.toLowerCase()));
+  const { regime, appetite, deny } = resolveTighten(base, reply);
 
   const tightened = buildPlan(snap, {
     appetite,

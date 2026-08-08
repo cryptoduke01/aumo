@@ -8,6 +8,7 @@
     "plan": "tsx src/index.ts plan",
     "tick": "tsx src/index.ts tick",
     "loop": "tsx src/index.ts loop",
+    "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "engines": {
