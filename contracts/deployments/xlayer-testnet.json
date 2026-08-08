@@ -4,11 +4,12 @@
   "rpc": "https://testrpc.xlayer.tech",
   "note": "Testnet has no real USDT0 / Aave / STBL, so this deployment uses a mock USDT0 + mock venue to prove the end-to-end flow on-chain. Real venues integrate on mainnet.",
   "contracts": {
-    "AumoVault": "0x52Fc89beD432e068a0a837065fbCFaDb3573A55e",
-    "AumoPool": "0xD2B241B59793dcDBA5a0fa37a8764afc3Bb8Bd80",
+    "AumoPool": "0x057Caa4fC699bF830b8AE2E3B1f5D0D75eABd626",
+    "MockYield": "0x05398D5289a8ed29629362290cf7954430a95702",
+    "StableVault": "0xD831D3e472c4E39f43C6de60a2b5954a8FB54A24",
     "TestUSDT0": "0xFc440733d882f28012B190b11Bbec56b44508448",
-    "MockVenue": "0xB6bF363394FD900cb00605A43a3F6b8a4D1fE05e"
+    "AumoVault": "0x52Fc89beD432e068a0a837065fbCFaDb3573A55e"
   },
-  "note2": "AumoVault = single-owner treasury. AumoPool = multi-depositor ERC-4626 (anyone deposits for shares); both share the same agent + guardrails and the same mock venue (positions are per-caller).",
+  "note2": "AumoPool = the live multi-depositor ERC-4626 product (audited redeploy), with two mock venues so the risk engine chooses between them. The dApp and hosted agent point here. AumoVault = the single-owner treasury variant. Prior pool 0xD2B2 and vault-venue 0xB6bF are superseded.",
   "ownerAgent": "0x197ED5B2313fA482EC271861360E839A8eF75731"
 }

@@ -13,7 +13,8 @@ export const xlayerTestnet = defineChain({
 });
 
 // The multi-depositor pool users deposit into, and its underlying asset.
-export const POOL = "0xD2B241B59793dcDBA5a0fa37a8764afc3Bb8Bd80" as const;
+// Audited AumoPool redeploy with two venues.
+export const POOL = "0x057Caa4fC699bF830b8AE2E3B1f5D0D75eABd626" as const;
 export const USDT0 = "0xFc440733d882f28012B190b11Bbec56b44508448" as const;
 
 export const poolAbi = parseAbi([
