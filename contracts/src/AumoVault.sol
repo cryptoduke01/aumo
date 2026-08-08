@@ -4,6 +4,7 @@ pragma solidity 0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IVenueAdapter} from "./interfaces/IVenueAdapter.sol";
@@ -17,7 +18,7 @@ import {IVenueAdapter} from "./interfaces/IVenueAdapter.sol";
 /// @dev The agent can never: touch a non-allowlisted venue, move more than `maxMoveSize` in
 ///      one call, exceed `perVenueCap` in any venue, exceed `maxTotalDeployed` overall, act
 ///      while paused, or withdraw funds to itself (only the owner can withdraw idle funds).
-contract AumoVault is Ownable, Pausable, ReentrancyGuard {
+contract AumoVault is Ownable2Step, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice The base asset the vault holds and deploys (USDT0).
@@ -53,6 +54,7 @@ contract AumoVault is Ownable, Pausable, ReentrancyGuard {
     error PerVenueCapExceeded();
     error TotalCapExceeded();
     error AssetMismatch();
+    error RenounceDisabled();
 
     modifier onlyAgent() {
         if (msg.sender != agent) revert NotAgent();
@@ -113,6 +115,12 @@ contract AumoVault is Ownable, Pausable, ReentrancyGuard {
         _unpause();
     }
 
+    /// @dev Disabled: a fund-holding vault must never become ownerless. Transfer is two-step
+    ///      (Ownable2Step), so ownership cannot be handed to a wrong/dead address by mistake.
+    function renounceOwnership() public override onlyOwner {
+        revert RenounceDisabled();
+    }
+
     // ------------------------------------------------------------------ agent: allocation
 
     /// @notice Deploy `amount` of idle asset into an allowlisted `venue`, within all guardrails.
@@ -135,6 +143,7 @@ contract AumoVault is Ownable, Pausable, ReentrancyGuard {
 
         asset.forceApprove(venue, amount);
         uint256 supplied = IVenueAdapter(venue).deposit(amount);
+        asset.forceApprove(venue, 0); // never leave a standing allowance to a venue
 
         emit Allocated(venue, supplied, reason, block.timestamp);
     }
@@ -144,6 +153,9 @@ contract AumoVault is Ownable, Pausable, ReentrancyGuard {
     ///         principal lands as idle balance in the vault.
     function deallocate(address venue, uint256 amount) external onlyAgent nonReentrant {
         if (amount == 0) revert ZeroAmount();
+        // retreat is allowed from any venue we still hold, or any currently-allowlisted one;
+        // never a bare call to an arbitrary address.
+        if (!venueAllowed[venue] && allocated[venue] == 0) revert VenueNotAllowed();
 
         uint256 principal = allocated[venue];
         uint256 pulledPrincipal = amount > principal ? principal : amount;

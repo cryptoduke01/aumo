@@ -187,7 +187,7 @@ contract AumoPoolTest is Test {
         vm.prank(stranger);
         pool.deposit(1, stranger); // 1 wei of asset
         vm.prank(stranger);
-        usdt0.transfer(address(pool), 10_000 * U); // donation attack
+        require(usdt0.transfer(address(pool), 10_000 * U), "donate"); // donation attack
 
         uint256 attackerIn = 1 + 10_000 * U; // dust deposit + donation
 
@@ -202,5 +202,44 @@ contract AumoPoolTest is Test {
         // And the victim recovers essentially all of their deposit.
         uint256 got = _redeemAll(alice);
         assertGe(got, 999 * U / 10, "victim keeps ~all value"); // >= 99.9
+    }
+
+    // --- audit regressions ---
+
+    /// Yield left in a venue after its principal is fully deallocated must keep counting toward
+    /// the share price (the Medium finding: totalAssets was gated on allocated[v] > 0).
+    function test_totalAssets_CountsOrphanedYieldAfterDeallocate() public {
+        _deposit(alice, 200 * U);
+        vm.prank(agent);
+        pool.allocate(address(venue), 200 * U, "supply");
+
+        usdt0.mint(address(venue), 40 * U);
+        venue.accrue(address(pool), 40 * U); // venue now holds principal 200 + yield 40
+
+        vm.prank(agent);
+        pool.deallocate(address(venue), 200 * U); // pull exactly principal -> allocated == 0
+        assertEq(pool.allocated(address(venue)), 0, "principal cleared");
+
+        assertEq(pool.totalAssets(), 240 * U, "orphaned yield still counted");
+        assertApproxEqAbs(_redeemAll(alice), 240 * U, 2, "holder keeps principal + yield");
+    }
+
+    /// No standing token allowance is left to a venue after allocate.
+    function test_Allowance_ZeroedAfterAllocate() public {
+        _deposit(alice, 200 * U);
+        vm.prank(agent);
+        pool.allocate(address(venue), 100 * U, "supply");
+        assertEq(usdt0.allowance(address(pool), address(venue)), 0, "no standing allowance");
+    }
+
+    function test_RenounceOwnership_Reverts() public {
+        vm.expectRevert(AumoPool.RenounceDisabled.selector);
+        pool.renounceOwnership();
+    }
+
+    function test_Deallocate_RevertsUnknownVenue() public {
+        vm.prank(agent);
+        vm.expectRevert(AumoPool.VenueNotAllowed.selector);
+        pool.deallocate(address(0xDEAD), 1);
     }
 }

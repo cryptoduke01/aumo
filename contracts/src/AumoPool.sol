@@ -6,6 +6,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IVenueAdapter} from "./interfaces/IVenueAdapter.sol";
@@ -15,12 +16,12 @@ import {IVenueAdapter} from "./interfaces/IVenueAdapter.sol";
 ///         (ERC-4626); an allowlisted agent puts the pooled balance to work in yield venues, but
 ///         only within hard, owner-set guardrails — identical trust model to AumoVault. Share
 ///         value tracks idle balance plus the live value held in venues, so yield accrues to every
-///         depositor pro-rata. Depositors can always redeem; withdrawals pull from venues if the
-///         idle balance is short.
+///         depositor pro-rata. Depositors redeem on demand; withdrawals pull from venues,
+///         subject to each venue's available liquidity.
 /// @dev The agent can never exceed a cap, touch a non-allowlisted venue, act while paused, or move
 ///      user funds anywhere except into allowlisted venues and back. It cannot mint, burn, or
 ///      redeem shares, and it cannot send funds to itself. Owner controls policy, not custody.
-contract AumoPool is ERC4626, Ownable, Pausable, ReentrancyGuard {
+contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice The autonomous allocator permitted to move pooled funds within policy.
@@ -54,6 +55,7 @@ contract AumoPool is ERC4626, Ownable, Pausable, ReentrancyGuard {
     error PerVenueCapExceeded();
     error TotalCapExceeded();
     error AssetMismatch();
+    error RenounceDisabled();
 
     modifier onlyAgent() {
         if (msg.sender != agent) revert NotAgent();
@@ -71,14 +73,17 @@ contract AumoPool is ERC4626, Ownable, Pausable, ReentrancyGuard {
 
     // ------------------------------------------------------------------ accounting
 
-    /// @notice Total assets the pool controls: idle balance plus the live value in every venue
-    ///         that currently holds principal (principal + accrued yield, per each adapter).
+    /// @notice Total assets the pool controls: idle balance plus the live value held in every
+    ///         venue (principal + accrued yield, per each adapter), regardless of the principal
+    ///         counter.
     function totalAssets() public view override returns (uint256) {
         uint256 sum = IERC20(asset()).balanceOf(address(this));
         uint256 n = _venues.length;
         for (uint256 i; i < n; ++i) {
-            address v = _venues[i];
-            if (allocated[v] > 0) sum += IVenueAdapter(v).balanceOf(address(this));
+            // Sum each venue's LIVE balance, not its principal counter. A venue can still hold
+            // accrued yield after its principal is fully deallocated; that value must keep
+            // counting toward the share price. Untouched venues report zero.
+            sum += IVenueAdapter(_venues[i]).balanceOf(address(this));
         }
         return sum;
     }
@@ -208,6 +213,12 @@ contract AumoPool is ERC4626, Ownable, Pausable, ReentrancyGuard {
         _unpause();
     }
 
+    /// @dev Disabled: a fund-holding pool must never become ownerless. Transfer is two-step
+    ///      (Ownable2Step), so ownership cannot be handed to a wrong/dead address by mistake.
+    function renounceOwnership() public override onlyOwner {
+        revert RenounceDisabled();
+    }
+
     // ------------------------------------------------------------------ agent: allocation
 
     /// @notice Deploy idle asset into an allowlisted venue, within every guardrail.
@@ -229,12 +240,16 @@ contract AumoPool is ERC4626, Ownable, Pausable, ReentrancyGuard {
 
         IERC20(asset()).forceApprove(venue, amount);
         uint256 supplied = IVenueAdapter(venue).deposit(amount);
+        IERC20(asset()).forceApprove(venue, 0); // never leave a standing allowance to a venue
 
         emit Allocated(venue, supplied, reason, block.timestamp);
     }
 
     /// @notice Retreat up to `amount` from a venue back into the pool. Allowed even while paused.
     function deallocate(address venue, uint256 amount) external onlyAgent nonReentrant {
+        // retreat only from a venue we have ever allowlisted; never a bare call to an arbitrary
+        // address. (_ensureIdle only ever targets venues already in the list.)
+        if (!_inList[venue]) revert VenueNotAllowed();
         _doDeallocate(venue, amount);
     }
 

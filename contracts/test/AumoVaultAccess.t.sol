@@ -120,4 +120,23 @@ contract AumoVaultAccessTest is Test {
         vault.allocate(address(venue), 100 * U, "x");
         assertEq(vault.allocated(address(venue)), 100 * U);
     }
+
+    // --- audit regressions ---
+
+    function test_Allowance_ZeroedAfterAllocate() public {
+        vm.prank(agent);
+        vault.allocate(address(venue), 100 * U, "supply");
+        assertEq(usdt0.allowance(address(vault), address(venue)), 0, "no standing allowance");
+    }
+
+    function test_RenounceOwnership_Reverts() public {
+        vm.expectRevert(AumoVault.RenounceDisabled.selector);
+        vault.renounceOwnership();
+    }
+
+    function test_Deallocate_RevertsUnknownVenue() public {
+        vm.prank(agent);
+        vm.expectRevert(AumoVault.VenueNotAllowed.selector);
+        vault.deallocate(address(0xDEAD), 1);
+    }
 }
