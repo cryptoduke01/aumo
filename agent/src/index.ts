@@ -31,6 +31,13 @@ async function main() {
     case "loop":
       await runLoop(cfg);
       break;
+    case "serve": {
+      // Hosted mode: expose the status surface, then run the loop alongside it.
+      const { startServer } = await import("./server.js");
+      startServer(cfg);
+      await runLoop(cfg);
+      break;
+    }
     default:
       console.log(HELP);
       process.exit(cmd === "help" || cmd === "--help" ? 0 : 1);
