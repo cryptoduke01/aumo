@@ -98,42 +98,76 @@ function modelView(snap: MarketSnapshot, base: Plan) {
  * the plan more conservative; the result is rebuilt through buildPlan() so every
  * guardrail is re-enforced in code regardless of what the model said.
  */
+// Cross-tick cache so a quiet market does not re-bill the model every tick.
+let lastKey: string | null = null;
+let lastReply: LlmReplyT | null = null;
+
+/** Material inputs that would change the model's judgment. */
+function stateKey(snap: MarketSnapshot, base: Plan): string {
+  return JSON.stringify({
+    idle: snap.vault.idle.toString(),
+    deployed: snap.vault.totalDeployed.toString(),
+    paused: snap.vault.paused,
+    venues: snap.venues.map((v) => [
+      v.address,
+      v.apyBps,
+      Math.round(v.utilization * 100),
+      v.pegDeviationBps,
+      v.allowed,
+    ]),
+    moves: base.moves.map((m) => [m.action, m.venueName, m.amount.toString()]),
+  });
+}
+
 export async function reason(snap: MarketSnapshot, base: Plan, cfg: Config): Promise<Plan> {
   if (!cfg.anthropicKey) {
     return { ...base, summary: `${base.summary} (deterministic risk engine; no LLM key set)` };
   }
 
+  // Do not spend model credits when there is nothing to manage: an empty vault
+  // (no depositors) has a trivial "hold" plan the model cannot improve on.
+  if (snap.vault.idle + snap.vault.totalDeployed === 0n) {
+    return { ...base, summary: `${base.summary} (idle vault; reasoning skipped to conserve credits)` };
+  }
+
+  // Reuse the last judgment when the material state has not changed, so a quiet
+  // market does not re-bill the model on every tick.
+  const key = stateKey(snap, base);
   let reply: z.infer<typeof LlmReply>;
-  try {
-    const { default: Anthropic } = await import("@anthropic-ai/sdk");
-    const client = new Anthropic({ apiKey: cfg.anthropicKey });
-    const msg = await client.messages.create({
-      model: cfg.model,
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: `Current state and the risk engine's candidate plan:\n\n${JSON.stringify(
-            modelView(snap, base),
-            null,
-            2,
-          )}\n\nRespond with the JSON object only.`,
-        },
-      ],
-    });
-    const text = msg.content
-      .map((b) => (b.type === "text" ? b.text : ""))
-      .join("\n");
-    reply = LlmReply.parse(JSON.parse(extractJson(text)));
-  } catch (err) {
-    // Any failure (no network, bad JSON, timeout) falls back to the safe core.
-    return {
-      ...base,
-      summary: `${base.summary} (LLM layer unavailable: ${
-        err instanceof Error ? err.message : "error"
-      }; using deterministic risk engine)`,
-    };
+  if (key === lastKey && lastReply) {
+    reply = lastReply;
+  } else {
+    try {
+      const { default: Anthropic } = await import("@anthropic-ai/sdk");
+      const client = new Anthropic({ apiKey: cfg.anthropicKey });
+      const msg = await client.messages.create({
+        model: cfg.model,
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: `Current state and the risk engine's candidate plan:\n\n${JSON.stringify(
+              modelView(snap, base),
+              null,
+              2,
+            )}\n\nRespond with the JSON object only.`,
+          },
+        ],
+      });
+      const text = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("\n");
+      reply = LlmReply.parse(JSON.parse(extractJson(text)));
+      lastKey = key;
+      lastReply = reply;
+    } catch (err) {
+      // Any failure (no network, bad JSON, timeout) falls back to the safe core.
+      return {
+        ...base,
+        summary: `${base.summary} (LLM layer unavailable: ${
+          err instanceof Error ? err.message : "error"
+        }; using deterministic risk engine)`,
+      };
+    }
   }
 
   // Enforce tighten-only: pick the more conservative of engine vs model.
