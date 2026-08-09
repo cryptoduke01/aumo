@@ -4,7 +4,7 @@ import { DitherMark } from "@/components/dither-mark";
 export const metadata: Metadata = {
   title: "Whitepaper · Aumo",
   description:
-    "Aumo: an autonomous, guardrailed treasury agent for stablecoin real-world-asset yield.",
+    "Aumo: an autonomous, guardrailed treasury agent for risk-adjusted stablecoin yield across lending and real-world-asset-backed venues on X Layer.",
 };
 
 export default function WhitepaperPage() {

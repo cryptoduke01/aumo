@@ -1,6 +1,6 @@
 {
   "chainId": 196,
-  "note": "X Layer MAINNET venue set. `address` is the deployed Aumo AaveV3Adapter (fill it in after running DeployPoolMainnet). The feed reads live Aave rates on X Layer. Fork-proven against this exact Aave deployment.",
+  "note": "X Layer MAINNET venues. Each `address` is the deployed Aumo adapter (fill from the DeployPoolMainnet output: AaveV3Adapter and RwaUsdgAdapter). Feeds read live Aave rates. Both legs are fork-proven against live X Layer (Aave + Uniswap).",
   "venues": [
     {
       "address": "0x0000000000000000000000000000000000000000",
@@ -16,6 +16,22 @@
         "source": "aave",
         "pool": "0xE3F3Caefdd7180F884c01E57f65Df979Af84f116",
         "underlying": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736"
+      }
+    },
+    {
+      "address": "0x0000000000000000000000000000000000000000",
+      "name": "USDG (RWA-backed)",
+      "kind": "rwa",
+      "apyBps": 0,
+      "tvlUsd": 0,
+      "liquidityUsd": 0,
+      "utilization": 0,
+      "protocolRisk": 0.14,
+      "pegDeviationBps": 0,
+      "feed": {
+        "source": "aave",
+        "pool": "0xE3F3Caefdd7180F884c01E57f65Df979Af84f116",
+        "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8"
       }
     }
   ]

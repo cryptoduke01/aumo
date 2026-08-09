@@ -61,8 +61,8 @@ export default function Landing() {
           </h1>
           <p className="mt-6 max-w-xl text-balance text-base leading-relaxed text-muted-foreground sm:text-lg">
             Aumo is an autonomous treasury agent. It moves your idle USDT0 into
-            real-world-asset yield, stays inside guardrails it can&apos;t break,
-            and proves every move on-chain.
+            the best risk-adjusted yield on X Layer, across on-chain lending and
+            real-world-asset-backed dollars, inside guardrails it can&apos;t break.
           </p>
           <Cta className="mt-8" />
 

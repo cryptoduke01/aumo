@@ -31,8 +31,9 @@ export default function DocsPage() {
           </h1>
           <p className="mt-4 max-w-xl text-muted-foreground">
             A treasury agent that puts idle stablecoins to work in
-            real-world-asset yield, inside limits enforced on-chain, and proves
-            every move.
+            the best risk-adjusted yield across on-chain lending and
+            real-world-asset-backed dollars, inside limits enforced on-chain, and
+            proves every move.
           </p>
         </div>
         <AsciiMark className="hidden shrink-0 sm:block" />

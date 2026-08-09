@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://aumo.finance"),
   title: "Aumo · autonomous treasury agent",
   description:
-    "Aumo is an autonomous treasury agent for stablecoins on X Layer. It puts idle USDT0 to work in real-world-asset yield, within on-chain guardrails, and proves every move.",
+    "Aumo is an autonomous treasury agent for stablecoins on X Layer. It puts idle USDT0 to work in the best risk-adjusted yield across on-chain lending and real-world-asset-backed dollars, within guardrails it cannot break, and proves every move.",
   openGraph: {
     title: "Aumo · put your stablecoins to work",
     description:

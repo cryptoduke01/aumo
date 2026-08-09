@@ -5,6 +5,7 @@ import {Script, console2} from "forge-std/Script.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AumoPool} from "../src/AumoPool.sol";
 import {AaveV3Adapter} from "../src/adapters/AaveV3Adapter.sol";
+import {RwaUsdgAdapter} from "../src/adapters/RwaUsdgAdapter.sol";
 
 /// @notice One-command X Layer MAINNET launch (chainId 196): the multi-depositor AumoPool
 ///         (ERC-4626) plus a real Aave v3 adapter, wired and allowlisted. This is the public
@@ -28,6 +29,12 @@ contract DeployPoolMainnet is Script {
     address constant USDT0 = 0x779Ded0c9e1022225f8E0630b35a9b54bE713736;
     address constant AAVE_POOL = 0xE3F3Caefdd7180F884c01E57f65Df979Af84f116;
     address constant AUSDT0 = 0xF356ae412dB5df43BD3a10746f7ad4e1C4De4297;
+    // RWA venue: USDG (Global Dollar, RWA-reserve-backed) supplied to Aave, USDT0<->USDG on Uniswap.
+    address constant USDG = 0x4ae46a509F6b1D9056937BA4500cb143933D2dc8;
+    address constant AUSDG = 0x228765a3C18065C923F23a0CCb6c7cEFB3eA2223;
+    address constant UNI_ROUTER = 0x4f0C28f5926AFDA16bf2506D5D9e57Ea190f9bcA; // SwapRouter02
+    uint24 constant USDG_FEE = 100; // live USDT0/USDG pool fee tier (0.01%)
+    uint256 constant USDG_SLIPPAGE_BPS = 200; // 2% bound; a thin swap reverts, never bleeds
 
     function run() external {
         address owner = vm.envAddress("VAULT_OWNER");
@@ -45,8 +52,14 @@ contract DeployPoolMainnet is Script {
 
         vm.startBroadcast();
         AumoPool pool = new AumoPool(IERC20(USDT0), owner);
+        // Venue 1: real Aave USDT0 lending (fork-proven).
         AaveV3Adapter aave = new AaveV3Adapter(USDT0, AAVE_POOL, AUSDT0, address(pool));
+        // Venue 2: RWA-backed USDG yield (fork-proven) — the agent aggregates across both.
+        RwaUsdgAdapter usdg = new RwaUsdgAdapter(
+            USDT0, USDG, AUSDG, AAVE_POOL, UNI_ROUTER, address(pool), USDG_FEE, USDG_SLIPPAGE_BPS
+        );
         pool.setVenueAllowed(address(aave), true);
+        pool.setVenueAllowed(address(usdg), true);
         pool.setPolicy(maxMove, perVenue, maxTotal);
         if (agent != owner) pool.setAgent(agent);
         vm.stopBroadcast();
@@ -54,6 +67,7 @@ contract DeployPoolMainnet is Script {
         console2.log("USDT0 (asset): ", USDT0);
         console2.log("AumoPool:      ", address(pool));
         console2.log("AaveV3Adapter: ", address(aave));
+        console2.log("RwaUsdgAdapter:", address(usdg));
         console2.log("owner:         ", owner);
         console2.log("agent:         ", agent);
         console2.log("caps (maxMove/perVenue/maxTotal):", maxMove, perVenue, maxTotal);
