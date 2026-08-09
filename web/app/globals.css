@@ -1,64 +1,153 @@
 @import "tailwindcss";
 
-/* Dark-first. Interim Aumo palette from brand.md — swap these values when branding lands. */
-:root {
-  --background: #0b0b0b;
-  --card: #101012;
-  --card-2: #16191e;
-  --foreground: #eae8e3;
-  --muted-foreground: #8a8f98;
-  --border: #1e2126;
-  --primary: #b8935a;
+/* ─────────────────────────────────────────────────────────────────────────
+   Aumo — black & white, warm, from the brand guideline. Ink and paper do the
+   work; the one live accent is the brand lime (CDDB00), used only where
+   something is genuinely active. Gold is retired from the page surface.
+   Two themes via [data-theme] (set before paint in layout, so no flash).
+   ───────────────────────────────────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0b0b0b; /* brand black */
+  --surface: #101011;
+  --surface-2: #161618;
+  --card: #101011;
+  --card-2: #161618;
+  --foreground: #f3f1ea; /* warm near-white */
+  --muted-foreground: #9c988e;
+  --faint: #63615a; /* running-process / metadata */
+  --border: #201f1c;
+  --hairline: rgba(243, 241, 234, 0.09);
+  --primary: #b8945a; /* brand gold — held off the landing surface */
   --primary-foreground: #0b0b0b;
-  --positive: #5bb98b;
-  --negative: #d98a76;
-  --ring: #c8a96a;
+  --accent: #cddb00; /* brand lime — the only live colour */
+  --accent-foreground: #0b0b0b;
+  --positive: #cddb00;
+  --negative: #c2957f;
+  --ring: #cddb00;
+  --glyph-rgb: 243, 241, 234;
   --radius: 0.5rem;
+  --cut: 14px;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --background: #f7f6f2;
-    --card: #ffffff;
-    --card-2: #f0eee8;
-    --foreground: #14161a;
-    --muted-foreground: #5a6069;
-    --border: #e4e2dc;
-    --primary: #a9863f;
-    --primary-foreground: #ffffff;
-    --positive: #2e9e6b;
-    --negative: #c25b42;
-    --ring: #a9863f;
-  }
+[data-theme="light"] {
+  color-scheme: light;
+  --background: #edece4; /* warm paper */
+  --surface: #f6f5ef;
+  --surface-2: #e6e4d9;
+  --card: #f6f5ef;
+  --card-2: #e6e4d9;
+  --foreground: #0b0b0b;
+  --muted-foreground: #5c594f;
+  --faint: #a29d90;
+  --border: #d9d5c8;
+  --hairline: rgba(11, 11, 11, 0.1);
+  --primary: #9c7a3f;
+  --primary-foreground: #edece4;
+  --accent: #6f7a00; /* darker lime for contrast on paper */
+  --accent-foreground: #edece4;
+  --positive: #6f7a00;
+  --negative: #a2563b;
+  --ring: #0b0b0b;
+  --glyph-rgb: 11, 11, 11;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-card: var(--card);
   --color-card-2: var(--card-2);
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
+  --color-faint: var(--faint);
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --color-ring: var(--ring);
-  /* PP Neue Montreal is the brand type; drop in the woff2 via next/font/local when licensed.
-     Geist is the closest free grotesk fallback so the layout doesn't shift meanwhile. */
-  --font-sans: "PP Neue Montreal", var(--font-geist-sans), system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+:root {
+  /* PP Neue Montreal, self-hosted (var), then the named family if installed. */
+  --font-sans: var(--font-montreal), "PP Neue Montreal", "Neue Montreal",
+    "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+    monospace;
+}
+
+html {
+  background: var(--background);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Tabular figures for all data readouts. */
 .tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+
+/* The vault chamfer: one invented silhouette, reused on the CTA and the console. */
+.chamfer {
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%
+  );
+}
+
+/* Chamfered panel that keeps a 1px self-colored edge on every side, diagonal too. */
+.chamfer-edge {
+  background: var(--hairline);
+  padding: 1px;
+}
+.chamfer-edge,
+.chamfer-edge > * {
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%
+  );
+}
+
+:where(a, button, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Nav enters by moving, never by hiding content behind opacity:0. */
+@keyframes settle-down {
+  from {
+    transform: translateY(-6px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.settle {
+  animation: settle-down 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settle {
+    animation: none;
+  }
 }

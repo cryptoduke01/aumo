@@ -1,31 +1,43 @@
-// Interim reproduction of the Aumo mark ("safe box with a job" — vault outline + inner deposit
-// block, chamfered bottom-right corner that also reads as a lowercase "a"). currentColor so it
-// themes gold/cream. Swap for the designer's official SVG when it lands.
+// The Aumo mark, rebuilt to the designer's geometry (Frame 9): a stroked vault
+// square with the bottom-right corner chamfered — that cut is what turns the box
+// into a lowercase "a" — holding a solid deposit block with its own matching
+// chamfer. currentColor throughout so it themes gold on dark, ink on cream.
+// Swap for the official SVG the moment it lands; the geometry already matches.
 export function AumoMark({ className }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 100 100"
+      viewBox="0 0 48 48"
       className={className}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
+      {/* vault outline, chamfered bottom-right */}
       <path
-        d="M22 14 H80 a6 6 0 0 1 6 6 V63 L63 86 H20 a6 6 0 0 1-6-6 V20 a6 6 0 0 1 6-6 Z"
+        d="M8 8 H40 V32.5 L32.5 40 H8 Z"
         stroke="currentColor"
-        strokeWidth="7"
-        strokeLinejoin="round"
+        strokeWidth="3.1"
+        strokeLinejoin="miter"
       />
-      <path d="M40 34 H60 V52 L52 60 H40 Z" fill="currentColor" />
+      {/* deposit block, matching chamfer, sat up-left of centre like the mark */}
+      <path d="M17.5 17 H28 V24.5 L24.5 28 H17.5 Z" fill="currentColor" />
     </svg>
   );
 }
 
-export function AumoWordmark({ className }: { className?: string }) {
+export function AumoWordmark({
+  className,
+  markClass = "size-[1.15em] text-primary",
+}: {
+  className?: string;
+  markClass?: string;
+}) {
   return (
-    <span className={`inline-flex items-center gap-2 ${className ?? ""}`}>
-      <AumoMark className="size-5 text-primary" />
-      <span className="text-base font-semibold tracking-tight lowercase">aumo</span>
+    <span
+      className={`inline-flex items-center gap-2 text-[1.05rem] font-medium lowercase tracking-tight ${className ?? ""}`}
+    >
+      <AumoMark className={markClass} />
+      <span>aumo</span>
     </span>
   );
 }

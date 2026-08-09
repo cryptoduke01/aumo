@@ -1,31 +1,41 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+// PP Neue Montreal — the brand's primary typeface, self-hosted.
+const neueMontreal = localFont({
+  src: [
+    { path: "./fonts/PPNeueMontreal-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/PPNeueMontreal-Medium.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/PPNeueMontreal-Bold.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-montreal",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Aumo — autonomous treasury agent",
   description:
-    "An autonomous treasury agent for stablecoins on X Layer. It puts idle USDT0 to work in tokenized RWA yield, within on-chain guardrails, and proves every move.",
+    "Aumo is an autonomous treasury agent for stablecoins on X Layer. It puts idle USDT0 to work in real-world-asset yield, within on-chain guardrails, and proves every move.",
 };
+
+// Set the theme before first paint so there is no flash: saved choice, else system.
+const themeScript = `(function(){try{var t=localStorage.getItem('aumo-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      data-theme="dark"
+      className={`${neueMontreal.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <Script id="aumo-theme" strategy="beforeInteractive">
+          {themeScript}
+        </Script>
         <Providers>{children}</Providers>
       </body>
     </html>
