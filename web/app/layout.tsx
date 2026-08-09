@@ -16,9 +16,26 @@ const neueMontreal = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://aumo.finance"),
   title: "Aumo · autonomous treasury agent",
   description:
     "Aumo is an autonomous treasury agent for stablecoins on X Layer. It puts idle USDT0 to work in real-world-asset yield, within on-chain guardrails, and proves every move.",
+  openGraph: {
+    title: "Aumo · put your stablecoins to work",
+    description:
+      "An autonomous treasury agent for stablecoins. Real yield, on-chain guardrails, every move proved.",
+    url: "https://aumo.finance",
+    siteName: "Aumo",
+    images: [{ url: "/brand/og.png", width: 1200, height: 630 }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Aumo · put your stablecoins to work",
+    description:
+      "An autonomous treasury agent for stablecoins. Real yield, on-chain guardrails, every move proved.",
+    images: ["/brand/og.png"],
+  },
 };
 
 // Set the theme before first paint so there is no flash: saved choice, else system.
