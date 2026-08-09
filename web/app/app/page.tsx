@@ -18,6 +18,7 @@ import { Num } from "@/components/num";
 import { AreaChart, Donut, type Segment } from "@/components/charts";
 import { Loader } from "@/components/loader";
 import { AskAumo } from "@/components/ask-aumo";
+import { VenueIcon } from "@/components/venue-icon";
 
 const unit = (raw: string | number, dec: number) => Number(raw) / 10 ** dec;
 const VENUE_TONES = ["var(--accent)", "var(--muted-foreground)", "var(--foreground)", "var(--negative)"];
@@ -87,8 +88,6 @@ export default function Dashboard() {
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6">
       <Header identity={identity} />
 
-      <AskAumo />
-
       {/* metrics */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Metric label="Total assets" value={total} currency sub="Under management" />
@@ -107,6 +106,7 @@ export default function Dashboard() {
               {segments.map((s) => (
                 <li key={s.label} className="flex items-center gap-2 text-sm">
                   <span className="size-2 shrink-0 rounded-full" style={{ background: s.tone }} />
+                  {s.label !== "Idle" ? <VenueIcon name={s.label} className="size-3.5 shrink-0 text-muted-foreground" /> : null}
                   <span className="truncate text-muted-foreground">{s.label}</span>
                   <span className="tnum ml-auto text-foreground">
                     <Num value={s.value} currency maximumFractionDigits={0} />
@@ -132,6 +132,8 @@ export default function Dashboard() {
 
         {vault ? <GuardrailsCard vault={vault} identity={identity} dec={dec} /> : <div />}
       </div>
+
+      <AskAumo />
 
       {latest ? <Decision rec={latest} dec={dec} /> : null}
       {latest && latest.plan.risks.length > 0 ? <RiskTable rec={latest} /> : null}

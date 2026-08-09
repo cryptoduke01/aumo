@@ -1,6 +1,6 @@
 import { AsciiField } from "@/components/ascii-field";
 import { AgentConsole } from "@/components/agent-console";
-import { AskAumo } from "@/components/ask-aumo";
+import { AsciiMark } from "@/components/ascii-mark";
 import { Grain } from "@/components/grain";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -72,19 +72,20 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── ask the agent ───────────────────────────────────── */}
-      <section className="border-t border-border/70">
-        <div className="mx-auto w-full max-w-3xl px-5 py-24 sm:px-8">
-          <div className="mb-8 text-center">
-            <h2 className="text-balance text-2xl font-medium tracking-tight sm:text-3xl">
-              Talk to the agent.
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              This is the live agent running the vault. Ask it why it made a move, how it scores a
-              venue, or what would make it turn defensive.
-            </p>
-          </div>
-          <AskAumo />
+      {/* ── talk to the agent (banner + CTA into the app) ───── */}
+      <section className="relative isolate overflow-hidden border-t border-border/70">
+        <AsciiField className="opacity-40 [mask-image:radial-gradient(120%_90%_at_50%_50%,#000_10%,transparent_70%)]" />
+        <Grain />
+        <div className="mx-auto flex w-full max-w-3xl flex-col items-center px-5 py-24 text-center sm:px-8">
+          <AsciiMark className="text-primary/70" />
+          <h2 className="mt-8 text-balance text-2xl font-medium tracking-tight sm:text-3xl">
+            Talk to the agent.
+          </h2>
+          <p className="mt-3 max-w-lg text-balance text-muted-foreground">
+            Aumo can explain any move it made, how it scores a venue, and what would turn it
+            defensive. Ask it live, in the app.
+          </p>
+          <Cta className="mt-8">Talk to Aumo</Cta>
         </div>
       </section>
 

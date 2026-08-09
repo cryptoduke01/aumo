@@ -99,8 +99,12 @@ export default function DocsPage() {
               <li><strong>The bridge.</strong> USDT0&apos;s native LayerZero OFT, so deposits can originate on Ethereum, Arbitrum, Optimism, or Polygon and arrive on X Layer ready to deposit.</li>
             </ul>
             <p>
-              Everything settles on X Layer, with real yield sourced through Aave.
-              The base asset is USDT0 throughout.
+              Everything settles on X Layer. The base asset is USDT0 throughout, and
+              the agent allocates across two real venues: <strong>Aave v3</strong>{" "}
+              lending, and <strong>USDG</strong>, a regulated dollar backed by cash and
+              short-term U.S. Treasuries (routed via Uniswap and supplied to Aave) for
+              real-world-asset-backed yield. Both are proven end-to-end against live X
+              Layer mainnet.
             </p>
           </section>
 

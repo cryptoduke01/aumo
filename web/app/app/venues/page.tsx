@@ -14,6 +14,7 @@ import {
 } from "@/lib/agent";
 import { Panel, Label, Badge, RiskBar } from "@/components/ui";
 import { Loader } from "@/components/loader";
+import { VenueIcon } from "@/components/venue-icon";
 
 const usd = (n: number) =>
   n >= 1_000_000
@@ -91,7 +92,10 @@ function VenueCard({ venue, risk }: { venue: VenueSnapshot; risk?: VenueRisk }) 
     <Panel className="flex flex-col p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <span className="font-medium text-foreground">{venue.name}</span>
+          <span className="flex items-center gap-2 font-medium text-foreground">
+            <VenueIcon name={venue.name} className="size-4 text-muted-foreground" />
+            {venue.name}
+          </span>
           <a className="font-mono text-[11px] text-faint underline decoration-border underline-offset-2 hover:text-accent" href={addrUrl(venue.address)} target="_blank" rel="noreferrer">
             {short(venue.address)} ↗
           </a>
