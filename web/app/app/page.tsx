@@ -17,6 +17,7 @@ import { AumoMark } from "@/components/mark";
 import { Num } from "@/components/num";
 import { AreaChart, Donut, type Segment } from "@/components/charts";
 import { Loader } from "@/components/loader";
+import { AskAumo } from "@/components/ask-aumo";
 
 const unit = (raw: string | number, dec: number) => Number(raw) / 10 ** dec;
 const VENUE_TONES = ["var(--accent)", "var(--muted-foreground)", "var(--foreground)", "var(--negative)"];
@@ -85,6 +86,8 @@ export default function Dashboard() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6">
       <Header identity={identity} />
+
+      <AskAumo />
 
       {/* metrics */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

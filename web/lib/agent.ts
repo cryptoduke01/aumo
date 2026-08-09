@@ -112,6 +112,20 @@ export const getStatus = (signal?: AbortSignal) => getJson<Status>("/", signal);
 export const getReceipts = (limit = 20, signal?: AbortSignal) =>
   getJson<DecisionRecord[]>(`/receipts?limit=${limit}`, signal);
 
+// Conversational Q&A: ask the agent about its decisions, grounded in its live state.
+export async function ask(question: string, signal?: AbortSignal): Promise<string> {
+  const res = await fetch(`${AGENT_URL}/ask`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ question }),
+    signal,
+    cache: "no-store",
+  });
+  const data = (await res.json().catch(() => ({}))) as { answer?: string; error?: string };
+  if (!res.ok) throw new Error(data.error ?? `ask -> ${res.status}`);
+  return data.answer ?? "";
+}
+
 // --- formatting ---
 
 export function amount(str: string, decimals: number, maxFrac = 2): string {

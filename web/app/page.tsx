@@ -1,5 +1,6 @@
 import { AsciiField } from "@/components/ascii-field";
 import { AgentConsole } from "@/components/agent-console";
+import { AskAumo } from "@/components/ask-aumo";
 import { Grain } from "@/components/grain";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -68,6 +69,22 @@ export default function Landing() {
           <div className="mt-16 w-full max-w-3xl sm:mt-20">
             <AgentConsole />
           </div>
+        </div>
+      </section>
+
+      {/* ── ask the agent ───────────────────────────────────── */}
+      <section className="border-t border-border/70">
+        <div className="mx-auto w-full max-w-3xl px-5 py-24 sm:px-8">
+          <div className="mb-8 text-center">
+            <h2 className="text-balance text-2xl font-medium tracking-tight sm:text-3xl">
+              Talk to the agent.
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              This is the live agent running the vault. Ask it why it made a move, how it scores a
+              venue, or what would make it turn defensive.
+            </p>
+          </div>
+          <AskAumo />
         </div>
       </section>
 
