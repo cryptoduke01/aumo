@@ -15,9 +15,10 @@ import {
   type Identity,
 } from "@/lib/agent";
 import { Panel, Label, Stat, Badge, Dot, RiskBar } from "@/components/ui";
+import { AumoMark } from "@/components/mark";
 
 const link =
-  "underline decoration-border underline-offset-4 hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
+  "underline decoration-border underline-offset-4 hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
 
 export default function Dashboard() {
   const [identity, setIdentity] = useState<Identity | null>(null);
@@ -68,7 +69,6 @@ export default function Dashboard() {
           label="Total assets"
           value={amount(String(total), dec)}
           sub={`${sym} under management`}
-          accent
         />
         <Stat label="Idle" value={vault ? amount(vault.idle, dec) : "—"} sub="ready to deploy" />
         <Stat
@@ -133,11 +133,10 @@ function Header({ identity, latest }: { identity: Identity; latest?: DecisionRec
       <div className="flex flex-wrap items-center gap-2">
         {latest ? (
           <Badge tone="positive">
-            <Dot />
-            <span className="motion-safe:animate-pulse">live</span> · {timeAgo(latest.takenAt)}
+            <Dot /> live · {timeAgo(latest.takenAt)}
           </Badge>
         ) : null}
-        <Badge tone={identity.hasReasoningLayer ? "gold" : "neutral"}>
+        <Badge tone={identity.hasReasoningLayer ? "accent" : "neutral"}>
           reasoning {identity.hasReasoningLayer ? "on" : "off"}
         </Badge>
         <Badge tone={identity.policy.execute ? "positive" : "neutral"}>
@@ -166,7 +165,7 @@ function Decision({ rec, dec, sym }: { rec: DecisionRecord; dec: number; sym: st
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="neutral">{plan.regime}</Badge>
           <Badge tone="neutral">appetite {plan.appetite}</Badge>
-          <Badge tone="gold">
+          <Badge tone="accent">
             {plan.source === "risk-engine+llm" ? "AI reasoning" : "risk engine"}
           </Badge>
         </div>
@@ -260,7 +259,7 @@ function RiskTable({ rec }: { rec: DecisionRecord }) {
                   </div>
                   <span className={`text-[11px] capitalize ${BAND_COLOR[r.band]}`}>{r.band}</span>
                 </td>
-                <td className="tnum py-3 pr-4 font-mono text-primary">{pct(r.riskAdjustedApyBps)}</td>
+                <td className="tnum py-3 pr-4 font-mono text-accent">{pct(r.riskAdjustedApyBps)}</td>
                 <td className="py-3 text-xs text-muted-foreground">
                   {r.notes.length ? r.notes.join("; ") : "—"}
                 </td>
@@ -351,14 +350,12 @@ function LoadingState() {
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-4 py-24 text-center">
-      <span className="text-primary" aria-hidden>
-        ▲
-      </span>
+      <AumoMark className="size-6 text-foreground" />
       <p className="text-sm text-foreground">Couldn&apos;t reach the Aumo agent.</p>
       <p className="tnum font-mono text-xs text-muted-foreground">{message}</p>
       <button
         onClick={onRetry}
-        className="rounded-lg border border-border px-4 py-2 text-sm hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="rounded-lg border border-border px-4 py-2 text-sm hover:border-foreground/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         Retry
       </button>

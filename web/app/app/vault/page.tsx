@@ -21,7 +21,7 @@ const fmt = (v: bigint | undefined, max = 2) =>
   v === undefined ? "—" : (Number(v) / 10 ** DEC).toLocaleString("en-US", { maximumFractionDigits: max });
 
 const primaryBtn =
-  "inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "chamfer inline-flex w-full items-center justify-center bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export default function VaultPage() {
   const { address, isConnected } = useAccount();
@@ -122,7 +122,7 @@ export default function VaultPage() {
         {/* Position + pool */}
         <div className="flex flex-col gap-6">
           <Panel className="grid grid-cols-2 divide-x divide-border">
-            <Stat label="Your position" value={`${fmt(position)}`} sub="USDT0 redeemable" accent />
+            <Stat label="Your position" value={`${fmt(position)}`} sub="USDT0 redeemable" />
             <Stat
               label="Pool TVL"
               value={fmt(tvl, 0)}
@@ -162,14 +162,14 @@ export default function VaultPage() {
             <div className="flex items-center justify-between">
               <Label>Amount</Label>
               <button
-                className="text-xs text-primary hover:underline disabled:opacity-40"
+                className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
                 disabled={max === undefined}
                 onClick={() => max !== undefined && setAmount(formatUnits(max, DEC))}
               >
                 Max {fmt(max)}
               </button>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-card-2 px-3 py-2.5 focus-within:border-primary">
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-card-2 px-3 py-2.5 focus-within:border-foreground/40">
               <input
                 inputMode="decimal"
                 placeholder="0.00"
@@ -203,7 +203,7 @@ export default function VaultPage() {
               <span className="text-muted-foreground">
                 {receipt.isLoading ? "Confirming…" : receipt.isSuccess ? "Confirmed" : "Submitted"}
               </span>
-              <a className="text-primary hover:underline" href={txUrl(hash)} target="_blank" rel="noreferrer">
+              <a className="text-accent hover:underline" href={txUrl(hash)} target="_blank" rel="noreferrer">
                 view ↗
               </a>
             </div>

@@ -62,7 +62,7 @@ export function BridgeIn() {
     <Panel className="p-5">
       <div className="mb-4 flex items-center justify-between">
         <Label>Fund from another chain</Label>
-        <Badge tone="gold">via LayerZero</Badge>
+        <Badge tone="neutral">via LayerZero</Badge>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -71,7 +71,7 @@ export function BridgeIn() {
             key={c.key}
             onClick={() => setSource(c.key)}
             className={`rounded-lg border px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-              source === c.key ? "border-primary text-primary" : "border-border text-muted-foreground hover:text-foreground"
+              source === c.key ? "border-foreground text-foreground" : "border-border text-muted-foreground hover:text-foreground"
             }`}
           >
             {c.label}
@@ -79,7 +79,7 @@ export function BridgeIn() {
         ))}
       </div>
 
-      <div className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-card-2 px-3 py-2.5 focus-within:border-primary">
+      <div className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-card-2 px-3 py-2.5 focus-within:border-foreground/40">
         <input
           inputMode="decimal"
           value={amount}

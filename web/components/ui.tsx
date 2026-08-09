@@ -28,21 +28,15 @@ export function Stat({
   label,
   value,
   sub,
-  accent = false,
 }: {
   label: string;
   value: ReactNode;
   sub?: ReactNode;
-  accent?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1.5 p-5">
       <Label>{label}</Label>
-      <span
-        className={`tnum font-mono text-2xl leading-none ${
-          accent ? "text-primary" : "text-foreground"
-        }`}
-      >
+      <span className="tnum font-mono text-2xl leading-none text-foreground">
         {value}
       </span>
       {sub ? <span className="text-xs text-muted-foreground">{sub}</span> : null}
@@ -50,12 +44,12 @@ export function Stat({
   );
 }
 
-type BadgeTone = "neutral" | "gold" | "positive" | "negative";
+type BadgeTone = "neutral" | "accent" | "positive" | "negative";
 
 const BADGE_TONE: Record<BadgeTone, string> = {
   neutral: "border-border text-muted-foreground",
-  gold: "border-primary/40 text-primary",
-  positive: "border-positive/40 text-positive",
+  accent: "border-accent/40 text-accent",
+  positive: "border-accent/40 text-accent",
   negative: "border-negative/40 text-negative",
 };
 
@@ -89,7 +83,7 @@ export function Dot({ tone = "positive" }: { tone?: "positive" | "negative" | "m
 export function RiskBar({ score }: { score: number }) {
   const pctWidth = Math.round(Math.max(0, Math.min(1, score)) * 100);
   const tone =
-    score < 0.25 ? "bg-positive" : score < 0.5 ? "bg-primary" : "bg-negative";
+    score < 0.25 ? "bg-accent" : score < 0.5 ? "bg-muted-foreground" : "bg-negative";
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-card-2" aria-hidden>
       <div className={`h-full ${tone}`} style={{ width: `${pctWidth}%` }} />

@@ -132,8 +132,8 @@ export function timeAgo(iso: string): string {
 }
 
 export const BAND_COLOR: Record<Band, string> = {
-  low: "text-positive",
-  moderate: "text-primary",
+  low: "text-accent",
+  moderate: "text-muted-foreground",
   elevated: "text-negative",
   high: "text-negative",
 };
