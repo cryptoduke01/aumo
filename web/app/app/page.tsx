@@ -143,7 +143,9 @@ export default function Dashboard() {
             </span>
           </div>
           <Sparkline values={series} className="w-full" height={64} />
-          <span className="mt-3 font-mono text-[11px] text-faint">last {series.length} cycles</span>
+          <span className="mt-3 font-mono text-[11px] text-faint">
+            {series.length < 2 ? "collecting cycle data" : `last ${series.length} cycles`}
+          </span>
         </Panel>
       </div>
 
