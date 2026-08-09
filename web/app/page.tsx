@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { AumoWordmark } from "@/components/mark";
 import { AsciiField } from "@/components/ascii-field";
 import { AgentConsole } from "@/components/agent-console";
 import { Grain } from "@/components/grain";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 
-// One diagonal arrow, drawn for the brand, reused wherever an action points out.
 function ArrowOut({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 16 16" className={className} fill="none" aria-hidden="true">
@@ -50,29 +49,7 @@ const GUARANTEES: [string, string][] = [
 export default function Landing() {
   return (
     <div className="flex flex-1 flex-col">
-      {/* ── nav ─────────────────────────────────────────────── */}
-      <header className="settle sticky top-0 z-30 border-b border-border/70 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-6xl items-center px-5 py-4 sm:px-8">
-          <Link href="/" className="shrink-0">
-            <AumoWordmark />
-          </Link>
-          <nav className="hidden flex-1 items-center justify-center gap-8 md:flex">
-            <NavLink href="#cycle">How it works</NavLink>
-            <NavLink href="#trust">Trust</NavLink>
-            <NavLink href="/app/activity">Activity</NavLink>
-          </nav>
-          <div className="ml-auto flex items-center gap-5 md:ml-0">
-            <ThemeToggle />
-            <Link
-              href="/app"
-              className="group inline-flex shrink-0 items-center gap-1.5 text-sm text-foreground transition-colors hover:text-muted-foreground"
-            >
-              Launch app
-              <ArrowOut className="size-3.5 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-            </Link>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* ── hero ────────────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden">
@@ -89,7 +66,6 @@ export default function Landing() {
           </p>
           <Cta className="mt-8" />
 
-          {/* the signature: the agent, working, in real data */}
           <div className="mt-16 w-full max-w-3xl sm:mt-20">
             <AgentConsole />
           </div>
@@ -120,9 +96,7 @@ export default function Landing() {
                   <span className="font-mono text-xs text-accent">{verb}</span>
                   <span className="h-px flex-1 bg-border" />
                 </div>
-                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-                  {body}
-                </p>
+                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{body}</p>
               </li>
             ))}
           </ol>
@@ -151,9 +125,7 @@ export default function Landing() {
                 }`}
               >
                 <dt className="font-medium text-foreground">{title}</dt>
-                <dd className="text-sm leading-relaxed text-muted-foreground">
-                  {body}
-                </dd>
+                <dd className="text-sm leading-relaxed text-muted-foreground">{body}</dd>
               </div>
             ))}
           </dl>
@@ -179,41 +151,18 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── closing + composed wordmark ─────────────────────── */}
+      {/* ── closing ─────────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden border-t border-border/70">
         <Grain />
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-5 pt-24 text-center sm:px-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-5 py-24 text-center sm:px-8">
           <h2 className="max-w-xl text-balance text-3xl font-medium tracking-tight sm:text-4xl">
             The autonomous treasury for stablecoins.
           </h2>
           <Cta className="mt-8" />
-
-          <div className="mt-24 flex w-full items-center justify-between gap-4 font-mono text-xs text-faint">
-            <span>© 2026 Aumo</span>
-            <div className="flex items-center gap-5">
-              <a href="https://x.com/aumofinance" target="_blank" rel="noreferrer" className="transition-colors hover:text-foreground">X</a>
-              <a href="https://github.com/cryptoduke01/aumo" target="_blank" rel="noreferrer" className="transition-colors hover:text-foreground">GitHub</a>
-            </div>
-          </div>
-        </div>
-        {/* oversized wordmark, anchored flush to the bottom edge, bleeding off */}
-        <div aria-hidden className="mt-6 flex select-none justify-center overflow-hidden">
-          <span className="translate-y-[22%] text-[26vw] font-medium leading-none tracking-[-0.03em] text-foreground/[0.05]">
-            aumo
-          </span>
         </div>
       </section>
-    </div>
-  );
-}
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-    >
-      {children}
-    </Link>
+      <SiteFooter />
+    </div>
   );
 }

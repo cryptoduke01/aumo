@@ -151,3 +151,84 @@ body {
     animation: none;
   }
 }
+
+/* Long-form content (docs, whitepaper, legal). Quiet, readable, brand-tuned. */
+.prose {
+  color: var(--muted-foreground);
+  font-size: 0.975rem;
+  line-height: 1.75;
+}
+.prose > * + * {
+  margin-top: 1.1em;
+}
+.prose h2 {
+  color: var(--foreground);
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin-top: 2.6em;
+  scroll-margin-top: 6rem;
+}
+.prose h3 {
+  color: var(--foreground);
+  font-size: 1.05rem;
+  font-weight: 500;
+  margin-top: 1.8em;
+  scroll-margin-top: 6rem;
+}
+.prose h2 + p,
+.prose h3 + p {
+  margin-top: 0.6em;
+}
+.prose strong {
+  color: var(--foreground);
+  font-weight: 500;
+}
+.prose a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s ease;
+}
+.prose a:hover {
+  text-decoration-color: var(--accent);
+}
+.prose ul {
+  list-style: none;
+  padding-left: 0;
+}
+.prose ul > li {
+  position: relative;
+  padding-left: 1.25rem;
+  margin-top: 0.5em;
+}
+.prose ul > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: var(--accent);
+}
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--foreground);
+  background: var(--surface-2);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+.prose hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 2.4em 0;
+}
+.prose .lead {
+  color: var(--foreground);
+  font-size: 1.15rem;
+  line-height: 1.6;
+}
