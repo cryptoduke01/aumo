@@ -12,12 +12,12 @@ import {
 } from "wagmi";
 import { toast } from "sonner";
 import { POOL, USDT0, poolAbi, erc20Abi, xlayerTestnet } from "@/lib/chain";
-import { Panel, Label, Stat, Badge } from "@/components/ui";
+import { Panel, Label, Badge } from "@/components/ui";
 import { ConnectButton } from "@/components/wallet";
 import { BridgeIn } from "@/components/bridge-in";
 import { Num } from "@/components/num";
 import { Orb } from "@/components/orb";
-import { txUrl } from "@/lib/agent";
+import { txUrl, getReceipts, pct } from "@/lib/agent";
 
 const DEC = 6;
 const fmt = (v: bigint | undefined, max = 2) =>
@@ -56,6 +56,19 @@ export default function VaultPage() {
   const walletBal = reads.data?.[0]?.result as bigint | undefined;
   const allowance = reads.data?.[1]?.result as bigint | undefined;
   const position = reads.data?.[2]?.result as bigint | undefined; // your redeemable USDT0
+
+  // Tie the engine's live yield to the position: estimated annual earnings.
+  const [bestApyBps, setBestApyBps] = useState<number | null>(null);
+  useEffect(() => {
+    const ctrl = new AbortController();
+    getReceipts(1, ctrl.signal)
+      .then((r) => {
+        const risks = r[0]?.plan.risks ?? [];
+        if (risks.length) setBestApyBps(Math.max(...risks.map((x) => x.riskAdjustedApyBps)));
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, []);
 
   const { writeContract, data: hash, isPending, reset, error } = useWriteContract();
   const receipt = useWaitForTransactionReceipt({ hash });
@@ -141,13 +154,36 @@ export default function VaultPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Position + pool */}
         <div className="flex flex-col gap-6">
-          <Panel className="grid grid-cols-2 divide-x divide-border">
-            <Stat label="Your position" value={<Num value={num(position)} />} sub="USDT0 redeemable" />
-            <Stat
-              label="Pool TVL"
-              value={<Num value={num(tvl)} maximumFractionDigits={0} />}
-              sub={position && tvl && tvl > 0n ? `${((Number(position) / Number(tvl)) * 100).toFixed(2)}% yours` : "USDT0"}
-            />
+          <Panel className="flex flex-col gap-4 p-5">
+            <div>
+              <Label>Your position</Label>
+              <div className="mt-1.5 text-3xl font-medium text-foreground">
+                <Num value={num(position)} currency />
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {position && tvl && tvl > 0n
+                  ? `${((Number(position) / Number(tvl)) * 100).toFixed(2)}% of the pool`
+                  : "USDT0 redeemable"}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+              <div className="flex flex-col gap-1">
+                <Label>Pool TVL</Label>
+                <span className="text-sm font-medium text-foreground"><Num value={num(tvl)} currency maximumFractionDigits={0} /></span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label>Est. annual yield</Label>
+                <span className="text-sm font-medium text-accent">
+                  {bestApyBps !== null ? (
+                    <>
+                      <Num value={(num(position) * bestApyBps) / 10000} currency /> · {pct(bestApyBps)}
+                    </>
+                  ) : (
+                    "-"
+                  )}
+                </span>
+              </div>
+            </div>
           </Panel>
           <Panel className="p-5">
             <Label>Wallet</Label>
