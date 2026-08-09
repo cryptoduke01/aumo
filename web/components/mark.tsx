@@ -1,6 +1,6 @@
 // The Aumo mark, rebuilt to the designer's geometry (Frame 9): a stroked vault
-// square with the bottom-right corner chamfered — that cut is what turns the box
-// into a lowercase "a" — holding a solid deposit block with its own matching
+// square with the bottom-right corner chamfered - that cut is what turns the box
+// into a lowercase "a" - holding a solid deposit block with its own matching
 // chamfer. currentColor throughout so it themes gold on dark, ink on cream.
 // Swap for the official SVG the moment it lands; the geometry already matches.
 export function AumoMark({ className }: { className?: string }) {
@@ -14,27 +14,27 @@ export function AumoMark({ className }: { className?: string }) {
     >
       {/* vault outline, chamfered bottom-right */}
       <path
-        d="M8 8 H40 V32.5 L32.5 40 H8 Z"
+        d="M9 9 H39 V31.5 L31.5 39 H9 Z"
         stroke="currentColor"
-        strokeWidth="3.1"
+        strokeWidth="2.8"
         strokeLinejoin="miter"
       />
-      {/* deposit block, matching chamfer, sat up-left of centre like the mark */}
-      <path d="M17.5 17 H28 V24.5 L24.5 28 H17.5 Z" fill="currentColor" />
+      {/* deposit block, matching chamfer, sat just up-left of centre */}
+      <path d="M18 18 H29 V25.5 L25.5 29 H18 Z" fill="currentColor" />
     </svg>
   );
 }
 
 export function AumoWordmark({
   className,
-  markClass = "size-[1.15em] text-foreground",
+  markClass = "size-[1.05em] text-foreground",
 }: {
   className?: string;
   markClass?: string;
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-2 text-[1.05rem] font-medium lowercase tracking-tight ${className ?? ""}`}
+      className={`inline-flex items-center gap-[0.42rem] text-[1.05rem] font-medium lowercase tracking-tight ${className ?? ""}`}
     >
       <AumoMark className={markClass} />
       <span>aumo</span>

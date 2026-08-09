@@ -12,10 +12,10 @@ import {
 } from "@/lib/agent";
 import { AumoMark } from "./mark";
 
-// The signature artifact: Aumo's agent shown doing the one thing it does —
-// score venues by risk-adjusted yield, pick a move, prove it on-chain. It paints
-// immediately from a representative last-cycle snapshot (so the hero is never an
-// empty void), then swaps to live data from the hosted agent when it answers.
+// The signature artifact: Aumo's agent shown doing the one thing it does.
+// It scores venues by risk-adjusted yield, picks a move, and proves it on-chain.
+// It paints immediately from a representative last-cycle snapshot (so the hero is
+// never an empty void), then swaps to live data from the hosted agent.
 // The status word is honest: "live" only after a real fetch, "last cycle" if the
 // agent is quiet. Every number here is the agent's own output shape, not decor.
 
@@ -26,7 +26,7 @@ const BAND_INK: Record<Band, string> = {
   high: "text-negative",
 };
 
-// Representative snapshot — the exact shape /receipts returns — so first paint is
+// Representative snapshot in the exact shape /receipts returns, so first paint is
 // populated and truthful about being the last observed cycle, not "live".
 const SEED: DecisionRecord = {
   takenAt: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
@@ -267,6 +267,6 @@ function Field({
 }
 
 function fmtAmt(raw?: string) {
-  if (!raw) return "—";
+  if (!raw) return "-";
   return (Number(raw) / 1e6).toLocaleString("en-US", { maximumFractionDigits: 0 });
 }

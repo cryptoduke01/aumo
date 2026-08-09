@@ -70,15 +70,15 @@ export default function Dashboard() {
           value={amount(String(total), dec)}
           sub={`${sym} under management`}
         />
-        <Stat label="Idle" value={vault ? amount(vault.idle, dec) : "—"} sub="ready to deploy" />
+        <Stat label="Idle" value={vault ? amount(vault.idle, dec) : "-"} sub="ready to deploy" />
         <Stat
           label="Deployed"
-          value={vault ? amount(vault.totalDeployed, dec) : "—"}
+          value={vault ? amount(vault.totalDeployed, dec) : "-"}
           sub="working in venues"
         />
       </Panel>
 
-      {/* Guardrails — control lives in the contract */}
+      {/* Guardrails: control lives in the contract */}
       {vault ? (
         <Panel className="p-5">
           <div className="mb-4 flex items-center justify-between">
@@ -105,7 +105,7 @@ export default function Dashboard() {
           </div>
           <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
             The agent can only move funds within these limits, into allowlisted venues. It cannot
-            withdraw to any address or exceed a cap — remove it and the funds are still safe.
+            withdraw to any address or exceed a cap. Remove it and the funds are still safe.
           </p>
         </Panel>
       ) : null}
@@ -176,7 +176,7 @@ function Decision({ rec, dec, sym }: { rec: DecisionRecord; dec: number; sym: st
       <div className="mt-5 flex flex-col gap-3">
         {plan.moves.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Holding — no move improves the risk-adjusted position under the current policy.
+            Holding. No move improves the risk-adjusted position under the current policy.
           </p>
         ) : (
           plan.moves.map((m, i) => {
@@ -261,7 +261,7 @@ function RiskTable({ rec }: { rec: DecisionRecord }) {
                 </td>
                 <td className="tnum py-3 pr-4 font-mono text-accent">{pct(r.riskAdjustedApyBps)}</td>
                 <td className="py-3 text-xs text-muted-foreground">
-                  {r.notes.length ? r.notes.join("; ") : "—"}
+                  {r.notes.length ? r.notes.join("; ") : "-"}
                 </td>
               </tr>
             ))}
@@ -277,7 +277,7 @@ function Receipts({ records }: { records: DecisionRecord[] }) {
     return (
       <Panel className="p-8 text-center">
         <p className="text-sm text-muted-foreground">
-          The agent hasn&apos;t recorded a decision yet. It runs on a schedule — check back shortly.
+          The agent hasn&apos;t recorded a decision yet. It runs on a schedule, so check back shortly.
         </p>
       </Panel>
     );

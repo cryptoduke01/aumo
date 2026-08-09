@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-// Theme control as a contrast mark — a disc split ink/paper, the brand's own
-// light/dark duality — not the stock sun-moon pill. Persists the choice and tells
+// Theme control as a contrast mark - a disc split ink/paper, the brand's own
+// light/dark duality - not the stock sun-moon pill. Persists the choice and tells
 // the canvas field to re-read its colour so the atmosphere flips with the theme.
 export function ThemeToggle() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -41,7 +41,7 @@ export function ThemeToggle() {
           stroke="currentColor"
           strokeWidth="1.4"
         />
-        {/* right half filled — the ink side of the disc */}
+        {/* right half filled - the ink side of the disc */}
         <path d="M10 2.75 A7.25 7.25 0 0 1 10 17.25 Z" fill="currentColor" />
       </svg>
     </button>

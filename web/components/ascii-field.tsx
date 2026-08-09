@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 // Monochrome (reads the theme's ink/paper colour), low-contrast, scoped to its
 // section, and cheap: it stops painting the moment it scrolls out of view or the
 // tab is hidden, so it never taxes the page. Reduced-motion renders one still
-// frame. Purely decorative — the hero never depends on it.
+// frame. Purely decorative - the hero never depends on it.
 const GLYPHS = "0123456789%+-·↑↓abcdef/".split("");
 
 export function AsciiField({ className = "" }: { className?: string }) {

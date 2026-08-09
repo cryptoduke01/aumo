@@ -32,7 +32,7 @@ export default function ActivityPage() {
       <header className="flex flex-col gap-1 border-b border-border pb-6">
         <h1 className="text-xl font-semibold tracking-tight">Activity</h1>
         <span className="text-xs text-muted-foreground">
-          Every decision the agent has recorded — its reasoning, the moves, and the governing policy.
+          Every decision the agent has recorded: its reasoning, the moves, and the governing policy.
         </span>
       </header>
 
@@ -81,7 +81,7 @@ export default function ActivityPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-2 text-xs text-muted-foreground">Held — no move.</p>
+                  <p className="mt-2 text-xs text-muted-foreground">Held. No move.</p>
                 )}
                 <div className="mt-3 border-t border-border pt-2">
                   <span className="tnum font-mono text-[11px] text-muted-foreground">

@@ -18,7 +18,7 @@ import { txUrl } from "@/lib/agent";
 
 const DEC = 6;
 const fmt = (v: bigint | undefined, max = 2) =>
-  v === undefined ? "—" : (Number(v) / 10 ** DEC).toLocaleString("en-US", { maximumFractionDigits: max });
+  v === undefined ? "-" : (Number(v) / 10 ** DEC).toLocaleString("en-US", { maximumFractionDigits: max });
 
 const primaryBtn =
   "chamfer inline-flex w-full items-center justify-center bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -31,7 +31,7 @@ export default function VaultPage() {
   const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
 
-  // Pool TVL is public — always read it, even before a wallet connects.
+  // Pool TVL is public, always read it, even before a wallet connects.
   const tvlRead = useReadContract({
     address: POOL,
     abi: poolAbi,

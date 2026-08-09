@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Aumo — black & white, warm, from the brand guideline. Ink and paper do the
+   Aumo - black & white, warm, from the brand guideline. Ink and paper do the
    work; the one live accent is the brand lime (CDDB00), used only where
    something is genuinely active. Gold is retired from the page surface.
    Two themes via [data-theme] (set before paint in layout, so no flash).
@@ -19,9 +19,9 @@
   --faint: #63615a; /* running-process / metadata */
   --border: #201f1c;
   --hairline: rgba(243, 241, 234, 0.09);
-  --primary: #b8945a; /* brand gold — held off the landing surface */
+  --primary: #b8945a; /* brand gold - held off the landing surface */
   --primary-foreground: #0b0b0b;
-  --accent: #cddb00; /* brand lime — the only live colour */
+  --accent: #cddb00; /* brand lime - the only live colour */
   --accent-foreground: #0b0b0b;
   --positive: #cddb00;
   --negative: #c2957f;

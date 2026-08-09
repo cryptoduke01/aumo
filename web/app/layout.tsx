@@ -4,7 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 
-// PP Neue Montreal — the brand's primary typeface, self-hosted.
+// PP Neue Montreal - the brand's primary typeface, self-hosted.
 const neueMontreal = localFont({
   src: [
     { path: "./fonts/PPNeueMontreal-Regular.woff2", weight: "400", style: "normal" },
@@ -16,7 +16,7 @@ const neueMontreal = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Aumo — autonomous treasury agent",
+  title: "Aumo · autonomous treasury agent",
   description:
     "Aumo is an autonomous treasury agent for stablecoins on X Layer. It puts idle USDT0 to work in real-world-asset yield, within on-chain guardrails, and proves every move.",
 };

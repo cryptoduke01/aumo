@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Whitepaper — Aumo",
+  title: "Whitepaper · Aumo",
   description:
     "Aumo: an autonomous, guardrailed treasury agent for stablecoin real-world-asset yield.",
 };
@@ -25,45 +25,44 @@ export default function WhitepaperPage() {
         <h2>Abstract</h2>
         <p className="lead">
           Idle stablecoins are a solved problem in theory and an unsolved one in
-          practice: the yield exists, but capturing it safely demands constant
+          practice. The yield exists, but capturing it safely demands constant
           attention, disciplined risk scoring, and the trust to let something act
-          on your behalf. Aumo is an autonomous agent that does the work — scoring
-          venues, allocating capital, rebalancing with the market — while the
-          authority to move funds is bounded by a contract, not by good intentions.
-          The agent optimises; the chain constrains.
+          on your behalf. Aumo is an autonomous agent that does the work. It scores
+          venues, allocates capital, and rebalances with the market, while the
+          authority to move funds is bounded by a contract rather than by good
+          intentions. The agent optimises. The chain constrains.
         </p>
 
         <h2>1. Motivation</h2>
         <p>
-          Most &quot;yield&quot; products force a choice between two bad options:
-          hand custody to an opaque manager, or manage everything yourself and
-          accept that you will miss regime changes, peg stress, and liquidity
-          crunches while you sleep. Autonomous agents are an obvious third path,
-          but an agent with unchecked authority is just a manager with worse
-          judgement. The unlock is not a smarter agent — it is a smaller blast
-          radius. If the agent can only ever act within limits enforced on-chain,
-          you can let it be autonomous without letting it be dangerous.
+          Most yield products force a choice between two bad options: hand custody
+          to an opaque manager, or manage everything yourself and accept that you
+          will miss regime changes, peg stress, and liquidity crunches while you
+          sleep. Autonomous agents are an obvious third path, but an agent with
+          unchecked authority is just a manager with worse judgement. The unlock is
+          not a smarter agent. It is a smaller blast radius. If the agent can only
+          ever act within limits enforced on-chain, you can let it be autonomous
+          without letting it be dangerous.
         </p>
 
         <h2>2. Design overview</h2>
         <p>
           Depositors put USDT0 into a shared ERC-4626 pool and receive shares. An
-          off-chain agent runs a five-stage loop — sense, score, reason, act,
-          prove — on a schedule. It reads live venue data, computes risk-adjusted
-          yields, optionally passes the plan through a tighten-only reasoning
-          layer, executes the resulting move within contract caps, and writes a
-          receipt. Yield accrues to the pool and therefore to every shareholder
-          pro-rata.
+          off-chain agent runs a five-stage loop (sense, score, reason, act, prove)
+          on a schedule. It reads live venue data, computes risk-adjusted yields,
+          optionally passes the plan through a tighten-only reasoning layer,
+          executes the resulting move within contract caps, and writes a receipt.
+          Yield accrues to the pool and therefore to every shareholder pro-rata.
         </p>
 
         <h2>3. Contracts</h2>
         <p>
           The pool is an ERC-4626 vault. Shares are minted on deposit and redeemed
-          on withdrawal for a pro-rata claim on total assets, which sum the pool&apos;s
-          idle balance and its live balances across venues. A decimals offset
-          mitigates the classic first-depositor inflation attack. A separate
+          on withdrawal for a pro-rata claim on total assets, which sum the
+          pool&apos;s idle balance and its live balances across venues. A decimals
+          offset mitigates the classic first-depositor inflation attack. A separate
           single-owner vault variant exists for treasuries that do not want a
-          shared pool; both share the same guardrail design.
+          shared pool. Both share the same guardrail design.
         </p>
         <p>
           Ownership uses a two-step transfer, and renouncement is explicitly
@@ -79,9 +78,9 @@ export default function WhitepaperPage() {
           maturity, liquidity-at-risk (depth measured against the size Aumo would
           actually hold), peg deviation, utilization, and a correlation-aware
           concentration penalty that treats venues moving together as closer to a
-          single exposure. Each venue is assigned a band — low, moderate, elevated,
-          or high — and allocation ranks on risk-adjusted APY. The weighting is
-          legible by design: a depositor can read why one venue beat another.
+          single exposure. Each venue is assigned a band (low, moderate, elevated,
+          or high) and allocation ranks on risk-adjusted APY. The weighting is
+          legible by design. A depositor can read why one venue beat another.
         </p>
 
         <h2>5. Reasoning layer</h2>
@@ -89,8 +88,8 @@ export default function WhitepaperPage() {
           On top of the deterministic engine sits an optional language-model pass
           governed by a strict safety kernel: it may only make the plan more
           conservative. It can veto a move, shrink it, or shift appetite downward
-          in response to the regime it reads — but it has no capability to raise a
-          cap, add a venue, or increase exposure beyond what the engine already
+          in response to the regime it reads. It has no capability to raise a cap,
+          add a venue, or increase exposure beyond what the engine already
           sanctioned. The model advises within a box it cannot open.
         </p>
 
@@ -101,7 +100,7 @@ export default function WhitepaperPage() {
           fingerprint of the exact policy that governed it, anchored by the
           on-chain transaction hash. Because behaviour is bound to a policy
           fingerprint, any change in what the agent does is always traceable to a
-          change in policy — the audit trail is the product, not an afterthought.
+          change in policy. The audit trail is the product, not an afterthought.
         </p>
 
         <h2>7. Cross-chain deposits</h2>
@@ -114,7 +113,7 @@ export default function WhitepaperPage() {
 
         <h2>8. Security and trust assumptions</h2>
         <p>
-          The core assumption Aumo removes is trust in the agent&apos;s honesty: it
+          The core assumption Aumo removes is trust in the agent&apos;s honesty. It
           cannot exceed on-chain caps and cannot withdraw to an external address,
           so a compromised or misbehaving agent cannot steal funds. The assumptions
           that remain are the venues themselves (a venue can lose money on its own

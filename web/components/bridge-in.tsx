@@ -91,10 +91,10 @@ export function BridgeIn() {
       </div>
 
       <div className="flex flex-col gap-2 rounded-lg border border-border bg-card-2 p-4 text-sm">
-        <Row label="Route" value={quote ? `${quote.source} → ${quote.destination}` : loading ? "…" : "—"} />
+        <Row label="Route" value={quote ? `${quote.source} → ${quote.destination}` : loading ? "…" : "-"} />
         <Row
           label="Bridge fee"
-          value={quote ? `${Number(quote.nativeFeeEth).toFixed(6)} (gas)` : loading ? "…" : "—"}
+          value={quote ? `${Number(quote.nativeFeeEth).toFixed(6)} (gas)` : loading ? "…" : "-"}
         />
         <Row label="Lands as" value="USDT0 on X Layer, ready to deposit" />
         {error ? <span className="text-xs text-negative">{error}</span> : null}

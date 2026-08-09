@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms — Aumo",
+  title: "Terms · Aumo",
   description: "Terms of use for Aumo. Experimental software; use at your own risk.",
 };
 
@@ -50,11 +50,11 @@ export default function TermsPage() {
 
         <h2>4. Risks you accept</h2>
         <ul>
-          <li><strong>Smart-contract risk</strong> — code may contain bugs despite review.</li>
-          <li><strong>Venue risk</strong> — an underlying yield venue can lose value or become illiquid.</li>
-          <li><strong>Peg risk</strong> — a stablecoin can deviate from its intended value.</li>
-          <li><strong>Agent risk</strong> — the agent may be offline, delayed, or make a suboptimal decision within its allowed bounds.</li>
-          <li><strong>Bridge risk</strong> — cross-chain messaging carries its own failure modes.</li>
+          <li><strong>Smart-contract risk.</strong> Code may contain bugs despite review.</li>
+          <li><strong>Venue risk.</strong> An underlying yield venue can lose value or become illiquid.</li>
+          <li><strong>Peg risk.</strong> A stablecoin can deviate from its intended value.</li>
+          <li><strong>Agent risk.</strong> The agent may be offline, delayed, or make a suboptimal decision within its allowed bounds.</li>
+          <li><strong>Bridge risk.</strong> Cross-chain messaging carries its own failure modes.</li>
         </ul>
         <p>Do not commit funds you cannot afford to lose entirely.</p>
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy — Aumo",
+  title: "Privacy · Aumo",
   description: "How Aumo handles data. Short version: it barely touches any.",
 };
 
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
       <article className="prose py-14">
         <p className="lead">
           Aumo is a non-custodial, wallet-based application. There is no account to
-          create and no sign-up. We collect as little as possible — this page
+          create and no sign-up. We collect as little as possible. This page
           describes exactly what that means.
         </p>
 
@@ -35,13 +35,13 @@ export default function PrivacyPage() {
         <p>
           When you connect a wallet and transact, your wallet address and
           transactions are recorded on a public blockchain by its nature. That data
-          is not created or controlled by Aumo — it is inherent to using any
+          is not created or controlled by Aumo. It is inherent to using any
           on-chain application, and it is visible to anyone.
         </p>
 
         <h2>Data stored in your browser</h2>
         <p>
-          Aumo stores a single preference in your browser&apos;s local storage — your
+          Aumo stores a single preference in your browser&apos;s local storage: your
           light/dark theme choice (<code>aumo-theme</code>). It never leaves your
           device. We do not use tracking or advertising cookies.
         </p>
@@ -62,7 +62,7 @@ export default function PrivacyPage() {
         <h2>Analytics</h2>
         <p>
           The app does not run third-party analytics or behavioural tracking. We do
-          not build advertising profiles and we do not sell data — there is nothing
+          not build advertising profiles and we do not sell data. There is nothing
           to sell.
         </p>
 

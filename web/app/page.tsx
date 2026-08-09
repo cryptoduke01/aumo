@@ -35,7 +35,7 @@ function Cta({ children, className = "" }: { children?: React.ReactNode; classNa
 const CYCLE: [string, string][] = [
   ["sense", "Read live vault state and every allowlisted venue."],
   ["score", "Haircut each yield by liquidity, peg, utilization and correlation."],
-  ["reason", "The model reads the regime — and may only tighten, never loosen."],
+  ["reason", "The model reads the regime and can only tighten, never loosen."],
   ["act", "Move within per-move and per-venue caps written into the contract."],
   ["prove", "Emit a receipt bound to a fingerprint of the exact policy in force."],
 ];
@@ -129,25 +129,6 @@ export default function Landing() {
               </div>
             ))}
           </dl>
-        </div>
-      </section>
-
-      {/* ── built on ────────────────────────────────────────── */}
-      <section className="border-t border-border/70">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-16 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p className="max-w-sm text-sm text-muted-foreground">
-            Base asset USDT0. Real yield through Aave on X Layer. Deposits bridge
-            in over LayerZero from four chains.
-          </p>
-          <div className="tnum flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-sm text-foreground">
-            <span>USDT0</span>
-            <span className="text-border">/</span>
-            <span>Aave</span>
-            <span className="text-border">/</span>
-            <span>LayerZero</span>
-            <span className="text-border">/</span>
-            <span>X&nbsp;Layer</span>
-          </div>
         </div>
       </section>
 
