@@ -1,0 +1,22 @@
+{
+  "chainId": 196,
+  "note": "X Layer MAINNET venue set. `address` is the deployed Aumo AaveV3Adapter (fill it in after running DeployPoolMainnet). The feed reads live Aave rates on X Layer. Fork-proven against this exact Aave deployment.",
+  "venues": [
+    {
+      "address": "0x0000000000000000000000000000000000000000",
+      "name": "Aave v3 (USDT0)",
+      "kind": "lending",
+      "apyBps": 0,
+      "tvlUsd": 0,
+      "liquidityUsd": 0,
+      "utilization": 0,
+      "protocolRisk": 0.08,
+      "pegDeviationBps": 0,
+      "feed": {
+        "source": "aave",
+        "pool": "0xE3F3Caefdd7180F884c01E57f65Df979Af84f116",
+        "underlying": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736"
+      }
+    }
+  ]
+}

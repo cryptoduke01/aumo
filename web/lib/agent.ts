@@ -3,8 +3,11 @@
 export const AGENT_URL =
   process.env.NEXT_PUBLIC_AGENT_URL ?? "https://aumo-production.up.railway.app";
 
-// X Layer testnet explorer (chainId 1952).
-const EXPLORER = "https://www.oklink.com/xlayer-test";
+// Explorer follows the active network (mainnet 196 / testnet 1952).
+const EXPLORER =
+  process.env.NEXT_PUBLIC_CHAIN === "mainnet"
+    ? "https://www.oklink.com/xlayer"
+    : "https://www.oklink.com/xlayer-test";
 export const txUrl = (hash: string) => `${EXPLORER}/tx/${hash}`;
 export const addrUrl = (addr: string) => `${EXPLORER}/address/${addr}`;
 

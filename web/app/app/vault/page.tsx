@@ -11,7 +11,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { toast } from "sonner";
-import { POOL, USDT0, poolAbi, erc20Abi, xlayerTestnet } from "@/lib/chain";
+import { POOL, USDT0, poolAbi, erc20Abi, activeChain } from "@/lib/chain";
 import { Panel, Label, Badge } from "@/components/ui";
 import { ConnectButton } from "@/components/wallet";
 import { BridgeIn } from "@/components/bridge-in";
@@ -30,7 +30,7 @@ const primaryBtn =
 export default function VaultPage() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const wrongChain = isConnected && chainId !== xlayerTestnet.id;
+  const wrongChain = isConnected && chainId !== activeChain.id;
 
   const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");

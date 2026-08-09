@@ -1,6 +1,10 @@
 import { defineChain, parseAbi } from "viem";
 
-/** X Layer testnet — where the pool + agent live. */
+// Flip the whole app to mainnet with NEXT_PUBLIC_CHAIN=mainnet plus the deployed
+// pool address (NEXT_PUBLIC_POOL). Everything below keys off the active network.
+const NET: "mainnet" | "testnet" =
+  process.env.NEXT_PUBLIC_CHAIN === "mainnet" ? "mainnet" : "testnet";
+
 export const xlayerTestnet = defineChain({
   id: 1952,
   name: "X Layer Testnet",
@@ -12,10 +16,35 @@ export const xlayerTestnet = defineChain({
   testnet: true,
 });
 
-// The multi-depositor pool users deposit into, and its underlying asset.
-// Audited AumoPool redeploy with two venues.
-export const POOL = "0x057Caa4fC699bF830b8AE2E3B1f5D0D75eABd626" as const;
-export const USDT0 = "0xFc440733d882f28012B190b11Bbec56b44508448" as const;
+export const xlayerMainnet = defineChain({
+  id: 196,
+  name: "X Layer",
+  nativeCurrency: { name: "OKB", symbol: "OKB", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.xlayer.tech"] } },
+  blockExplorers: {
+    default: { name: "OKLink", url: "https://www.oklink.com/xlayer" },
+  },
+});
+
+export const activeChain = NET === "mainnet" ? xlayerMainnet : xlayerTestnet;
+export const isMainnet = NET === "mainnet";
+
+// Deployed addresses. Testnet defaults are the audited AumoPool redeploy; the
+// mainnet pool address is set at launch via NEXT_PUBLIC_POOL (from DeployPoolMainnet).
+const ADDR = {
+  testnet: {
+    pool: "0x057Caa4fC699bF830b8AE2E3B1f5D0D75eABd626",
+    usdt0: "0xFc440733d882f28012B190b11Bbec56b44508448",
+  },
+  mainnet: {
+    // Fill NEXT_PUBLIC_POOL after DeployPoolMainnet; USDT0 is the canonical X Layer address.
+    pool: "0x0000000000000000000000000000000000000000",
+    usdt0: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+  },
+} as const;
+
+export const POOL = (process.env.NEXT_PUBLIC_POOL ?? ADDR[NET].pool) as `0x${string}`;
+export const USDT0 = (process.env.NEXT_PUBLIC_USDT0 ?? ADDR[NET].usdt0) as `0x${string}`;
 
 export const poolAbi = parseAbi([
   "function asset() view returns (address)",

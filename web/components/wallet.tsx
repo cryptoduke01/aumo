@@ -11,7 +11,7 @@ import {
 } from "wagmi";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { xlayerTestnet } from "@/lib/chain";
+import { activeChain } from "@/lib/chain";
 import { short } from "@/lib/agent";
 
 const btn =
@@ -49,10 +49,10 @@ export function ConnectButton() {
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  if (isConnected && chainId !== xlayerTestnet.id) {
+  if (isConnected && chainId !== activeChain.id) {
     return (
-      <button className={`${btn} border-negative/50 text-negative`} onClick={() => switchChain({ chainId: xlayerTestnet.id })}>
-        Switch to X Layer
+      <button className={`${btn} border-negative/50 text-negative`} onClick={() => switchChain({ chainId: activeChain.id })}>
+        Switch to {activeChain.name}
       </button>
     );
   }
