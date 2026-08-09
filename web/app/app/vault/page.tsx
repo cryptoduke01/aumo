@@ -192,8 +192,9 @@ export default function VaultPage() {
               <span className="tnum text-sm"><Num value={num(walletBal)} /></span>
             </div>
             <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-              Testnet. You need X Layer testnet USDT0 and a little OKB for gas. Shares are ERC-4626 and
-              redeem for your pro-rata slice of the pool at any time.
+              You&apos;ll need some USDT0 to deposit and a little OKB for gas.{" "}
+              <span className="text-foreground">Withdraw anytime</span> — your deposit is always
+              yours, redeemable for your share of the pool plus any yield it earned.
             </p>
           </Panel>
         </div>
@@ -225,16 +226,16 @@ export default function VaultPage() {
                 Max {fmt(max)}
               </button>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-card-2 px-3 py-2.5 focus-within:border-foreground/40">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-card-2 px-4 py-3 transition-colors focus-within:border-primary/50">
               <input
                 inputMode="decimal"
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                className="tnum w-full bg-transparent text-lg outline-none placeholder:text-muted-foreground"
+                className="tnum w-full bg-transparent text-2xl font-medium outline-none placeholder:text-faint"
                 aria-label={`${tab} amount in USDT0`}
               />
-              <span className="text-sm text-muted-foreground">USDT0</span>
+              <span className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground">USDT0</span>
             </div>
           </div>
 

@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Aumo - black & white, warm, from the brand guideline. Ink and paper do the
-   work; the one live accent is the brand lime (CDDB00), used only where
-   something is genuinely active. Gold is retired from the page surface.
+   Aumo — warm ink & paper from the brand guideline. Near-black (#0B0B0C) and
+   off-white (#F1EEE5) do the work; bullion gold (#B8945A) is the one accent,
+   used only where something is genuinely active.
    Two themes via [data-theme] (set before paint in layout, so no flash).
    ───────────────────────────────────────────────────────────────────────── */
 :root,

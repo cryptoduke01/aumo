@@ -1,7 +1,8 @@
 import { AsciiField } from "@/components/ascii-field";
 import { AgentConsole } from "@/components/agent-console";
-import { AsciiMark } from "@/components/ascii-mark";
 import { Grain } from "@/components/grain";
+import { Orb } from "@/components/orb";
+import { AumoMark } from "@/components/mark";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -29,6 +30,59 @@ function Cta({ children, className = "" }: { children?: React.ReactNode; classNa
       {children ?? "Launch app"}
       <ArrowOut className="size-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
     </a>
+  );
+}
+
+// A still, non-interactive mirror of the in-app Ask Aumo panel. It shows what
+// talking to the agent looks like without spending a live model call on every
+// landing visit — the real, live version lives behind the app.
+function AskPreview() {
+  return (
+    <div className="chamfer-edge w-full">
+      <div className="chamfer bg-card">
+        {/* header */}
+        <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+          <span className="relative inline-flex size-8 items-center justify-center">
+            <Orb className="size-8 text-primary/30" />
+            <AumoMark className="absolute size-3.5 text-primary" />
+          </span>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium leading-none">Ask Aumo</span>
+            <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-primary" /> Agent online
+            </span>
+          </div>
+        </div>
+
+        {/* thread */}
+        <div className="flex flex-col gap-4 px-5 py-6">
+          <div className="flex justify-end">
+            <p className="max-w-[80%] rounded-lg rounded-br-sm bg-surface-2 px-3.5 py-2 text-sm text-foreground">
+              Why did you move into USDG?
+            </p>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <AumoMark className="mt-0.5 size-4 shrink-0 text-primary" />
+            <p className="max-w-[85%] text-sm leading-relaxed text-foreground/90">
+              USDG scored highest on risk-adjusted yield this cycle. It&apos;s backed by cash and
+              short-term Treasuries, so its peg and liquidity haircuts are small. I capped the move
+              at the per-venue limit and left the rest in Aave to stay diversified.
+            </p>
+          </div>
+        </div>
+
+        {/* input (visual only) */}
+        <div className="flex items-center gap-2 border-t border-border p-2.5">
+          <div className="min-w-0 flex-1 px-2 py-2 text-sm text-faint">Ask the agent anything…</div>
+          <span
+            className="chamfer inline-flex items-center bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+            style={{ ["--cut" as string]: "8px" }}
+          >
+            Ask
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -72,20 +126,33 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── talk to the agent (banner + CTA into the app) ───── */}
+      {/* ── talk to the agent (two-up: copy + live product preview) ─ */}
       <section className="relative isolate overflow-hidden border-t border-border/70">
-        <AsciiField className="opacity-40 [mask-image:radial-gradient(120%_90%_at_50%_50%,#000_10%,transparent_70%)]" />
+        <AsciiField className="opacity-30 [mask-image:radial-gradient(120%_100%_at_80%_40%,#000_10%,transparent_70%)]" />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-[62%] top-1/2 size-[38rem] -translate-y-1/2 rounded-full opacity-[0.08] blur-2xl"
+          style={{ background: "radial-gradient(circle, var(--primary) 0%, transparent 62%)" }}
+        />
         <Grain />
-        <div className="mx-auto flex w-full max-w-3xl flex-col items-center px-5 py-24 text-center sm:px-8">
-          <AsciiMark className="text-primary/70" />
-          <h2 className="mt-8 text-balance text-2xl font-medium tracking-tight sm:text-3xl">
-            Talk to the agent.
-          </h2>
-          <p className="mt-3 max-w-lg text-balance text-muted-foreground">
-            Aumo can explain any move it made, how it scores a venue, and what would turn it
-            defensive. Ask it live, in the app.
-          </p>
-          <Cta className="mt-8">Talk to Aumo</Cta>
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-5 py-24 sm:px-8 lg:grid-cols-[0.92fr_1.08fr] lg:gap-16">
+          {/* left: copy + CTA */}
+          <div className="flex flex-col">
+            <span className="inline-flex items-center gap-2 self-start rounded-full border border-border px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-accent">
+              <span className="size-1.5 rounded-full bg-accent" /> Live agent
+            </span>
+            <h2 className="mt-5 text-balance text-3xl font-medium leading-[1.05] tracking-tight sm:text-4xl">
+              Talk to the agent.
+            </h2>
+            <p className="mt-4 max-w-md text-balance text-muted-foreground">
+              It can explain any move it made, how it scored a venue, and what would turn it
+              defensive — in plain language, from its own live state. No dashboards to decode.
+            </p>
+            <Cta className="mt-8 self-start">Talk to Aumo</Cta>
+          </div>
+
+          {/* right: a still preview of Ask Aumo (honest mirror of the real thing) */}
+          <AskPreview />
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 // Pure-SVG charts, themeable via CSS vars, no dependency. Values are rounded so
 // SSR and client serialize identically (no hydration drift).
+import { Orb } from "./orb";
 
 const r3 = (n: number) => Number(n.toFixed(3));
 
@@ -17,8 +18,9 @@ export function AreaChart({
   const pad = 10;
   if (!values || values.length < 2) {
     return (
-      <div className={`flex items-center justify-center ${className}`} style={{ height: H }}>
-        <span className="text-xs text-faint">collecting cycle data</span>
+      <div className={`flex flex-col items-center justify-center gap-2.5 ${className}`} style={{ height: H }}>
+        <Orb className="size-5 text-accent" />
+        <span className="text-[11px] text-faint">Collecting cycle data…</span>
       </div>
     );
   }

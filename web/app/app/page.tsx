@@ -125,9 +125,9 @@ export default function Dashboard() {
           <div className="mt-4 flex-1">
             <AreaChart values={series} className="w-full" height={120} />
           </div>
-          <span className="mt-2 text-[11px] text-faint">
-            {series.length < 2 ? "Collecting cycle data" : `Last ${series.length} cycles`}
-          </span>
+          {series.length >= 2 ? (
+            <span className="mt-2 text-[11px] text-faint">Last {series.length} cycles</span>
+          ) : null}
         </Panel>
 
         {vault ? <GuardrailsCard vault={vault} identity={identity} dec={dec} /> : <div />}
