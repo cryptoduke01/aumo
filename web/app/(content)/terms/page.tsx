@@ -9,13 +9,13 @@ export default function TermsPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
       <header className="border-b border-border/70 py-16">
-        <span className="font-mono text-xs uppercase tracking-[0.14em] text-accent">
+        <span className="text-xs uppercase tracking-[0.14em] text-accent">
           Legal
         </span>
         <h1 className="mt-3 text-4xl font-medium tracking-tight sm:text-5xl">
           Terms of Service
         </h1>
-        <p className="mt-4 font-mono text-xs text-faint">Last updated 9 August 2026</p>
+        <p className="mt-4 text-xs text-faint">Last updated 9 August 2026</p>
       </header>
 
       <article className="prose py-14">

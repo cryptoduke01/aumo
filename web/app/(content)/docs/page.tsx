@@ -23,7 +23,7 @@ export default function DocsPage() {
     <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
       <header className="flex flex-col gap-6 border-b border-border/70 py-16 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <span className="font-mono text-xs uppercase tracking-[0.14em] text-accent">
+          <span className="text-xs uppercase tracking-[0.14em] text-accent">
             Documentation
           </span>
           <h1 className="mt-3 text-4xl font-medium tracking-tight sm:text-5xl">
@@ -41,7 +41,7 @@ export default function DocsPage() {
       <div className="grid grid-cols-1 gap-12 py-14 lg:grid-cols-[200px_1fr] lg:gap-16">
         <aside className="hidden lg:block">
           <nav className="sticky top-24 flex flex-col gap-2.5">
-            <span className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">
+            <span className="mb-1 text-[10px] uppercase tracking-wider text-faint">
               On this page
             </span>
             {toc.map(([id, label]) => (

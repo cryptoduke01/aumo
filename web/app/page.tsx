@@ -33,11 +33,11 @@ function Cta({ children, className = "" }: { children?: React.ReactNode; classNa
 }
 
 const CYCLE: [string, string][] = [
-  ["sense", "Read live vault state and every allowlisted venue."],
-  ["score", "Haircut each yield by liquidity, peg, utilization and correlation."],
-  ["reason", "The model reads the regime and can only tighten, never loosen."],
-  ["act", "Move within per-move and per-venue caps written into the contract."],
-  ["prove", "Emit a receipt bound to a fingerprint of the exact policy in force."],
+  ["Sense", "Read live vault state and every allowlisted venue."],
+  ["Score", "Haircut each yield by liquidity, peg, utilization and correlation."],
+  ["Reason", "The model reads the regime and can only tighten, never loosen."],
+  ["Act", "Move within per-move and per-venue caps written into the contract."],
+  ["Prove", "Emit a receipt bound to a fingerprint of the exact policy in force."],
 ];
 
 const GUARANTEES: [string, string][] = [
@@ -93,7 +93,7 @@ export default function Landing() {
                   />
                 )}
                 <div className="flex items-baseline gap-3">
-                  <span className="font-mono text-xs text-accent">{verb}</span>
+                  <span className="text-sm font-medium text-accent">{verb}</span>
                   <span className="h-px flex-1 bg-border" />
                 </div>
                 <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{body}</p>

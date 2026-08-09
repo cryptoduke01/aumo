@@ -6,7 +6,7 @@ export function Loader({ label = "loading" }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 text-faint">
       <Orb className="size-6 text-accent" />
-      <span className="font-mono text-xs">{label}</span>
+      <span className="text-xs">{label}</span>
     </div>
   );
 }

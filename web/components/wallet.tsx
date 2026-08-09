@@ -38,7 +38,7 @@ export function ConnectButton() {
   return (
     <button className={btn} onClick={() => disconnect()} title="Disconnect">
       <span className="size-1.5 rounded-full bg-positive" aria-hidden />
-      <span className="tnum font-mono">{short(address ?? null)}</span>
+      <span className="font-mono text-xs">{short(address ?? null)}</span>
     </button>
   );
 }

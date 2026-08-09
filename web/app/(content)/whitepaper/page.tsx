@@ -12,7 +12,7 @@ export default function WhitepaperPage() {
     <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
       <header className="relative border-b border-border/70 py-16">
         <DitherMark className="pointer-events-none absolute right-0 top-12 hidden size-40 text-foreground/[0.12] sm:block" />
-        <span className="font-mono text-xs uppercase tracking-[0.14em] text-accent">
+        <span className="text-xs uppercase tracking-[0.14em] text-accent">
           Whitepaper · v0.4 · 2026
         </span>
         <h1 className="relative mt-3 text-4xl font-medium tracking-tight sm:text-5xl">

@@ -17,7 +17,7 @@ const learn: [string, string][] = [
 function Col({ label, links }: { label: string; links: [string, string][] }) {
   return (
     <div className="flex flex-col gap-3">
-      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-faint">
+      <span className="text-[10px] uppercase tracking-[0.14em] text-faint">
         {label}
       </span>
       {links.map(([href, l]) => (
@@ -49,7 +49,7 @@ export function SiteFooter() {
           <Col label="Product" links={product} />
           <Col label="Learn" links={learn} />
         </div>
-        <div className="mt-14 flex items-center justify-between border-t border-border/60 py-6 font-mono text-xs text-faint">
+        <div className="mt-14 flex items-center justify-between border-t border-border/60 py-6 text-xs text-faint">
           <span>© 2026 Aumo</span>
           <div className="flex items-center gap-5">
             <a href="https://x.com/aumofinance" target="_blank" rel="noreferrer" className="transition-colors hover:text-foreground">X</a>

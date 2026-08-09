@@ -131,7 +131,7 @@ export default function VaultPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
       <header className="flex flex-col gap-1 border-b border-border pb-6">
-        <h1 className="text-xl font-semibold tracking-tight">Deposit</h1>
+        <h1 className="text-xl font-medium tracking-tight">Deposit</h1>
         <span className="text-xs text-muted-foreground">
           Deposit USDT0 into the pool for shares. The agent puts the pooled balance to work; yield
           accrues to every depositor.
@@ -153,7 +153,7 @@ export default function VaultPage() {
             <Label>Wallet</Label>
             <div className="mt-3 flex items-center justify-between">
               <span className="text-sm text-muted-foreground">USDT0 balance</span>
-              <span className="tnum font-mono text-sm"><Num value={num(walletBal)} /></span>
+              <span className="tnum text-sm"><Num value={num(walletBal)} /></span>
             </div>
             <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
               Testnet. You need X Layer testnet USDT0 and a little OKB for gas. Shares are ERC-4626 and
@@ -195,7 +195,7 @@ export default function VaultPage() {
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                className="tnum w-full bg-transparent font-mono text-lg outline-none placeholder:text-muted-foreground"
+                className="tnum w-full bg-transparent text-lg outline-none placeholder:text-muted-foreground"
                 aria-label={`${tab} amount in USDT0`}
               />
               <span className="text-sm text-muted-foreground">USDT0</span>

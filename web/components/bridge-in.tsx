@@ -84,7 +84,7 @@ export function BridgeIn() {
           inputMode="decimal"
           value={amount}
           onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-          className="tnum w-full bg-transparent font-mono text-lg outline-none"
+          className="tnum w-full bg-transparent text-lg outline-none"
           aria-label="Bridge amount in USDT0"
         />
         <span className="text-sm text-muted-foreground">USDT0</span>
@@ -112,7 +112,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-muted-foreground">{label}</span>
-      <span className="tnum font-mono text-xs">{value}</span>
+      <span className="tnum text-xs">{value}</span>
     </div>
   );
 }

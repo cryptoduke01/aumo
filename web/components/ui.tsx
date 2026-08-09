@@ -18,9 +18,7 @@ export function Panel({
 
 export function Label({ children }: { children: ReactNode }) {
   return (
-    <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-      {children}
-    </span>
+    <span className="text-xs font-medium text-muted-foreground">{children}</span>
   );
 }
 
@@ -36,7 +34,7 @@ export function Stat({
   return (
     <div className="flex flex-col gap-1.5 p-5">
       <Label>{label}</Label>
-      <span className="tnum font-mono text-2xl leading-none text-foreground">
+      <span className="tnum text-2xl font-medium leading-none text-foreground">
         {value}
       </span>
       {sub ? <span className="text-xs text-muted-foreground">{sub}</span> : null}

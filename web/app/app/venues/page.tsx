@@ -58,14 +58,14 @@ export default function VenuesPage() {
       {error && !rec ? (
         <Panel className="p-8 text-center"><p className="text-sm text-negative">Couldn&apos;t reach the agent. {error}</p></Panel>
       ) : !rec ? (
-        <Loader label="scoring venues" />
+        <Loader label="Scoring venues" />
       ) : rec.snapshot.venues.length === 0 ? (
         <Panel className="p-8 text-center"><p className="text-sm text-muted-foreground">No venues in the latest snapshot.</p></Panel>
       ) : (
         <>
           <div className="flex items-center justify-between text-xs text-faint">
-            <span className="font-mono">{rec.snapshot.venues.length} allowlisted</span>
-            <span className="font-mono">scored {timeAgo(rec.takenAt)}</span>
+            <span>{rec.snapshot.venues.length} allowlisted</span>
+            <span>Scored {timeAgo(rec.takenAt)}</span>
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {rec.snapshot.venues.map((v) => (
@@ -96,19 +96,19 @@ function VenueCard({ venue, risk }: { venue: VenueSnapshot; risk?: VenueRisk }) 
             {short(venue.address)} ↗
           </a>
         </div>
-        {venue.allowed ? <Badge tone="accent">allowlisted</Badge> : <Badge tone="neutral">excluded</Badge>}
+        {venue.allowed ? <Badge tone="accent">Allowlisted</Badge> : <Badge tone="neutral">Excluded</Badge>}
       </div>
 
       {/* yields */}
       <div className="mt-4 flex items-end justify-between border-y border-border py-4">
         <div className="flex flex-col gap-1">
           <Label>APY</Label>
-          <span className="tnum font-mono text-lg text-muted-foreground">{pct(venue.apyBps)}</span>
+          <span className="tnum text-lg text-muted-foreground">{pct(venue.apyBps)}</span>
         </div>
         <span className="pb-1 text-faint">→</span>
         <div className="flex flex-col items-end gap-1">
           <Label>Risk-adjusted</Label>
-          <span className="tnum font-mono text-lg text-accent">{risk ? pct(risk.riskAdjustedApyBps) : "-"}</span>
+          <span className="tnum text-lg text-accent">{risk ? pct(risk.riskAdjustedApyBps) : "-"}</span>
         </div>
       </div>
 
@@ -116,7 +116,7 @@ function VenueCard({ venue, risk }: { venue: VenueSnapshot; risk?: VenueRisk }) 
       {risk ? (
         <div className="mt-4 flex items-center gap-3">
           <RiskBar score={risk.riskScore} />
-          <span className={`tnum shrink-0 font-mono text-xs ${BAND_COLOR[risk.band]}`}>{Math.round(risk.riskScore * 100)}</span>
+          <span className={`tnum shrink-0 text-xs ${BAND_COLOR[risk.band]}`}>{Math.round(risk.riskScore * 100)}</span>
           <span className={`shrink-0 text-[11px] capitalize ${BAND_COLOR[risk.band]}`}>{risk.band}</span>
         </div>
       ) : null}
@@ -125,8 +125,8 @@ function VenueCard({ venue, risk }: { venue: VenueSnapshot; risk?: VenueRisk }) 
       <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
         {factors.map(([k, val]) => (
           <div key={k} className="flex flex-col gap-0.5">
-            <dt className="font-mono text-[10px] uppercase tracking-wider text-faint">{k}</dt>
-            <dd className="tnum font-mono text-xs capitalize text-foreground">{val}</dd>
+            <dt className="text-[10px] uppercase tracking-wider text-faint">{k}</dt>
+            <dd className="tnum text-xs capitalize text-foreground">{val}</dd>
           </div>
         ))}
       </dl>

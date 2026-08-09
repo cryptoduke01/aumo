@@ -63,7 +63,7 @@ export default function ActivityPage() {
       {error && !records ? (
         <Panel className="p-8 text-center"><p className="text-sm text-negative">Couldn&apos;t reach the agent. {error}</p></Panel>
       ) : !records ? (
-        <Loader label="loading decisions" />
+        <Loader label="Loading decisions" />
       ) : shown.length === 0 ? (
         <Panel className="p-8 text-center"><p className="text-sm text-muted-foreground">No decisions match this filter.</p></Panel>
       ) : (
@@ -77,11 +77,11 @@ export default function ActivityPage() {
               <Panel key={id} className="p-5">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Badge tone="accent">{r.plan.source === "risk-engine+llm" ? "AI reasoning" : "risk engine"}</Badge>
-                    <Badge tone="neutral">{r.plan.regime}</Badge>
-                    {r.plan.moves.length === 0 ? <Badge tone="neutral">held</Badge> : null}
+                    <Badge tone="accent">{r.plan.source === "risk-engine+llm" ? "AI reasoning" : "Risk engine"}</Badge>
+                    <Badge tone="neutral"><span className="capitalize">{r.plan.regime}</span></Badge>
+                    {r.plan.moves.length === 0 ? <Badge tone="neutral">Held</Badge> : null}
                   </div>
-                  <span className="tnum font-mono text-xs text-muted-foreground">{timeAgo(r.takenAt)}</span>
+                  <span className="tnum text-xs text-muted-foreground">{timeAgo(r.takenAt)}</span>
                 </div>
                 <p className="text-sm leading-relaxed text-foreground/90">{r.plan.summary}</p>
 
@@ -89,10 +89,10 @@ export default function ActivityPage() {
                   <div className="mt-3 flex flex-col gap-1.5">
                     {r.plan.moves.map((m, j) => (
                       <div key={j} className="flex flex-wrap items-center gap-2 text-xs">
-                        <Badge tone={m.action === "allocate" ? "positive" : "negative"}>{m.action}</Badge>
-                        <span className="tnum font-mono">{amount(m.amount, dec)} {sym}</span>
+                        <Badge tone={m.action === "allocate" ? "positive" : "negative"}><span className="capitalize">{m.action}</span></Badge>
+                        <span className="tnum ">{amount(m.amount, dec)} {sym}</span>
                         <span className="text-muted-foreground">{m.action === "allocate" ? "into" : "from"} {m.venueName}</span>
-                        <span className={`tnum font-mono ${BAND_COLOR[m.band]}`}>{pct(m.riskAdjustedApyBps)}</span>
+                        <span className={`tnum ${BAND_COLOR[m.band]}`}>{pct(m.riskAdjustedApyBps)}</span>
                       </div>
                     ))}
                   </div>
@@ -105,10 +105,10 @@ export default function ActivityPage() {
                   <div className="mt-3">
                     <button
                       onClick={() => setOpen(isOpen ? null : id)}
-                      className="font-mono text-[11px] text-faint transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="text-[11px] text-faint transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-expanded={isOpen}
                     >
-                      {isOpen ? "hide" : "show"} risk breakdown ({r.plan.risks.length})
+                      {isOpen ? "Hide" : "Show"} risk breakdown ({r.plan.risks.length})
                     </button>
                     {isOpen ? (
                       <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
@@ -117,9 +117,9 @@ export default function ActivityPage() {
                             <span className="text-muted-foreground">{rk.name}</span>
                             <div className="flex w-40 items-center gap-2">
                               <RiskBar score={rk.riskScore} />
-                              <span className={`tnum shrink-0 font-mono ${BAND_COLOR[rk.band]}`}>{Math.round(rk.riskScore * 100)}</span>
+                              <span className={`tnum shrink-0 ${BAND_COLOR[rk.band]}`}>{Math.round(rk.riskScore * 100)}</span>
                             </div>
-                            <span className="tnum text-right font-mono text-accent">{pct(rk.riskAdjustedApyBps)}</span>
+                            <span className="tnum text-right text-accent">{pct(rk.riskAdjustedApyBps)}</span>
                           </div>
                         ))}
                       </div>
@@ -128,7 +128,8 @@ export default function ActivityPage() {
                 ) : null}
 
                 <div className="mt-3 border-t border-border pt-2">
-                  <span className="tnum font-mono text-[11px] text-muted-foreground">policy {r.policyFingerprint.slice(0, 18)}…</span>
+                  <span className="text-[11px] text-muted-foreground">Policy </span>
+                  <span className="font-mono text-[11px] text-faint">{r.policyFingerprint.slice(0, 18)}…</span>
                 </div>
               </Panel>
             );
