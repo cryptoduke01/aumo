@@ -10,15 +10,19 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
+import { toast } from "sonner";
 import { POOL, USDT0, poolAbi, erc20Abi, xlayerTestnet } from "@/lib/chain";
 import { Panel, Label, Stat, Badge } from "@/components/ui";
 import { ConnectButton } from "@/components/wallet";
 import { BridgeIn } from "@/components/bridge-in";
+import { Num } from "@/components/num";
+import { Orb } from "@/components/orb";
 import { txUrl } from "@/lib/agent";
 
 const DEC = 6;
 const fmt = (v: bigint | undefined, max = 2) =>
   v === undefined ? "-" : (Number(v) / 10 ** DEC).toLocaleString("en-US", { maximumFractionDigits: max });
+const num = (v: bigint | undefined) => (v === undefined ? 0 : Number(v) / 10 ** DEC);
 
 const primaryBtn =
   "chamfer inline-flex w-full items-center justify-center bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -60,11 +64,27 @@ export default function VaultPage() {
   useEffect(() => {
     if (receipt.isSuccess) {
       reads.refetch();
+      tvlRead.refetch();
       setAmount("");
+      toast.success("Transaction confirmed", {
+        action: hash
+          ? { label: "View", onClick: () => window.open(txUrl(hash), "_blank") }
+          : undefined,
+      });
       const t = setTimeout(() => reset(), 4000);
       return () => clearTimeout(t);
     }
   }, [receipt.isSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Toast when a tx is submitted to the network.
+  useEffect(() => {
+    if (hash) toast("Transaction submitted", { description: "Waiting for confirmation…" });
+  }, [hash]);
+
+  // Toast on write errors (rejected, reverted, etc.).
+  useEffect(() => {
+    if (error) toast.error(error.message.split("\n")[0].slice(0, 120));
+  }, [error]);
 
   const amountWei = useMemo(() => {
     try {
@@ -122,10 +142,10 @@ export default function VaultPage() {
         {/* Position + pool */}
         <div className="flex flex-col gap-6">
           <Panel className="grid grid-cols-2 divide-x divide-border">
-            <Stat label="Your position" value={`${fmt(position)}`} sub="USDT0 redeemable" />
+            <Stat label="Your position" value={<Num value={num(position)} />} sub="USDT0 redeemable" />
             <Stat
               label="Pool TVL"
-              value={fmt(tvl, 0)}
+              value={<Num value={num(tvl)} maximumFractionDigits={0} />}
               sub={position && tvl && tvl > 0n ? `${((Number(position) / Number(tvl)) * 100).toFixed(2)}% yours` : "USDT0"}
             />
           </Panel>
@@ -133,7 +153,7 @@ export default function VaultPage() {
             <Label>Wallet</Label>
             <div className="mt-3 flex items-center justify-between">
               <span className="text-sm text-muted-foreground">USDT0 balance</span>
-              <span className="tnum font-mono text-sm">{fmt(walletBal)}</span>
+              <span className="tnum font-mono text-sm"><Num value={num(walletBal)} /></span>
             </div>
             <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
               Testnet. You need X Layer testnet USDT0 and a little OKB for gas. Shares are ERC-4626 and
@@ -200,7 +220,8 @@ export default function VaultPage() {
 
           {hash ? (
             <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-card-2 px-3 py-2 text-xs">
-              <span className="text-muted-foreground">
+              <span className="flex items-center gap-2 text-muted-foreground">
+                {receipt.isLoading ? <Orb className="size-3.5 text-accent" /> : null}
                 {receipt.isLoading ? "Confirming…" : receipt.isSuccess ? "Confirmed" : "Submitted"}
               </span>
               <a className="text-accent hover:underline" href={txUrl(hash)} target="_blank" rel="noreferrer">

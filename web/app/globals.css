@@ -152,6 +152,46 @@ body {
   }
 }
 
+/* Dotted thinking orb / spinner. */
+@keyframes orb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.orb-spin {
+  transform-origin: center;
+  animation: orb-spin 1.1s linear infinite;
+}
+
+/* Scroll reveal: content is VISIBLE by default (base opacity 1). The fade+rise
+   only exists inside the keyframe and only runs where scroll timelines are
+   supported; everywhere else the element simply shows. Never gates content. */
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 42%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb-spin {
+    animation: none;
+  }
+}
+
 /* Long-form content (docs, whitepaper, legal). Quiet, readable, brand-tuned. */
 .prose {
   color: var(--muted-foreground);

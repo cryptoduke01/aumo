@@ -9,6 +9,7 @@ import { ThemeToggle } from "./theme-toggle";
 const tabs = [
   { href: "/app", label: "Overview" },
   { href: "/app/vault", label: "Deposit" },
+  { href: "/app/venues", label: "Venues" },
   { href: "/app/activity", label: "Activity" },
   { href: "/docs", label: "Docs" },
 ];

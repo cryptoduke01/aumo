@@ -11,6 +11,7 @@ import {
   type DecisionRecord,
 } from "@/lib/agent";
 import { AumoMark } from "./mark";
+import { Orb } from "./orb";
 
 // The signature artifact: Aumo's agent shown doing the one thing it does.
 // It scores venues by risk-adjusted yield, picks a move, and proves it on-chain.
@@ -148,6 +149,7 @@ export function AgentConsole() {
             <span className="font-mono text-xs text-muted-foreground">
               agent · {rec.agent.codename}
             </span>
+            <Orb className="size-3.5 text-accent/70" />
           </div>
           <div className="flex items-center gap-2 font-mono text-xs">
             <span
