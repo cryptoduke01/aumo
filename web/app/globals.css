@@ -2,14 +2,14 @@
 
 /* Dark-first. Interim Aumo palette from brand.md — swap these values when branding lands. */
 :root {
-  --background: #0a0b0d;
-  --card: #101215;
+  --background: #0b0b0b;
+  --card: #101012;
   --card-2: #16191e;
   --foreground: #eae8e3;
   --muted-foreground: #8a8f98;
   --border: #1e2126;
-  --primary: #c8a96a;
-  --primary-foreground: #0a0b0d;
+  --primary: #b8935a;
+  --primary-foreground: #0b0b0b;
   --positive: #5bb98b;
   --negative: #d98a76;
   --ring: #c8a96a;
@@ -44,7 +44,9 @@
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans);
+  /* PP Neue Montreal is the brand type; drop in the woff2 via next/font/local when licensed.
+     Geist is the closest free grotesk fallback so the layout doesn't shift meanwhile. */
+  --font-sans: "PP Neue Montreal", var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
