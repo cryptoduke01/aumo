@@ -15,7 +15,7 @@ import { xlayerTestnet } from "@/lib/chain";
 import { short } from "@/lib/agent";
 
 const btn =
-  "inline-flex items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm font-medium transition-colors hover:border-foreground/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "inline-flex items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm font-medium transition-[transform,color,border-color] hover:border-foreground/40 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 // Prefer EIP-6963-discovered wallets; fall back to the generic injected connector
 // only when nothing specific was found. Dedupe by name.

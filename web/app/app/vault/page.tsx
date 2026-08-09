@@ -25,7 +25,7 @@ const fmt = (v: bigint | undefined, max = 2) =>
 const num = (v: bigint | undefined) => (v === undefined ? 0 : Number(v) / 10 ** DEC);
 
 const primaryBtn =
-  "chamfer inline-flex w-full items-center justify-center bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "chamfer inline-flex w-full items-center justify-center bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-[transform,opacity] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export default function VaultPage() {
   const { address, isConnected } = useAccount();

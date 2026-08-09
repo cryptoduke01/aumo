@@ -162,6 +162,27 @@ button:disabled {
   }
 }
 
+/* Line chart draws itself in on mount. Base state is fully drawn (offset 0), so
+   if the animation never runs the line is still visible. */
+@keyframes chart-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.chart-draw {
+  stroke-dasharray: 1;
+  animation: chart-draw 1.1s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-draw {
+    animation: none;
+    stroke-dasharray: none;
+  }
+}
+
 /* Dotted thinking orb / spinner. */
 @keyframes orb-spin {
   to {

@@ -22,7 +22,7 @@ function Cta({ children, className = "" }: { children?: React.ReactNode; classNa
   return (
     <a
       href="https://app.aumo.finance"
-      className={`chamfer group inline-flex items-center gap-2 bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 ${className}`}
+      className={`chamfer group inline-flex items-center gap-2 bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-[transform,opacity] hover:opacity-90 active:scale-[0.98] ${className}`}
       style={{ ["--cut" as string]: "10px" }}
     >
       {children ?? "Launch app"}
