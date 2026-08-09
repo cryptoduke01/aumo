@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AsciiField } from "@/components/ascii-field";
 import { AgentConsole } from "@/components/agent-console";
 import { Grain } from "@/components/grain";
@@ -21,14 +20,14 @@ function ArrowOut({ className = "" }: { className?: string }) {
 
 function Cta({ children, className = "" }: { children?: React.ReactNode; className?: string }) {
   return (
-    <Link
-      href="/app"
-      className={`chamfer group inline-flex items-center gap-2 bg-foreground px-6 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90 ${className}`}
+    <a
+      href="https://app.aumo.finance"
+      className={`chamfer group inline-flex items-center gap-2 bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 ${className}`}
       style={{ ["--cut" as string]: "10px" }}
     >
       {children ?? "Launch app"}
       <ArrowOut className="size-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-    </Link>
+    </a>
   );
 }
 

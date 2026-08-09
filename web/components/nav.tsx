@@ -14,7 +14,6 @@ const tabs = [
   { href: "/app/vault", label: "Deposit" },
   { href: "/app/venues", label: "Venues" },
   { href: "/app/activity", label: "Activity" },
-  { href: "/docs", label: "Docs" },
 ];
 
 export function AppNav() {
@@ -32,10 +31,10 @@ export function AppNav() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-6 px-5 py-3.5 sm:px-8">
         <Link href="/" className="shrink-0">
-          <AumoWordmark markClass="size-[1.15em] text-foreground" />
+          <AumoWordmark markClass="size-[1.15em] text-primary" />
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden items-center gap-7 md:ml-8 md:flex">
           {tabs.map((t) => {
             const active = isActive(t.href);
             return (

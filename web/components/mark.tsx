@@ -27,7 +27,7 @@ export function AumoMark({ className }: { className?: string }) {
 
 export function AumoWordmark({
   className,
-  markClass = "size-[1.05em] text-foreground",
+  markClass = "size-[1.05em] text-primary",
 }: {
   className?: string;
   markClass?: string;

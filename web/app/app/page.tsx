@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   getReceipts,
@@ -83,7 +84,7 @@ export default function Dashboard() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6">
-      <Header identity={identity} latest={latest} />
+      <Header identity={identity} />
 
       {/* metrics */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -148,18 +149,11 @@ function Metric({ label, value, sub, suffix, currency, frac = 0, accent }: { lab
   );
 }
 
-function Header({ identity, latest }: { identity: Identity; latest?: DecisionRecord }) {
+function Header({ identity }: { identity: Identity }) {
   return (
-    <header className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-medium tracking-tight">Overview</h1>
-        <span className="text-sm text-muted-foreground">The autonomous agent, live on {identity.chainName}.</span>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {latest ? <Badge tone="positive"><Dot /> Live · {timeAgo(latest.takenAt)}</Badge> : null}
-        <Badge tone={identity.hasReasoningLayer ? "accent" : "neutral"}>Reasoning {identity.hasReasoningLayer ? "on" : "off"}</Badge>
-        <Badge tone={identity.policy.execute ? "positive" : "neutral"}>{identity.policy.execute ? "Executing" : "Dry-run"}</Badge>
-      </div>
+    <header className="flex flex-col gap-1 border-b border-border pb-5">
+      <h1 className="text-xl font-medium tracking-tight">Overview</h1>
+      <span className="text-sm text-muted-foreground">The autonomous agent, live on {identity.chainName}.</span>
     </header>
   );
 }
@@ -239,36 +233,27 @@ function Decision({ rec, dec }: { rec: DecisionRecord; dec: number }) {
 function RiskTable({ rec }: { rec: DecisionRecord }) {
   return (
     <Panel className="p-5">
-      <div className="mb-4"><Label>Risk engine</Label></div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] text-sm">
-          <thead>
-            <tr className="text-left text-xs text-muted-foreground">
-              <th className="pb-3 font-medium">Venue</th>
-              <th className="pb-3 font-medium">APY</th>
-              <th className="w-40 pb-3 font-medium">Risk</th>
-              <th className="pb-3 font-medium">Risk-adjusted</th>
-              <th className="pb-3 font-medium">Notes</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rec.plan.risks.map((r) => (
-              <tr key={r.address}>
-                <td className="py-3 pr-4 font-medium">{r.name}</td>
-                <td className="tnum py-3 pr-4">{pct(r.apyBps)}</td>
-                <td className="py-3 pr-4">
-                  <div className="flex items-center gap-2">
-                    <RiskBar score={r.riskScore} />
-                    <span className={`tnum shrink-0 text-xs ${BAND_COLOR[r.band]}`}>{Math.round(r.riskScore * 100)}</span>
-                  </div>
-                  <span className={`text-[11px] capitalize ${BAND_COLOR[r.band]}`}>{r.band}</span>
-                </td>
-                <td className="tnum py-3 pr-4 text-accent">{pct(r.riskAdjustedApyBps)}</td>
-                <td className="py-3 text-xs text-muted-foreground">{r.notes.length ? r.notes.join("; ") : "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="mb-2"><Label>Risk engine</Label></div>
+      <div className="flex flex-col divide-y divide-border">
+        {rec.plan.risks.map((r) => (
+          <div
+            key={r.address}
+            className="grid grid-cols-1 gap-x-6 gap-y-2 py-4 first:pt-3 last:pb-0 sm:grid-cols-[1.3fr_1.1fr_1.3fr_1fr] sm:items-center"
+          >
+            <span className="font-medium">{r.name}</span>
+            <span className="tnum text-sm">
+              <span className="text-muted-foreground">{pct(r.apyBps)}</span>
+              <span className="mx-1.5 text-faint">→</span>
+              <span className="text-accent">{pct(r.riskAdjustedApyBps)}</span>
+            </span>
+            <div className="flex items-center gap-2">
+              <RiskBar score={r.riskScore} />
+              <span className={`tnum shrink-0 text-xs ${BAND_COLOR[r.band]}`}>{Math.round(r.riskScore * 100)}</span>
+              <span className={`shrink-0 text-[11px] capitalize ${BAND_COLOR[r.band]}`}>{r.band}</span>
+            </div>
+            <span className="text-xs text-muted-foreground">{r.notes.length ? r.notes.join("; ") : "-"}</span>
+          </div>
+        ))}
       </div>
     </Panel>
   );
@@ -284,9 +269,14 @@ function Receipts({ records }: { records: DecisionRecord[] }) {
   }
   return (
     <Panel className="p-5">
-      <div className="mb-4"><Label>Recent decisions</Label></div>
+      <div className="mb-4 flex items-center justify-between">
+        <Label>Recent decisions</Label>
+        <Link href="/app/activity" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+          View all →
+        </Link>
+      </div>
       <ol className="flex flex-col">
-        {records.slice(0, 8).map((r, i) => (
+        {records.slice(0, 5).map((r, i) => (
           <li key={`${r.takenAt}-${i}`} className="flex items-start gap-4 border-b border-border py-3 last:border-0">
             <span className="tnum mt-0.5 w-16 shrink-0 text-xs text-muted-foreground">{timeAgo(r.takenAt)}</span>
             <div className="flex flex-col gap-1">

@@ -38,10 +38,10 @@ export function SiteHeader() {
         </nav>
         <div className="ml-auto flex items-center gap-5 md:ml-0">
           <ThemeToggle />
-          <Link href="/app" className="group hidden shrink-0 items-center gap-1.5 text-sm text-foreground transition-colors hover:text-muted-foreground md:inline-flex">
+          <a href="https://app.aumo.finance" className="group hidden shrink-0 items-center gap-1.5 text-sm text-foreground transition-colors hover:text-muted-foreground md:inline-flex">
             Launch app
             <ArrowOut className="size-3.5 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-          </Link>
+          </a>
           <MenuButton open={open} onClick={() => setOpen((o) => !o)} className="md:hidden" />
         </div>
       </div>
@@ -61,9 +61,9 @@ export function SiteHeader() {
                   {l.label}
                 </Link>
               ))}
-              <Link href="/app" onClick={() => setOpen(false)} className="py-3 text-sm font-medium text-foreground">
+              <a href="https://app.aumo.finance" onClick={() => setOpen(false)} className="py-3 text-sm font-medium text-foreground">
                 Launch app →
-              </Link>
+              </a>
             </div>
           </motion.nav>
         )}

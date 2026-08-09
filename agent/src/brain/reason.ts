@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Config } from "../config.js";
 import type { MarketSnapshot, Regime, RiskBand } from "../types.js";
 import { buildPlan, type Plan } from "./plan.js";
-import { SYSTEM_PROMPT } from "./prompt.js";
+import { SYSTEM_PROMPT } from "./prompt.js";  
 
 const REGIME_RANK: Record<Regime, number> = { defensive: 0, cautious: 1, calm: 2 };
 const BAND_RANK: Record<RiskBand, number> = { low: 0, moderate: 1, elevated: 2, high: 3 };

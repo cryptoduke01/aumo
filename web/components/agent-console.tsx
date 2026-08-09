@@ -59,7 +59,7 @@ export function AgentConsole() {
         {/* title bar */}
         <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 sm:px-5">
           <div className="flex items-center gap-2.5">
-            <AumoMark className="size-4 text-foreground" />
+            <AumoMark className="size-4 text-primary" />
             <span className="text-xs text-muted-foreground">
               Agent{rec ? ` · ${rec.agent.codename}` : ""}
             </span>

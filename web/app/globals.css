@@ -9,48 +9,48 @@
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --background: #0b0b0b; /* brand black */
-  --surface: #101011;
-  --surface-2: #161618;
-  --card: #101011;
-  --card-2: #161618;
-  --foreground: #f3f1ea; /* warm near-white */
+  --background: #0b0b0c; /* near-black (guideline) */
+  --surface: #101012;
+  --surface-2: #17171a;
+  --card: #101012;
+  --card-2: #17171a;
+  --foreground: #f1eee5; /* off-white (guideline) */
   --muted-foreground: #9c988e;
-  --faint: #63615a; /* running-process / metadata */
+  --faint: #63615a;
   --border: #201f1c;
-  --hairline: rgba(243, 241, 234, 0.09);
-  --primary: #b8945a; /* brand gold - held off the landing surface */
-  --primary-foreground: #0b0b0b;
-  --accent: #cddb00; /* brand lime - the only live colour */
-  --accent-foreground: #0b0b0b;
-  --positive: #cddb00;
-  --negative: #c2957f;
-  --ring: #cddb00;
-  --glyph-rgb: 243, 241, 234;
+  --hairline: rgba(241, 238, 229, 0.09);
+  --primary: #b8945a; /* Bullion gold - the predominant brand colour */
+  --primary-foreground: #0b0b0c;
+  --accent: #b8945a; /* gold accent (guideline: no other accent) */
+  --accent-foreground: #0b0b0c;
+  --positive: #b8945a; /* active/good reads as gold, per the palette */
+  --negative: #c2957f; /* functional warning only */
+  --ring: #b8945a;
+  --glyph-rgb: 241, 238, 229;
   --radius: 0.5rem;
   --cut: 14px;
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  --background: #edece4; /* warm paper */
-  --surface: #f6f5ef;
-  --surface-2: #e6e4d9;
-  --card: #f6f5ef;
-  --card-2: #e6e4d9;
-  --foreground: #0b0b0b;
+  --background: #f1eee5; /* off-white (guideline) */
+  --surface: #f8f6ef;
+  --surface-2: #e8e5da;
+  --card: #f8f6ef;
+  --card-2: #e8e5da;
+  --foreground: #0b0b0c; /* near-black */
   --muted-foreground: #5c594f;
   --faint: #a29d90;
-  --border: #d9d5c8;
-  --hairline: rgba(11, 11, 11, 0.1);
-  --primary: #9c7a3f;
-  --primary-foreground: #edece4;
-  --accent: #6f7a00; /* darker lime for contrast on paper */
-  --accent-foreground: #edece4;
-  --positive: #6f7a00;
+  --border: #ddd8ca;
+  --hairline: rgba(11, 11, 12, 0.1);
+  --primary: #9c7a3f; /* darker gold for contrast on off-white */
+  --primary-foreground: #f1eee5;
+  --accent: #8a6a34;
+  --accent-foreground: #f1eee5;
+  --positive: #8a6a34;
   --negative: #a2563b;
-  --ring: #0b0b0b;
-  --glyph-rgb: 11, 11, 11;
+  --ring: #0b0b0c;
+  --glyph-rgb: 11, 11, 12;
 }
 
 @theme inline {
@@ -98,6 +98,16 @@ body {
 .tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+
+/* Tailwind v4 no longer sets a pointer cursor on buttons; restore it. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+a {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
 }
 
 /* The vault chamfer: one invented silhouette, reused on the CTA and the console. */

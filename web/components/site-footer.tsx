@@ -53,7 +53,6 @@ export function SiteFooter() {
           <span>© 2026 Aumo</span>
           <div className="flex items-center gap-5">
             <a href="https://x.com/aumofinance" target="_blank" rel="noreferrer" className="transition-colors hover:text-foreground">X</a>
-            <a href="https://github.com/cryptoduke01/aumo" target="_blank" rel="noreferrer" className="transition-colors hover:text-foreground">GitHub</a>
           </div>
         </div>
       </div>

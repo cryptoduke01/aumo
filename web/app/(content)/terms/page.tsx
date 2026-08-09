@@ -94,12 +94,7 @@ export default function TermsPage() {
         <h2>10. Contact</h2>
         <p>
           Reach us on{" "}
-          <a href="https://x.com/aumofinance" target="_blank" rel="noreferrer">X</a>{" "}
-          or through the{" "}
-          <a href="https://github.com/cryptoduke01/aumo" target="_blank" rel="noreferrer">
-            GitHub repository
-          </a>
-          .
+          <a href="https://x.com/aumofinance" target="_blank" rel="noreferrer">X</a>.
         </p>
       </article>
     </div>

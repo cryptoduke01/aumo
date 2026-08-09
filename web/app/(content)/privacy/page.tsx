@@ -78,12 +78,7 @@ export default function PrivacyPage() {
         <h2>Contact</h2>
         <p>
           Questions? Reach us on{" "}
-          <a href="https://x.com/aumofinance" target="_blank" rel="noreferrer">X</a>{" "}
-          or via the{" "}
-          <a href="https://github.com/cryptoduke01/aumo" target="_blank" rel="noreferrer">
-            GitHub repository
-          </a>
-          .
+          <a href="https://x.com/aumofinance" target="_blank" rel="noreferrer">X</a>.
         </p>
       </article>
     </div>
