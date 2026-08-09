@@ -54,7 +54,7 @@ export function SiteFooter() {
       </div>
       {/* oversized wordmark, anchored flush to the bottom, bleeding off */}
       <div aria-hidden className="flex select-none justify-center overflow-hidden">
-        <span className="translate-y-[22%] text-[26vw] font-medium leading-none tracking-[-0.03em] text-foreground/[0.05]">
+        <span className="translate-y-[20%] text-[26vw] font-medium leading-none tracking-[-0.03em] text-foreground/[0.08]">
           aumo
         </span>
       </div>
