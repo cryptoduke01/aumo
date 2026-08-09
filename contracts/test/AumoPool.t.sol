@@ -242,4 +242,57 @@ contract AumoPoolTest is Test {
         vm.expectRevert(AumoPool.VenueNotAllowed.selector);
         pool.deallocate(address(0xDEAD), 1);
     }
+
+    /// @notice KENSHO finding fix: a venue whose balanceOf() reverts would DoS totalAssets()
+    ///         (and thus every deposit/withdrawal). removeVenue() prunes it and restores pricing.
+    function test_RemoveVenue_RecoversFromBalanceOfDoS() public {
+        _deposit(alice, 100 * U);
+        RevertingVenue bad = new RevertingVenue(address(usdt0));
+        pool.setVenueAllowed(address(bad), true);
+
+        // Bricked: totalAssets reverts, so deposits and withdrawals revert too.
+        vm.expectRevert();
+        pool.totalAssets();
+        vm.prank(bob);
+        vm.expectRevert();
+        pool.deposit(10 * U, bob);
+
+        // Owner disallows and prunes; the pool prices and redeems again.
+        pool.setVenueAllowed(address(bad), false);
+        pool.removeVenue(address(bad));
+        assertEq(pool.totalAssets(), 100 * U, "pricing restored");
+        uint256 shares = pool.balanceOf(alice);
+        vm.prank(alice);
+        pool.redeem(shares, alice, alice);
+    }
+
+    function test_RemoveVenue_RequiresDisallowFirst() public {
+        vm.expectRevert(AumoPool.VenueNotAllowed.selector);
+        pool.removeVenue(address(venue)); // still allowed
+    }
+}
+
+/// @dev A venue adapter whose balanceOf() always reverts, to prove the totalAssets DoS + fix.
+contract RevertingVenue {
+    address public immutable token;
+
+    constructor(address t) {
+        token = t;
+    }
+
+    function asset() external view returns (address) {
+        return token;
+    }
+
+    function balanceOf(address) external pure returns (uint256) {
+        revert("balanceOf boom");
+    }
+
+    function deposit(uint256 a) external pure returns (uint256) {
+        return a;
+    }
+
+    function withdraw(uint256 a) external pure returns (uint256) {
+        return a;
+    }
 }

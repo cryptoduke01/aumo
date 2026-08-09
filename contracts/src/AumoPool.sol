@@ -45,6 +45,7 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     event Deallocated(address indexed venue, uint256 principal, uint256 returned, uint256 timestamp);
     event AgentUpdated(address indexed agent);
     event VenueAllowed(address indexed venue, bool allowed);
+    event VenueRemoved(address indexed venue);
     event PolicyUpdated(uint256 maxMoveSize, uint256 perVenueCap, uint256 maxTotalDeployed);
 
     error NotAgent();
@@ -193,6 +194,33 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         }
         venueAllowed[venue] = allowed;
         emit VenueAllowed(venue, allowed);
+    }
+
+    /// @notice Emergency prune: drop a disallowed venue from the totalAssets summation. Because
+    ///         totalAssets() reads every listed venue's live balance, a single retired or broken
+    ///         adapter whose balanceOf() reverts would otherwise DoS share pricing (and thus
+    ///         deposits and withdrawals) permanently. The venue must be disallowed first; removing
+    ///         one that still holds recoverable value strands that value, so retreat first via
+    ///         deallocate() whenever the adapter still works. Owner-only, within the existing trust
+    ///         model (owner already controls the allowlist and policy).
+    function removeVenue(address venue) external onlyOwner {
+        if (venueAllowed[venue]) revert VenueNotAllowed(); // disallow before pruning
+        uint256 n = _venues.length;
+        for (uint256 i; i < n; ++i) {
+            if (_venues[i] == venue) {
+                _venues[i] = _venues[n - 1];
+                _venues.pop();
+                break;
+            }
+        }
+        _inList[venue] = false;
+        // Write off any residual principal accounting so totalDeployed stays consistent.
+        uint256 principal = allocated[venue];
+        if (principal != 0) {
+            allocated[venue] = 0;
+            totalDeployed -= principal;
+        }
+        emit VenueRemoved(venue);
     }
 
     function setPolicy(uint256 maxMoveSize_, uint256 perVenueCap_, uint256 maxTotalDeployed_)
