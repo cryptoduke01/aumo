@@ -45,13 +45,11 @@
   --faint: #a29d90;
   --border: #ddd8ca;
   --hairline: rgba(0, 0, 0, 0.1);
-  --primary: #ffbc3e; /* Sovereign (gold fills carry ink text) */
+  --primary: #ffbc3e; /* Sovereign — same brand gold in both themes */
   --primary-foreground: #000000;
-  /* Sovereign is too light for small text on Off-White; a darker Sovereign is used only for
-     accent TEXT on the light theme (legibility). Fills/logo stay #FFBC3E. */
-  --accent: #9a6f1c;
+  --accent: #ffbc3e; /* Sovereign accent (brand-exact; not a muted/darker gold) */
   --accent-foreground: #000000;
-  --positive: #9a6f1c;
+  --positive: #ffbc3e;
   --negative: #a2563b;
   --ledger: #2f63d6;
   --ring: #000000;
