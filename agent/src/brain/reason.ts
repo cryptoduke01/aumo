@@ -23,7 +23,7 @@ export type LlmReplyT = z.infer<typeof LlmReply>;
  */
 export function resolveTighten(
   base: { regime: Regime; appetite: RiskBand },
-  reply: { regime: Regime; appetite: RiskBand; veto: string[] },
+  reply: { regime: Regime; appetite: RiskBand; veto: string[] },  
 ): { regime: Regime; appetite: RiskBand; deny: Set<string> } {
   const regime: Regime =
     REGIME_RANK[reply.regime] < REGIME_RANK[base.regime] ? reply.regime : base.regime;

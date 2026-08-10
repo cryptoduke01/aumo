@@ -105,24 +105,42 @@ export default function Landing() {
     <div className="flex flex-1 flex-col">
       <SiteHeader />
 
-      {/* ── hero ────────────────────────────────────────────── */}
+      {/* ── hero: dithered Sovereign-gold horizon over ink ──── */}
       <section className="relative isolate overflow-hidden">
-        <AsciiField className="opacity-60 [mask-image:radial-gradient(120%_80%_at_50%_0%,#000_15%,transparent_72%)]" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/dither-images/HMtauliaQAAqwjB.jpeg"
+            alt=""
+            className="h-full w-full object-cover object-top opacity-[0.55] [mask-image:linear-gradient(to_bottom,#000_0%,#000_42%,transparent_92%)] [filter:saturate(0.9)_contrast(1.05)]"
+          />
+          {/* fade the frame into the Ink page: bottom + vignette */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/5 to-background" />
+          <div className="absolute inset-0 bg-[radial-gradient(120%_85%_at_50%_-5%,transparent_28%,var(--background)_84%)]" />
+        </div>
         <Grain />
-        <div className="mx-auto flex w-full max-w-5xl flex-col items-center px-5 pt-20 pb-16 text-center sm:px-8 sm:pt-28">
-          <h1 className="max-w-3xl text-balance text-[2.7rem] font-medium leading-[1.03] tracking-[-0.02em] sm:text-6xl">
+        <div className="mx-auto flex w-full max-w-4xl flex-col items-center px-5 pt-28 pb-24 text-center sm:px-8 sm:pt-40 sm:pb-32">
+          <span className="inline-flex items-center gap-2 self-center rounded-full border border-border/70 bg-background/30 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground backdrop-blur-sm">
+            <span className="size-1.5 rounded-full bg-primary" /> Autonomous treasury · X Layer
+          </span>
+          <h1 className="mt-7 max-w-3xl text-balance text-[2.9rem] font-medium leading-[1.02] tracking-[-0.02em] sm:text-7xl">
             Put your stablecoins to work.
           </h1>
           <p className="mt-6 max-w-xl text-balance text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Aumo is an autonomous treasury agent. It moves your idle USDT0 into
-            the best risk-adjusted yield on X Layer, across on-chain lending and
-            real-world-asset-backed dollars, inside guardrails it can&apos;t break.
+            Aumo is an AI agent that moves idle USDT0 into the best risk-adjusted yield on X Layer,
+            on-chain lending and a Treasury-backed dollar, inside guardrails it can&apos;t break.
           </p>
-          <Cta className="mt-8" />
+          <Cta className="mt-9" />
+        </div>
+      </section>
 
-          <div className="mt-16 w-full max-w-3xl sm:mt-20">
-            <AgentConsole />
-          </div>
+      {/* ── the agent, live (calm, minimal) ──────────────────── */}
+      <section className="border-t border-border/70">
+        <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8">
+          <span className="mb-5 block text-xs uppercase tracking-[0.14em] text-muted-foreground">
+            The agent, live
+          </span>
+          <AgentConsole />
         </div>
       </section>
 
