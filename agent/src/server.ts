@@ -33,37 +33,61 @@ interface Decision {
     risks?: Array<Record<string, unknown>>;
   };
   snapshot?: {
-    vault?: { idle?: string; totalDeployed?: string; symbol?: string; decimals?: number };
+    vault?: {
+      address?: string;
+      idle?: string;
+      totalDeployed?: string;
+      symbol?: string;
+      decimals?: number;
+    };
     venues?: Array<Record<string, unknown>>;
   };
 }
 
 /** Compact, model-friendly view of the agent's current state for Q&A grounding. */
 function buildContext(cfg: Config) {
-  const recent = readRecent(4) as Decision[];
+  const recent = readRecent(6) as Decision[];
   const latest = recent[0];
   const dec = latest?.snapshot?.vault?.decimals ?? 6;
   const u = (v: unknown) => (v == null ? null : Number(v) / 10 ** dec);
+  // Join the latest risk scores (by venue name) onto the live on-chain venue positions, so the agent
+  // can answer "how much is in each venue", "which holds the most", and "are they allowed" — not just
+  // recite scores. Sorted by current principal so the model sees the biggest position first.
+  const risksByName = new Map(
+    (latest?.plan?.risks ?? []).map((r) => [String(r.name), r]),
+  );
+  const venues = (latest?.snapshot?.venues ?? [])
+    .map((v) => {
+      const r = risksByName.get(String(v.name));
+      return {
+        name: v.name,
+        allowed: v.allowed ?? null,
+        deployed: u(v.allocatedPrincipal),
+        currentValue: u(v.liveBalance),
+        apyPct: r && typeof r.apyBps === "number" ? r.apyBps / 100 : null,
+        riskAdjPct:
+          r && typeof r.riskAdjustedApyBps === "number" ? r.riskAdjustedApyBps / 100 : null,
+        band: r?.band ?? null,
+        notes: r?.notes ?? null,
+      };
+    })
+    .sort((a, b) => (b.deployed ?? 0) - (a.deployed ?? 0));
+  const mostDeployed = venues.find((v) => (v.deployed ?? 0) > 0)?.name ?? null;
   return {
     identity: buildIdentity(cfg),
     latest: latest
       ? {
           takenAt: latest.takenAt,
+          vault: latest.snapshot?.vault?.address ?? null,
           regime: latest.plan?.regime,
           appetite: latest.plan?.appetite,
           source: latest.plan?.source,
           summary: latest.plan?.summary,
           idle: u(latest.snapshot?.vault?.idle),
           deployed: u(latest.snapshot?.vault?.totalDeployed),
+          mostDeployedVenue: mostDeployed,
           moves: latest.plan?.moves ?? [],
-          venues: (latest.plan?.risks ?? []).map((r) => ({
-            name: r.name,
-            apyPct: typeof r.apyBps === "number" ? r.apyBps / 100 : null,
-            riskAdjPct:
-              typeof r.riskAdjustedApyBps === "number" ? r.riskAdjustedApyBps / 100 : null,
-            band: r.band,
-            notes: r.notes,
-          })),
+          venues,
         }
       : null,
     recentDecisions: recent.slice(1).map((r) => ({ takenAt: r.takenAt, summary: r.plan?.summary })),
