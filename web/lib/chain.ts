@@ -46,6 +46,18 @@ const ADDR = {
 export const POOL = (process.env.NEXT_PUBLIC_POOL ?? ADDR[NET].pool) as `0x${string}`;
 export const USDT0 = (process.env.NEXT_PUBLIC_USDT0 ?? ADDR[NET].usdt0) as `0x${string}`;
 
+// Guard the exact failure mode of the mainnet flip: NEXT_PUBLIC_CHAIN=mainnet set but
+// NEXT_PUBLIC_POOL forgotten, so POOL falls back to the zero address and every read silently
+// targets 0x0 (TVL renders "$0", deposits break). `poolConfigured` lets the UI show a loud
+// notice instead of a plausible-looking empty pool.
+export const poolConfigured =
+  POOL !== "0x0000000000000000000000000000000000000000";
+if (isMainnet && !poolConfigured) {
+  console.error(
+    "[aumo] NEXT_PUBLIC_POOL is not set on mainnet — pool reads target the zero address. Set it to the deployed AumoPool.",
+  );
+}
+
 export const poolAbi = parseAbi([
   "function asset() view returns (address)",
   "function decimals() view returns (uint8)",

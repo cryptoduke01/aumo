@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getReceipts,
   txUrl,
@@ -30,6 +30,7 @@ export function AgentConsole() {
   const [rec, setRec] = useState<DecisionRecord | null>(null);
   const [status, setStatus] = useState<"loading" | "live" | "error">("loading");
   const [mounted, setMounted] = useState(false);
+  const hasData = useRef(false); // ref, not the stale `rec` closure, so a live console isn't flipped Offline by one failed poll
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
@@ -40,9 +41,12 @@ export function AgentConsole() {
         if (r[0]) {
           setRec(r[0]);
           setStatus("live");
-        } else setStatus("error");
+          hasData.current = true;
+        } else if (!hasData.current) setStatus("error");
       } catch (e) {
-        if ((e as Error).name !== "AbortError") setStatus((s) => (rec ? s : "error"));
+        // A transient poll failure after we've gone live keeps the last good data as "live";
+        // only show Offline if we never reached the agent at all.
+        if ((e as Error).name !== "AbortError" && !hasData.current) setStatus("error");
       }
     };
     load();
@@ -91,6 +95,7 @@ export function AgentConsole() {
 
 function Body({ rec }: { rec: DecisionRecord }) {
   const risks = rec.plan.risks;
+  const dec = rec.snapshot.vault?.decimals ?? 6;
   const move = rec.plan.moves[0];
   const exec = rec.execution?.[0];
   const winner = move?.venueName;
@@ -142,7 +147,7 @@ function Body({ rec }: { rec: DecisionRecord }) {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border px-4 py-3 text-xs sm:px-5">
           <span className="text-foreground">
             <span className="capitalize">{move?.action ?? "hold"}</span>{" "}
-            {move ? <Num value={Number(move.amount) / 1e6} currency maximumFractionDigits={0} /> : null}
+            {move ? <Num value={Number(move.amount) / 10 ** dec} currency maximumFractionDigits={0} /> : null}
             {move ? ` → ${move.venueName}` : ""}
           </span>
           {exec?.hash ? (

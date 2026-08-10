@@ -11,7 +11,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { toast } from "sonner";
-import { POOL, USDT0, poolAbi, erc20Abi, activeChain } from "@/lib/chain";
+import { POOL, USDT0, poolAbi, erc20Abi, activeChain, poolConfigured } from "@/lib/chain";
 import { Panel, Label, Badge } from "@/components/ui";
 import { ConnectButton } from "@/components/wallet";
 import { BridgeIn } from "@/components/bridge-in";
@@ -150,6 +150,13 @@ export default function VaultPage() {
           accrues to every depositor.
         </span>
       </header>
+
+      {!poolConfigured ? (
+        <div className="rounded-lg border border-negative/40 bg-negative/5 px-4 py-3 text-sm text-negative">
+          The pool address isn&apos;t configured for this network yet. Deposits and balances are
+          unavailable until it&apos;s set.
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Position + pool */}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AsciiMark } from "@/components/ascii-mark";
+import { isMainnet } from "@/lib/chain";
 
 export const metadata: Metadata = {
   title: "Docs · Aumo",
@@ -161,8 +162,9 @@ export default function DocsPage() {
               shares for USDT0 at the current share price.
             </p>
             <p>
-              Aumo is currently on X Layer testnet. You need testnet USDT0 and a
-              little OKB for gas.
+              {isMainnet
+                ? "Aumo is live on X Layer. You need USDT0 and a little OKB for gas."
+                : "Aumo is currently on X Layer testnet. You need testnet USDT0 and a little OKB for gas."}
             </p>
           </section>
 
@@ -172,8 +174,10 @@ export default function DocsPage() {
               USDT0 is a LayerZero OFT, so you can fund your position from another
               chain. Pick a source chain and amount, and Aumo quotes the real route
               and messaging fee from the OFT. The bridged USDT0 arrives on X Layer
-              ready to deposit. On testnet the flow previews the genuine route and
-              fee.
+              ready to deposit.{" "}
+              {isMainnet
+                ? "Bridging executes from your wallet on the source chain."
+                : "On testnet the flow previews the genuine route and fee."}
             </p>
           </section>
 
@@ -193,9 +197,11 @@ export default function DocsPage() {
             </p>
             <h3>Is this audited?</h3>
             <p>
-              Aumo is experimental software on testnet. The contracts have been
-              hardened and internally reviewed, but they have not completed a formal
-              third-party audit. Do not deposit funds you cannot afford to lose.
+              {isMainnet
+                ? "Aumo runs on X Layer mainnet with conservative caps. "
+                : "Aumo is experimental software on testnet. "}
+              The contracts have been hardened and reviewed, but they have not completed
+              a formal third-party audit. Do not deposit funds you cannot afford to lose.
             </p>
             <h3>Is this financial advice?</h3>
             <p>

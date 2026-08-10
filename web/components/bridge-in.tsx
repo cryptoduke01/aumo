@@ -136,8 +136,15 @@ function ChainSelect({ value, onChange }: { value: string; onChange: (k: string)
     const onDown = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
     document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   return (
@@ -146,6 +153,8 @@ function ChainSelect({ value, onChange }: { value: string; onChange: (k: string)
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label="Source chain"
         className="flex w-full items-center gap-2 rounded-lg border border-border bg-card-2 px-3 py-2 text-sm transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-40"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}

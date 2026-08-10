@@ -138,7 +138,7 @@ export function amount(str: string, decimals: number, maxFrac = 2): string {
 
 export const pct = (bps: number, frac = 2) => `${(bps / 100).toFixed(frac)}%`;
 export const short = (a: string | null) =>
-  a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—";
+  a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "-";
 
 export function timeAgo(iso: string): string {
   const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DitherMark } from "@/components/dither-mark";
+import { isMainnet } from "@/lib/chain";
 
 export const metadata: Metadata = {
   title: "Whitepaper · Aumo",
@@ -136,7 +137,9 @@ export default function WhitepaperPage() {
 
         <h2>10. Disclaimer</h2>
         <p>
-          This document describes experimental software running on testnet. It is
+          {isMainnet
+            ? "This document describes software running on X Layer mainnet. It is "
+            : "This document describes experimental software running on testnet. It is "}
           not an offer, solicitation, or financial advice. Yields are variable and
           not guaranteed, smart contracts carry risk, and you should never commit
           funds you cannot afford to lose. See the <a href="/terms">Terms</a> and{" "}

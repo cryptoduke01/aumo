@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isMainnet } from "@/lib/chain";
 
 export const metadata: Metadata = {
   title: "Terms · Aumo",
@@ -26,8 +27,10 @@ export default function TermsPage() {
 
         <h2>1. Experimental software, provided as-is</h2>
         <p>
-          Aumo is currently deployed on testnet and is under active development. It
-          is provided &quot;as is&quot; and &quot;as available&quot;, without
+          {isMainnet
+            ? "Aumo is deployed on X Layer mainnet and is under active development. "
+            : "Aumo is currently deployed on testnet and is under active development. "}
+          It is provided &quot;as is&quot; and &quot;as available&quot;, without
           warranties of any kind, express or implied, including merchantability,
           fitness for a particular purpose, or non-infringement. The contracts have
           not completed a formal third-party audit.

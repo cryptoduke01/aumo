@@ -93,19 +93,44 @@ function ConnectModal({
   hasWcProject: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
+    const trigger = document.activeElement as HTMLElement | null;
+    const focusables = () =>
+      Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>('button, a[href], input, [tabindex]:not([tabindex="-1"])') ?? [],
+      ).filter((el) => !el.hasAttribute("disabled"));
+    const t = setTimeout(() => (focusables()[0] ?? dialogRef.current)?.focus(), 0);
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key === "Tab") {
+        const items = focusables();
+        if (items.length === 0) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
+      clearTimeout(t);
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
+      trigger?.focus?.(); // restore focus to the button that opened the modal
     };
   }, [open, onClose]);
 
@@ -123,10 +148,12 @@ function ConnectModal({
         >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
           <motion.div
+            ref={dialogRef}
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
             aria-label="Connect a wallet"
-            className="chamfer-edge relative z-10 w-full max-w-sm"
+            className="chamfer-edge relative z-10 w-full max-w-sm focus:outline-none"
             initial={{ opacity: 0, y: 14, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 14, scale: 0.97 }}
@@ -230,8 +257,15 @@ function AccountMenu({ address, onDisconnect }: { address: string; onDisconnect:
     const onDown = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
     document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   const copy = async () => {
@@ -250,7 +284,7 @@ function AccountMenu({ address, onDisconnect }: { address: string; onDisconnect:
 
   return (
     <div ref={ref} className="relative">
-      <button className={btn} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+      <button className={btn} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu">
         <span className="size-1.5 rounded-full bg-accent" aria-hidden />
         <span className="font-mono text-xs">{short(address)}</span>
         <svg viewBox="0 0 16 16" className={`size-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} fill="none" aria-hidden="true">
