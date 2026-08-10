@@ -27,6 +27,7 @@
   --negative: #c2957f; /* functional warning only */
   --ledger: #3d7bff; /* complementary accent (sparingly) */
   --ring: #ffbc3e;
+  --mark: #ffbc3e; /* logo mark colour: Sovereign on Ink (brand correct variations) */
   --glyph-rgb: 241, 238, 229;
   --radius: 0.5rem;
   --cut: 14px;
@@ -54,6 +55,7 @@
   --negative: #a2563b;
   --ledger: #2f63d6;
   --ring: #000000;
+  --mark: #000000; /* Ink mark on Off-White (brand correct variations) */
   --glyph-rgb: 0, 0, 0;
 }
 

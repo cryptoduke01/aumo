@@ -18,6 +18,7 @@ const tabs = [
   { seg: "/vault", label: "Deposit" },
   { seg: "/venues", label: "Venues" },
   { seg: "/activity", label: "Activity" },
+  { seg: "/settings", label: "Settings" },
 ];
 
 export function AppNav() {
