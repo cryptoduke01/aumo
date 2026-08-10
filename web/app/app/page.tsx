@@ -15,7 +15,8 @@ import {
 import { Panel, Label, Badge, Dot, RiskBar } from "@/components/ui";
 import { AumoMark } from "@/components/mark";
 import { Num } from "@/components/num";
-import { AreaChart, Donut, type Segment } from "@/components/charts";
+import { Donut, type Segment } from "@/components/charts";
+import { DitherArea } from "@/components/dither-area";
 import { Loader } from "@/components/loader";
 import { AskAumo } from "@/components/ask-aumo";
 import { VenueIcon } from "@/components/venue-icon";
@@ -124,7 +125,7 @@ export default function Dashboard() {
             <span className="tnum text-sm font-medium text-accent"><Num value={bestNow} suffix="%" maximumFractionDigits={2} /></span>
           </div>
           <div className="mt-4 flex-1">
-            <AreaChart values={series} className="w-full" height={120} />
+            <DitherArea values={series} className="w-full" height={120} />
           </div>
           {series.length >= 2 ? (
             <span className="mt-2 text-[11px] text-faint">Last {series.length} cycles</span>

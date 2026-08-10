@@ -1,6 +1,6 @@
 import { AsciiField } from "@/components/ascii-field";
-import { AgentConsole } from "@/components/agent-console";
 import { DitherBg } from "@/components/dither-bg";
+import { DitherField } from "@/components/dither-field";
 import { Grain } from "@/components/grain";
 import { Orb } from "@/components/orb";
 import { AumoMark } from "@/components/mark";
@@ -137,10 +137,42 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── the agent, live (calm, minimal) ──────────────────── */}
-      <section className="border-t border-border/70">
-        <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8">
-          <AgentConsole />
+      {/* ── the signal field: the agent sensing the market (generative dither) ─ */}
+      <section className="relative isolate overflow-hidden border-t border-border/70">
+        <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
+          <div className="relative isolate overflow-hidden rounded-2xl border border-border/70 bg-background">
+            {/* the living dither field, densest at the core, dissolving into the page at the edges */}
+            <div
+              aria-hidden
+              className="absolute inset-0 -z-10 [mask-image:radial-gradient(78%_78%_at_50%_46%,#000_18%,transparent_80%)]"
+            >
+              <DitherField />
+            </div>
+            {/* warm Sovereign bloom bleeding through the field (keryx model) */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 -z-10 mix-blend-soft-light"
+              style={{ background: "radial-gradient(46% 46% at 50% 46%, color-mix(in srgb, var(--primary) 40%, transparent), transparent 66%)" }}
+            />
+            <Grain />
+            <div className="relative flex min-h-[26rem] flex-col items-center justify-center gap-5 px-6 py-20 text-center sm:min-h-[32rem]">
+              <span className="relative inline-flex items-center justify-center">
+                <span
+                  aria-hidden
+                  className="absolute size-16 rounded-full opacity-40 blur-xl"
+                  style={{ background: "radial-gradient(circle, var(--primary) 0%, transparent 70%)" }}
+                />
+                <AumoMark className="relative size-9 text-primary" />
+              </span>
+              <h2 className="max-w-lg text-balance text-2xl font-medium tracking-tight sm:text-3xl">
+                Always sensing. Only ever tightening.
+              </h2>
+              <p className="max-w-md text-balance text-sm leading-relaxed text-muted-foreground">
+                Every cycle the agent reads the whole field, scores each venue against live risk, and
+                moves inside caps it can never widen.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -172,8 +204,9 @@ export default function Landing() {
       </section>
 
       {/* ── one cycle ───────────────────────────────────────── */}
-      <section id="cycle" className="border-t border-border/70">
-        <div className="mx-auto w-full max-w-6xl px-5 py-24 sm:px-8">
+      <section id="cycle" className="relative isolate overflow-hidden border-t border-border/70">
+        <DitherBg src="/dither-images/HMtauliaQAAqwjB.jpeg" from="bottom" opacity={0.14} glow={false} />
+        <div className="relative mx-auto w-full max-w-6xl px-5 py-24 sm:px-8">
           <h2 className="max-w-xl text-balance text-2xl font-medium tracking-tight sm:text-3xl">
             One cycle, start to proof.
           </h2>
