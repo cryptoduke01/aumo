@@ -50,15 +50,6 @@ contract DeployPoolMainnet is Script {
         uint256 maxMove = vm.envOr("MAX_MOVE", uint256(100e6));
         uint256 perVenue = vm.envOr("PER_VENUE_CAP", uint256(1_000e6));
         uint256 maxTotal = vm.envOr("MAX_TOTAL", uint256(5_000e6));
-        // Churn loss budget: most realized round-trip loss the agent may cause per epoch (~1% of max
-        // total / day). Deploy budget: caps allocate throughput per epoch (~3x total / day) so churn
-        // can't be re-staged through the unmetered redeem path without bound. USDG valuation discount:
-        // the realistic marginal round-trip cost used to price the position (decoupled from the 2%
-        // swap floor so routine moves don't step NAV).
-        uint256 maxEpochLoss = vm.envOr("MAX_EPOCH_LOSS", maxTotal / 100);
-        uint256 lossEpoch = vm.envOr("LOSS_EPOCH", uint256(1 days));
-        uint256 maxEpochDeploy = vm.envOr("MAX_EPOCH_DEPLOY", maxTotal * 3);
-        uint256 usdgValuationBps = vm.envOr("USDG_VALUATION_BPS", uint256(30));
 
         require(msg.sender == owner, "broadcaster must be VAULT_OWNER");
         require(agent != address(0) && agent != owner, "AGENT_ADDRESS must be set and != owner");
@@ -73,15 +64,21 @@ contract DeployPoolMainnet is Script {
         AumoPool pool = new AumoPool(IERC20(USDT0), owner);
         // Venue 1: real Aave USDT0 lending (fork-proven).
         AaveV3Adapter aave = new AaveV3Adapter(USDT0, AAVE_POOL, AUSDT0, address(pool));
-        // Venue 2: RWA-backed USDG yield (fork-proven) — the agent aggregates across both.
+        // Venue 2: RWA-backed USDG yield (fork-proven). USDG valuation discount (~30bps) is the
+        // realistic marginal round-trip cost, decoupled from the 2% swap floor so routine moves
+        // don't step NAV.
         RwaUsdgAdapter usdg = new RwaUsdgAdapter(
-            USDT0, USDG, AUSDG, AAVE_POOL, UNI_ROUTER, address(pool), adapterOwner, USDG_FEE, USDG_SLIPPAGE_BPS, usdgValuationBps
+            USDT0, USDG, AUSDG, AAVE_POOL, UNI_ROUTER, address(pool), adapterOwner, USDG_FEE,
+            USDG_SLIPPAGE_BPS, vm.envOr("USDG_VALUATION_BPS", uint256(30))
         );
         pool.setVenueAllowed(address(aave), true);
         pool.setVenueAllowed(address(usdg), true);
         pool.setPolicy(maxMove, perVenue, maxTotal);
-        pool.setLossBudget(maxEpochLoss, lossEpoch); // bound agent churn/value destruction
-        pool.setDeployBudget(maxEpochDeploy); // cap re-staging via the unmetered redeem path
+        // Loss budget: most realized round-trip loss per epoch (~1% of max total / day). Deploy
+        // budget: caps allocate throughput per epoch (~3x total / day) so churn can't be re-staged
+        // via the unmetered redeem path. Each has its own window.
+        pool.setLossBudget(vm.envOr("MAX_EPOCH_LOSS", maxTotal / 100), vm.envOr("LOSS_EPOCH", uint256(1 days)));
+        pool.setDeployBudget(vm.envOr("MAX_EPOCH_DEPLOY", maxTotal * 3), vm.envOr("DEPLOY_EPOCH", uint256(1 days)));
         pool.setAgent(agent);
         pool.pause(); // deploy paused; go-live is a deliberate unpause after verification
         if (safe != address(0)) pool.transferOwnership(safe); // Ownable2Step: Safe must accept
@@ -95,7 +92,8 @@ contract DeployPoolMainnet is Script {
         console2.log("owner (pending Safe):", safe);
         console2.log("agent:         ", agent);
         console2.log("caps (maxMove/perVenue/maxTotal):", maxMove, perVenue, maxTotal);
-        console2.log("loss/deploy budget:", maxEpochLoss, maxEpochDeploy);
+        console2.log("loss budget:", pool.maxEpochLoss());
+        console2.log("deploy budget:", pool.maxEpochDeploy());
         console2.log("PAUSED: true. Transfer ownership to Safe, verify, then unpause to go live.");
         if (safe == address(0)) {
             console2.log("WARNING: SAFE not set. Ownership is on the deployer EOA. Move it to a multisig before funding.");

@@ -305,7 +305,7 @@ contract AumoPoolTest is Test {
     function test_DeployBudget_BoundsRestaging() public {
         _deposit(alice, 500 * U);
         LossyVenue lv = _lossy(300);
-        pool.setDeployBudget(300 * U); // at most 300 allocated per epoch
+        pool.setDeployBudget(300 * U, 1 days); // at most 300 allocated per epoch
         vm.startPrank(agent);
         pool.allocate(address(lv), 200 * U, "1"); // 200 <= 300 ok
         vm.expectRevert(AumoPool.DeployBudgetExceeded.selector);
@@ -316,7 +316,138 @@ contract AumoPoolTest is Test {
     function test_SetDeployBudget_OnlyOwner() public {
         vm.prank(stranger);
         vm.expectRevert();
-        pool.setDeployBudget(1);
+        pool.setDeployBudget(1, 1 days);
+    }
+
+    // --- deviykee audit (2026-08-10): NAV realizability, budget basis, phantom retreat ---
+
+    /// H-1/L8/R1: impairing a stuck venue writes it out of NAV, so share price reflects realizable
+    /// value and first redeemers can't drain healthy liquidity against inflated NAV.
+    function test_Impair_ExcludesStuckVenueFromNav_FairExit() public {
+        StuckVenue stuck = new StuckVenue(address(usdt0));
+        _deposit(alice, 200 * U);
+        _deposit(bob, 200 * U);
+        pool.setVenueAllowed(address(stuck), true);
+        pool.setVenueAllowed(address(venue), true);
+
+        vm.startPrank(agent);
+        pool.allocate(address(stuck), 200 * U, "stuck");
+        pool.allocate(address(venue), 200 * U, "healthy");
+        vm.stopPrank();
+        assertEq(pool.totalAssets(), 400 * U, "full NAV before impairment");
+
+        // Agent detects the venue can't exit and marks it impaired: NAV writes down to realizable.
+        vm.prank(agent);
+        pool.setVenueImpaired(address(stuck), true);
+        assertEq(pool.totalAssets(), 200 * U, "stuck value excluded from NAV");
+
+        // Now alice redeems: she gets her fair share of the REALIZABLE 200 (not the inflated 400).
+        uint256 before = usdt0.balanceOf(alice);
+        uint256 sh = pool.balanceOf(alice);
+        vm.prank(alice);
+        pool.redeem(sh, alice, alice);
+        assertApproxEqAbs(usdt0.balanceOf(alice) - before, 100 * U, 2, "fair pro-rata of realizable, not preferential drain");
+
+        // Bob still holds his shares and the healthy venue still has ~100 for him.
+        assertGt(pool.balanceOf(bob), 0, "bob keeps his claim");
+        assertApproxEqAbs(pool.totalAssets(), 100 * U, 2, "healthy remainder still priced");
+    }
+
+    function test_SetVenueImpaired_OnlyOwnerOrAgent() public {
+        pool.setVenueAllowed(address(venue), true);
+        vm.prank(stranger);
+        vm.expectRevert(AumoPool.NotOwnerOrAgent.selector);
+        pool.setVenueImpaired(address(venue), true);
+        // owner and agent both allowed
+        pool.setVenueImpaired(address(venue), true);
+        vm.prank(agent);
+        pool.setVenueImpaired(address(venue), false);
+    }
+
+    function test_Impair_BlocksNewAllocation() public {
+        _deposit(alice, 200 * U);
+        pool.setVenueAllowed(address(venue), true);
+        pool.setVenueImpaired(address(venue), true);
+        vm.prank(agent);
+        vm.expectRevert(AumoPool.VenueIsImpaired.selector);
+        pool.allocate(address(venue), 100 * U, "x");
+    }
+
+    /// H-2/L2/L4: allocate books the NET supplied, so the loss budget doesn't re-charge the entry
+    /// swap on exit — a normal RWA round trip can retreat under an exit-sized budget.
+    function test_LossBudget_DoesNotDoubleCountEntryFill() public {
+        pool.setPolicy(2_000 * U, 2_000 * U, 2_000 * U);
+        EntryExitVenue v = new EntryExitVenue(address(usdt0), 200, 100); // 2% entry, 1% exit
+        pool.setVenueAllowed(address(v), true);
+        pool.setLossBudget(15 * U, 1 days); // sized for exit cost, not entry+exit
+
+        _deposit(alice, 1_000 * U);
+        vm.startPrank(agent);
+        pool.allocate(address(v), 1_000 * U, "in");
+        // principal booked NET (~980), not gross 1000
+        assertApproxEqAbs(pool.allocated(address(v)), 980 * U, 1, "booked net supplied");
+        // full retreat succeeds: loss ~= exit only (~10) < budget 15
+        pool.deallocate(address(v), 1_000 * U);
+        vm.stopPrank();
+        assertEq(pool.allocated(address(v)), 0, "retreated cleanly");
+    }
+
+    /// H-3/L3: a venue that reports a balance but returns nothing on withdraw can't silently wipe
+    /// the principal ledger — the retreat reverts (agent) / is skipped (user path).
+    function test_EmptyWithdraw_Reverts_NoPhantomRetreat() public {
+        pool.setPolicy(2_000 * U, 2_000 * U, 2_000 * U);
+        LieVenue lie = new LieVenue(address(usdt0));
+        pool.setVenueAllowed(address(lie), true);
+        _deposit(alice, 1_000 * U);
+        vm.prank(agent);
+        pool.allocate(address(lie), 1_000 * U, "lie");
+
+        vm.prank(agent);
+        vm.expectRevert(AumoPool.EmptyWithdraw.selector);
+        pool.deallocate(address(lie), 1_000 * U);
+        assertEq(pool.allocated(address(lie)), 1_000 * U, "principal intact, not wiped");
+    }
+
+    /// M-1/R2: a venue whose balanceOf reverts is isolated in _ensureIdle too, so a redemption a
+    /// healthy venue can cover still clears.
+    function test_Redemption_SkipsRevertingBalanceOf() public {
+        RevertingBalanceVenue bad = new RevertingBalanceVenue(address(usdt0));
+        _deposit(alice, 300 * U);
+        pool.setVenueAllowed(address(bad), true); // first in the list
+        pool.setVenueAllowed(address(venue), true);
+        vm.startPrank(agent);
+        pool.allocate(address(bad), 150 * U, "bad");
+        pool.allocate(address(venue), 150 * U, "ok");
+        vm.stopPrank();
+
+        // bad's balanceOf reverts, so its value is already out of NAV; the point is that the pull
+        // loop skips the reverting view instead of bricking. A withdraw that needs a venue pull clears.
+        uint256 before = usdt0.balanceOf(alice);
+        vm.prank(alice);
+        pool.withdraw(100 * U, alice, alice); // idle 0 -> must pull; bad view skipped, healthy pays
+        assertEq(usdt0.balanceOf(alice) - before, 100 * U, "redeem clears past the reverting view");
+    }
+
+    /// M-3/L5: the deploy budget has its own window; changing the loss-budget length no longer
+    /// desyncs the deploy window.
+    function test_DeployBudget_WindowDecoupledFromLossBudget() public {
+        _deposit(alice, 1_000 * U);
+        pool.setVenueAllowed(address(venue), true);
+        pool.setDeployBudget(100 * U, 1 days);
+        vm.prank(agent);
+        pool.allocate(address(venue), 100 * U, "1"); // budget spent
+
+        // Changing the loss-budget length must NOT roll the deploy window.
+        pool.setLossBudget(0, 1); // 1-second loss epoch
+        vm.warp(block.timestamp + 2);
+        vm.prank(agent);
+        vm.expectRevert(AumoPool.DeployBudgetExceeded.selector);
+        pool.allocate(address(venue), 100 * U, "2"); // deploy window still open, still over budget
+    }
+
+    function test_SetAgent_RejectsZero() public {
+        vm.expectRevert(AumoPool.ZeroAgent.selector);
+        pool.setAgent(address(0));
     }
 
     // --- HIGH finding fix: a compromised agent cannot drain the treasury by churning a lossy venue ---
@@ -513,5 +644,106 @@ contract StuckVenue is IVenueAdapter {
 
     function balanceOf(address account) external view returns (uint256) {
         return position[account];
+    }
+}
+
+/// @dev Burns `entryBps` on deposit and `exitBps` on withdraw (models the RWA swap on both legs).
+contract EntryExitVenue is IVenueAdapter {
+    using SafeERC20 for IERC20;
+    IERC20 public immutable token;
+    uint256 public immutable entryBps;
+    uint256 public immutable exitBps;
+    mapping(address => uint256) public position;
+
+    constructor(address token_, uint256 entryBps_, uint256 exitBps_) {
+        token = IERC20(token_);
+        entryBps = entryBps_;
+        exitBps = exitBps_;
+    }
+
+    function asset() external view returns (address) {
+        return address(token);
+    }
+
+    function deposit(uint256 amount) external returns (uint256) {
+        token.safeTransferFrom(msg.sender, address(this), amount);
+        uint256 credited = (amount * (10_000 - entryBps)) / 10_000; // entry burn
+        position[msg.sender] += credited;
+        return credited;
+    }
+
+    function withdraw(uint256 amount) external returns (uint256) {
+        uint256 bal = position[msg.sender];
+        uint256 amt = amount > bal ? bal : amount;
+        position[msg.sender] = bal - amt;
+        uint256 out = (amt * (10_000 - exitBps)) / 10_000;
+        token.safeTransfer(msg.sender, out);
+        return out;
+    }
+
+    function balanceOf(address account) external view returns (uint256) {
+        return position[account];
+    }
+}
+
+/// @dev Reports a balance but its withdraw is a silent no-op (returns 0, no revert).
+contract LieVenue is IVenueAdapter {
+    using SafeERC20 for IERC20;
+    IERC20 public immutable token;
+    mapping(address => uint256) public position;
+
+    constructor(address token_) {
+        token = IERC20(token_);
+    }
+
+    function asset() external view returns (address) {
+        return address(token);
+    }
+
+    function deposit(uint256 amount) external returns (uint256) {
+        token.safeTransferFrom(msg.sender, address(this), amount);
+        position[msg.sender] += amount;
+        return amount;
+    }
+
+    function withdraw(uint256) external pure returns (uint256) {
+        return 0; // silent no-op: transfers nothing, does not revert
+    }
+
+    function balanceOf(address account) external view returns (uint256) {
+        return position[account];
+    }
+}
+
+/// @dev deposit/withdraw work, but balanceOf always reverts (asymmetric broken view).
+contract RevertingBalanceVenue is IVenueAdapter {
+    using SafeERC20 for IERC20;
+    IERC20 public immutable token;
+    mapping(address => uint256) public position;
+
+    constructor(address token_) {
+        token = IERC20(token_);
+    }
+
+    function asset() external view returns (address) {
+        return address(token);
+    }
+
+    function deposit(uint256 amount) external returns (uint256) {
+        token.safeTransferFrom(msg.sender, address(this), amount);
+        position[msg.sender] += amount;
+        return amount;
+    }
+
+    function withdraw(uint256 amount) external returns (uint256) {
+        uint256 bal = position[msg.sender];
+        uint256 amt = amount > bal ? bal : amount;
+        position[msg.sender] = bal - amt;
+        token.safeTransfer(msg.sender, amt);
+        return amt;
+    }
+
+    function balanceOf(address) external pure returns (uint256) {
+        revert("balanceOf boom");
     }
 }

@@ -58,6 +58,9 @@ contract RwaUsdgAdapter is IVenueAdapter, Ownable {
     uint256 public maxSlippageBps;
     uint256 public valuationDiscountBps;
 
+    event MaxSlippageBpsUpdated(uint256 bps);
+    event ValuationDiscountBpsUpdated(uint256 bps);
+
     error OnlyVault();
     error BadParam();
 
@@ -98,6 +101,7 @@ contract RwaUsdgAdapter is IVenueAdapter, Ownable {
     function setMaxSlippageBps(uint256 bps) external onlyOwner {
         if (bps == 0 || bps >= 10_000 || valuationDiscountBps > bps) revert BadParam();
         maxSlippageBps = bps;
+        emit MaxSlippageBpsUpdated(bps);
     }
 
     /// @notice Retune the valuation discount used in balanceOf (owner / Safe). Must not exceed the
@@ -105,6 +109,7 @@ contract RwaUsdgAdapter is IVenueAdapter, Ownable {
     function setValuationDiscountBps(uint256 bps) external onlyOwner {
         if (bps > maxSlippageBps) revert BadParam();
         valuationDiscountBps = bps;
+        emit ValuationDiscountBpsUpdated(bps);
     }
 
     function asset() external view returns (address) {
