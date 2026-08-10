@@ -138,10 +138,7 @@ export default function Landing() {
         <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-5 py-24 sm:px-8 lg:grid-cols-[0.92fr_1.08fr] lg:gap-16">
           {/* left: copy + CTA */}
           <div className="flex flex-col">
-            <span className="inline-flex items-center gap-2 self-start rounded-full border border-border px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-accent">
-              <span className="size-1.5 rounded-full bg-accent" /> Live agent
-            </span>
-            <h2 className="mt-5 text-balance text-3xl font-medium leading-[1.05] tracking-tight sm:text-4xl">
+            <h2 className="text-balance text-3xl font-medium leading-[1.05] tracking-tight sm:text-4xl">
               Talk to the agent.
             </h2>
             <p className="mt-4 max-w-md text-balance text-muted-foreground">
