@@ -15,6 +15,20 @@ const SUGGESTIONS = [
   "How do the guardrails protect me?",
 ];
 
+// The agent answers in light markdown (**bold**). Render the bold and drop the raw asterisks so
+// the chat reads clean instead of showing literal ** around venue names.
+function renderRich(text: string) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={i} className="font-medium text-foreground">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+}
+
 function MicIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" className={className} fill="none" aria-hidden="true">
@@ -122,7 +136,7 @@ export function AskAumo({ className = "" }: { className?: string }) {
                         : "max-w-[85%] text-sm leading-relaxed text-foreground/90"
                     }
                   >
-                    {m.text}
+                    {m.role === "agent" ? renderRich(m.text) : m.text}
                   </p>
                 </motion.div>
               ))}
@@ -155,7 +169,7 @@ export function AskAumo({ className = "" }: { className?: string }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask the agent anything…"
-            className="min-w-0 flex-1 bg-transparent px-2 py-2 text-sm outline-none placeholder:text-muted-foreground"
+            className="field-input min-w-0 flex-1 bg-transparent px-2 py-2 text-sm outline-none placeholder:text-muted-foreground"
             aria-label="Ask Aumo a question"
           />
           <button

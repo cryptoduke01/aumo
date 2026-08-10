@@ -165,8 +165,7 @@ function Header({ identity }: { identity: Identity }) {
         </span>
       </div>
       <span className="text-sm text-muted-foreground">
-        The autonomous agent, live on {identity.chainName}. This is public, on-chain state, the same
-        view everyone sees. Only your own deposit and balance need a connected wallet.
+        Live on {identity.chainName}. Public on-chain state; only your own deposit needs a wallet.
       </span>
     </header>
   );

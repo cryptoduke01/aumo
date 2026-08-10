@@ -193,10 +193,15 @@ export default function VaultPage() {
             </div>
           </Panel>
           <Panel className="p-5">
-            <Label>Wallet</Label>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">USDT0 balance</span>
-              <span className="tnum text-sm"><Num value={num(walletBal)} /></span>
+            <Label>Wallet balance</Label>
+            <div className="mt-3 flex items-center gap-3 rounded-lg border border-border bg-card-2 px-3.5 py-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/usdt0.jpg" alt="" className="size-9 shrink-0 rounded-full" />
+              <div className="flex min-w-0 flex-col">
+                <span className="text-sm font-medium text-foreground">USDT0</span>
+                <span className="text-xs text-muted-foreground">USD₮0 on {activeChain.name}</span>
+              </div>
+              <span className="tnum ml-auto text-lg font-medium text-foreground"><Num value={num(walletBal)} /></span>
             </div>
             <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
               You&apos;ll need some USDT0 to deposit and a little OKB for gas.{" "}
@@ -242,7 +247,10 @@ export default function VaultPage() {
                 className="field-input tnum w-full min-w-0 bg-transparent text-xl font-medium outline-none placeholder:text-faint"
                 aria-label={`${tab} amount in USDT0`}
               />
-              <span className="shrink-0 text-xs font-medium text-muted-foreground">USDT0</span>
+              <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/usdt0.jpg" alt="" className="size-4 rounded-full" /> USDT0
+              </span>
             </div>
           </div>
 

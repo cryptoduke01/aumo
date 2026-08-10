@@ -85,7 +85,10 @@ export function BridgeIn() {
             placeholder="0.00"
             aria-label="Bridge amount in USDT0"
           />
-          <span className="shrink-0 text-xs font-medium text-muted-foreground">USDT0</span>
+          <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/usdt0.jpg" alt="" className="size-4 rounded-full" /> USDT0
+          </span>
         </div>
       </div>
 

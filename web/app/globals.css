@@ -1,31 +1,32 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Aumo — warm ink & paper from the brand guideline. Near-black (#0B0B0C) and
-   off-white (#F1EEE5) do the work; bullion gold (#B8945A) is the one accent,
-   used only where something is genuinely active.
-   Two themes via [data-theme] (set before paint in layout, so no flash).
+   Aumo brand system (Brand Guidelines): Sovereign gold #FFBC3E is the
+   predominant colour; Ink #000000 and Off-White #F1EEE5 do the base work;
+   Ledger blue #3D7BFF is a complementary accent, used sparingly. Type is PP
+   Neue Montreal. Two themes via [data-theme] (set before paint, so no flash).
    ───────────────────────────────────────────────────────────────────────── */
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --background: #0b0b0c; /* near-black (guideline) */
-  --surface: #101012;
-  --surface-2: #17171a;
-  --card: #101012;
-  --card-2: #17171a;
-  --foreground: #f1eee5; /* off-white (guideline) */
+  --background: #000000; /* Ink */
+  --surface: #0d0d0d;
+  --surface-2: #171717;
+  --card: #0d0d0d;
+  --card-2: #171717;
+  --foreground: #f1eee5; /* Off-White */
   --muted-foreground: #9c988e;
   --faint: #63615a;
-  --border: #201f1c;
+  --border: #232323;
   --hairline: rgba(241, 238, 229, 0.09);
-  --primary: #b8945a; /* Bullion gold - the predominant brand colour */
-  --primary-foreground: #0b0b0c;
-  --accent: #b8945a; /* gold accent (guideline: no other accent) */
-  --accent-foreground: #0b0b0c;
-  --positive: #b8945a; /* active/good reads as gold, per the palette */
+  --primary: #ffbc3e; /* Sovereign — the predominant brand colour */
+  --primary-foreground: #000000;
+  --accent: #ffbc3e;
+  --accent-foreground: #000000;
+  --positive: #ffbc3e; /* active/good reads as Sovereign */
   --negative: #c2957f; /* functional warning only */
-  --ring: #b8945a;
+  --ledger: #3d7bff; /* complementary accent (sparingly) */
+  --ring: #ffbc3e;
   --glyph-rgb: 241, 238, 229;
   --radius: 0.5rem;
   --cut: 14px;
@@ -33,24 +34,27 @@
 
 [data-theme="light"] {
   color-scheme: light;
-  --background: #f1eee5; /* off-white (guideline) */
+  --background: #f1eee5; /* Off-White */
   --surface: #f8f6ef;
   --surface-2: #e8e5da;
   --card: #f8f6ef;
   --card-2: #e8e5da;
-  --foreground: #0b0b0c; /* near-black */
+  --foreground: #000000; /* Ink */
   --muted-foreground: #5c594f;
   --faint: #a29d90;
   --border: #ddd8ca;
-  --hairline: rgba(11, 11, 12, 0.1);
-  --primary: #9c7a3f; /* darker gold for contrast on off-white */
-  --primary-foreground: #f1eee5;
-  --accent: #8a6a34;
-  --accent-foreground: #f1eee5;
-  --positive: #8a6a34;
+  --hairline: rgba(0, 0, 0, 0.1);
+  --primary: #ffbc3e; /* Sovereign (gold fills carry ink text) */
+  --primary-foreground: #000000;
+  /* Sovereign is too light for small text on Off-White; a darker Sovereign is used only for
+     accent TEXT on the light theme (legibility). Fills/logo stay #FFBC3E. */
+  --accent: #9a6f1c;
+  --accent-foreground: #000000;
+  --positive: #9a6f1c;
   --negative: #a2563b;
-  --ring: #0b0b0c;
-  --glyph-rgb: 11, 11, 12;
+  --ledger: #2f63d6;
+  --ring: #000000;
+  --glyph-rgb: 0, 0, 0;
 }
 
 @theme inline {
@@ -69,6 +73,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
+  --color-ledger: var(--ledger);
   --color-ring: var(--ring);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);

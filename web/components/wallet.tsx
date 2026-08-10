@@ -286,7 +286,7 @@ function AccountMenu({ address, onDisconnect }: { address: string; onDisconnect:
     <div ref={ref} className="relative">
       <button className={btn} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu">
         <span className="size-1.5 rounded-full bg-accent" aria-hidden />
-        <span className="font-mono text-xs">{short(address)}</span>
+        <span className="text-xs">{short(address)}</span>
         <svg viewBox="0 0 16 16" className={`size-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} fill="none" aria-hidden="true">
           <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -306,7 +306,7 @@ function AccountMenu({ address, onDisconnect }: { address: string; onDisconnect:
               </span>
               <div className="flex min-w-0 flex-col">
                 <span className="text-xs text-muted-foreground">Connected</span>
-                <span className="truncate font-mono text-sm text-foreground">{short(address)}</span>
+                <span className="truncate text-sm text-foreground">{short(address)}</span>
               </div>
             </div>
             <div className="my-1 h-px bg-border" />
