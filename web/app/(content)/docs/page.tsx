@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 
 const toc = [
   ["overview", "Overview"],
+  ["using", "Using Aumo"],
   ["cycle", "How it works"],
   ["architecture", "Architecture"],
   ["risk", "The risk engine"],
@@ -75,6 +76,52 @@ export default function DocsPage() {
               allowlisted venues, and never beyond the limits the contract
               enforces. If you remove the agent, depositor funds stay safe and
               redeemable.
+            </p>
+          </section>
+
+          <section id="using">
+            <h2>Using Aumo</h2>
+            <p className="lead">
+              Getting started takes a few minutes, and you keep custody the whole
+              time. Your deposit is always redeemable for your share of the pool.
+            </p>
+            <h3>1. Connect a wallet</h3>
+            <p>
+              Open the app and connect a wallet like MetaMask or OKX Wallet on X
+              Layer. If you are on the wrong network, the wallet menu can add or
+              switch it for you.
+            </p>
+            <h3>2. Get some USDT0</h3>
+            <p>
+              {isMainnet
+                ? "You deposit USDT0. Hold it on X Layer, or bridge it in from another chain — the Deposit tab quotes the route and fee for you."
+                : "On testnet, open the Deposit tab and click “Get 1,000 test USDT0” to fund your wallet with play money. You will also need a little OKB for gas from the X Layer testnet faucet."}
+            </p>
+            <h3>3. Deposit</h3>
+            <p>
+              On the Deposit tab, enter an amount and confirm. The first time, you
+              approve the pool to move your USDT0 (a one-time step), then deposit.
+              You receive pool shares that represent your slice of everything the
+              pool earns.
+            </p>
+            <h3>4. Watch the agent work</h3>
+            <p>
+              The Overview shows your value, how much is idle versus deployed, and
+              the agent&apos;s latest reasoning in plain language. Ask Aumo anything
+              — why it chose a venue, or what would make it defensive — and it
+              answers from its own live state. Venues shows how it scored each
+              option; Activity is the full trail of decisions.
+            </p>
+            <h3>5. Withdraw any time</h3>
+            <p>
+              Redeem your shares back to USDT0 whenever you want. Withdrawals do not
+              wait on the agent — you can always take out whatever the pool can
+              currently cover.
+            </p>
+            <p>
+              That is the whole flow. No dashboards to decode and no yield-hunting:
+              you deposit, the agent manages it inside guardrails it cannot break,
+              and you can leave whenever.
             </p>
           </section>
 
