@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { formatUnits, parseUnits, maxUint256 } from "viem";
+import { formatUnits, parseUnits, maxUint256, parseAbi } from "viem";
 import {
   useAccount,
   useChainId,
@@ -11,7 +11,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { toast } from "sonner";
-import { POOL, USDT0, poolAbi, erc20Abi, activeChain, poolConfigured } from "@/lib/chain";
+import { POOL, USDT0, poolAbi, erc20Abi, activeChain, poolConfigured, isMainnet } from "@/lib/chain";
 import { Panel, Label, Badge } from "@/components/ui";
 import { ConnectButton } from "@/components/wallet";
 import { BridgeIn } from "@/components/bridge-in";
@@ -23,6 +23,11 @@ const DEC = 6;
 const fmt = (v: bigint | undefined, max = 2) =>
   v === undefined ? "-" : (Number(v) / 10 ** DEC).toLocaleString("en-US", { maximumFractionDigits: max });
 const num = (v: bigint | undefined) => (v === undefined ? 0 : Number(v) / 10 ** DEC);
+
+// Testnet-only convenience: the test USDT0 is a mock with a public mint, so a user can fund their
+// own wallet in one click instead of touching a CLI. Never shown on mainnet (the real USDT0 has no
+// mint). Guarded again below by `!isMainnet`.
+const FAUCET_ABI = parseAbi(["function mint(address to, uint256 amount)"]);
 
 const primaryBtn =
   "chamfer inline-flex w-full items-center justify-center bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-[transform,opacity] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -72,6 +77,21 @@ export default function VaultPage() {
 
   const { writeContract, data: hash, isPending, reset, error } = useWriteContract();
   const receipt = useWaitForTransactionReceipt({ hash });
+
+  // Testnet faucet: mint 1,000 test USDT0 to the connected wallet.
+  const { writeContract: writeFaucet, data: faucetHash, isPending: faucetPending } = useWriteContract();
+  const faucetReceipt = useWaitForTransactionReceipt({ hash: faucetHash });
+  useEffect(() => {
+    if (faucetReceipt.isSuccess) {
+      reads.refetch();
+      toast.success("Minted 1,000 test USDT0 to your wallet");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [faucetReceipt.isSuccess]);
+  function faucet() {
+    if (!address) return;
+    writeFaucet({ address: USDT0, abi: FAUCET_ABI, functionName: "mint", args: [address, parseUnits("1000", DEC)] });
+  }
 
   // Refresh balances and clear the form once a transaction confirms.
   useEffect(() => {
@@ -208,6 +228,28 @@ export default function VaultPage() {
               <span className="text-foreground">Withdraw anytime.</span> Your deposit is always
               yours, redeemable for your share of the pool plus any yield it earned.
             </p>
+            {!isMainnet && isConnected && !wrongChain ? (
+              <div className="mt-4 flex flex-col gap-2 rounded-lg border border-border bg-card-2 px-3.5 py-3">
+                <span className="text-xs text-muted-foreground">
+                  Testnet: grab test USDT0 to try a deposit. Not real money.
+                </span>
+                <button
+                  type="button"
+                  onClick={faucet}
+                  disabled={faucetPending || faucetReceipt.isLoading}
+                  className="chamfer inline-flex items-center justify-center gap-2 self-start bg-surface-2 px-3.5 py-2 text-xs font-medium text-foreground transition-[transform,opacity] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ ["--cut" as string]: "8px" }}
+                >
+                  {faucetPending || faucetReceipt.isLoading ? (
+                    <>
+                      <Orb className="size-3.5 text-accent" /> Minting…
+                    </>
+                  ) : (
+                    "Get 1,000 test USDT0"
+                  )}
+                </button>
+              </div>
+            ) : null}
           </Panel>
         </div>
 

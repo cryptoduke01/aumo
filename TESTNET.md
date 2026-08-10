@@ -1,116 +1,80 @@
-# Testing Aumo on X Layer testnet
+# Try Aumo on testnet
 
-A hands-on runbook for exercising the whole product on testnet: fund a wallet, deposit,
-watch the agent sense/score/reason/act, and withdraw. No real money, throwaway keys only.
+This is the whole product, running on X Layer testnet with play money. You deposit a stablecoin, an
+AI agent puts it to work across venues inside on-chain guardrails, and you can withdraw any time.
+Nothing here uses real funds.
 
-## What you are actually testing
+---
 
-On X Layer **testnet there is no real DeFi**, so the two venues (`MockYield`, `StableVault`) are
-mock adapters with illustrative metrics — enough for the risk engine to genuinely choose between
-them. The contract, the ERC-4626 accounting, the guardrails, the agent's five-stage cycle, the
-dashboard, deposits and withdrawals are all the real code. On mainnet the same code points at the
-real Aave / USDG adapters. So: **the machinery is real, the yield sources are stand-ins.**
+## Part A — Test it as a user (about 5 minutes, no command line)
 
-> Before a meaningful run, redeploy the testnet pool from current source (see §6). The pool the app
-> currently points at (`0x057C…d626`) is **pre-fix bytecode** and is missing the loss/deploy budgets,
-> impairment, and redemption isolation. Testing UX against it is fine; testing agent *behaviour*
-> should be against a fresh redeploy.
+**1. Use a fresh wallet.** Create a new wallet in MetaMask or OKX Wallet just for this. Don't use one
+that holds real money.
 
-## Coordinates
+**2. Add the network.** X Layer Testnet — chain ID `1952`, RPC `https://testrpc.xlayer.tech`, symbol
+OKB, explorer `https://www.oklink.com/xlayer-test`. (Once you connect in the app, the wallet menu can
+add it for you.)
+
+**3. Get a little gas.** You need a small amount of testnet OKB to pay for transactions. Get it from
+the X Layer testnet faucet (search "X Layer testnet faucet" on the OKX / X Layer docs) and send it to
+your wallet.
+
+**4. Open the app and connect.** Go to the app, open the wallet menu, and connect. Approve the
+network switch if asked.
+
+**5. Get test USDT0.** On the **Deposit** tab, under Wallet balance, click **"Get 1,000 test USDT0"**.
+That mints play-money USDT0 straight to your wallet. (This button only exists on testnet.)
+
+**6. Deposit.** Enter an amount and deposit. The first deposit asks for a one-time approval (lets the
+pool move your USDT0), then the deposit itself. You receive pool shares — your claim on the pool.
+
+**7. Watch the agent work.** On **Overview** you'll see total value, how much is idle vs deployed, the
+risk-adjusted-yield chart, and the agent's latest reasoning in plain language. **Venues** shows how it
+scored each option; **Activity** is the running trail of every decision.
+
+**8. Withdraw.** Redeem your shares back to USDT0 any time. Withdrawals never wait on the agent — you
+can always take out whatever is currently recoverable.
+
+That's the full experience. What's real: the contract, the guardrails, the ERC-4626 accounting, the
+agent's reasoning, your deposit and withdrawal. What's a stand-in: on testnet there's no real DeFi, so
+the two venues are mocks with illustrative numbers. On mainnet the same code points at real Aave and a
+Treasury-backed dollar.
+
+---
+
+## Part B — Operator notes (you do NOT need this to test as a user)
+
+These are the one-time setup steps the Aumo team runs. A user never touches them.
+
+**Live testnet addresses**
 
 | | |
 |---|---|
-| Network | X Layer Testnet |
-| Chain ID | `1952` |
-| RPC | `https://testrpc.xlayer.tech` |
-| Native gas token | OKB |
-| Explorer | https://www.oklink.com/xlayer-test |
+| Pool (AumoPool, fixed source) | `0x9A972bEeA00C6f2D76781586eAbd0c16e9b6d360` |
 | Test USDT0 (mock, public mint) | `0xFc440733d882f28012B190b11Bbec56b44508448` |
-| Pool (current, pre-fix) | `0x057Caa4fC699bF830b8AE2E3B1f5D0D75eABd626` |
+| MockYield / StableVault | `0x923A9faAd9902CD7016D5E24615dc7af21AC9ad2` / `0xC1a0EB3Ee25153674D11eFD483E0367e72CdFAa8` |
 
-## 1. Add the network + a throwaway wallet
-
-Use a **fresh** wallet you create just for this (MetaMask or OKX Wallet). Never use a wallet that
-holds real funds. Add X Layer Testnet with the coordinates above (or let the app's "add network"
-button in Settings do it after you connect).
-
-## 2. Get gas (OKB)
-
-You need a little testnet OKB for gas. Use the official X Layer testnet faucet (OKX X Layer faucet —
-search "X Layer testnet faucet" from the OKX/X Layer docs) and send OKB to your wallet address. A
-fraction of an OKB is plenty for many transactions.
-
-## 3. Get test USDT0
-
-The test USDT0 is a mock token with a public `mint`, so you can fund yourself. Mint 1,000 USDT0
-(6 decimals) to your address:
+**Run the agent** (from `agent/`, `.env` filled):
 
 ```bash
-cast send 0xFc440733d882f28012B190b11Bbec56b44508448 \
-  "mint(address,uint256)" <YOUR_ADDRESS> 1000000000 \
-  --rpc-url https://testrpc.xlayer.tech \
-  --private-key <YOUR_TESTNET_KEY>
-```
-
-(`1000000000` = 1,000 × 10^6.) Or use the "Write Contract" tab on the explorer if you prefer not to
-touch a key on the command line.
-
-## 4. Use the app
-
-1. Run the app locally against testnet (from `web/`):
-   ```bash
-   NEXT_PUBLIC_CHAIN=testnet npm run dev
-   ```
-   (Testnet is the default, so plain `npm run dev` also works.)
-2. Open the app, go to the wallet menu, **Connect**. Approve the network add/switch if prompted.
-3. **Deposit** tab: enter an amount. First deposit needs a one-time **approve** (lets the pool pull
-   your USDT0), then the **deposit** itself. You receive ERC-4626 shares — your claim on the pool.
-4. **Overview** shows TVL, idle vs deployed, the risk-adjusted-yield chart, and the agent's latest
-   rationale. **Venues** shows each adapter's score and allocation. **Activity** shows the receipt
-   trail.
-5. **Withdraw** by redeeming shares back to USDT0 at the current share price. Withdrawals never
-   consult the agent's budget — you can always exit what is currently recoverable.
-
-## 5. Watch the agent think and act
-
-From `agent/` (with `.env` filled — `RPC_URL`, `VAULT_ADDRESS` = the pool, `AGENT_PRIVATE_KEY` =
-the vault's agent key, optional `ANTHROPIC_API_KEY` for the reasoning layer):
-
-```bash
-npm run plan    # dry-run: sense → score → reason → plan. Sends NOTHING. Safe to run anytime.
-npm run tick    # one live cycle. Sends allocate/deallocate ONLY if EXECUTE=1 and the key == on-chain agent().
+npm run plan    # dry-run: sense → score → reason → plan. Sends nothing.
+npm run tick    # one live cycle. Sends only if EXECUTE=1 and the key == on-chain agent().
 npm run loop    # repeat every LOOP_INTERVAL_SECONDS
 ```
 
-- Start with `npm run plan` — you will see it read live vault state, score both venues, and (with the
-  LLM on) reason about the regime, only ever *tightening*.
-- To see it **act**: on a freshly redeployed empty pool, deposit some USDT0, set `EXECUTE=1`, and run
-  `npm run tick`. With idle to deploy and a clearly-best venue, it will send a real `allocate`. Watch
-  the tx on the explorer and the numbers move on the dashboard.
-- The agent refuses to send unless its key equals `agent()` on the vault, and every move is
-  re-validated by the contract's caps — the worst a bug can do is revert.
-
-## 6. Redeploy the testnet pool from current source (recommended)
-
-To test against the fixed contract (budgets, impairment, redemption isolation):
+**Redeploy the pool from source** (only when the contract changes):
 
 ```bash
 cd contracts
-# fill the testnet deploy env the script expects (see script/DeployPoolV2Testnet.s.sol header)
-forge script script/DeployPoolV2Testnet.s.sol \
-  --rpc-url https://testrpc.xlayer.tech \
-  --private-key <YOUR_TESTNET_KEY> --broadcast
+VAULT_OWNER=<owner> forge script script/DeployPoolV2Testnet.s.sol \
+  --rpc-url https://testrpc.xlayer.tech --private-key <key> --broadcast
 ```
 
-Then repoint both consumers at the new pool address it prints:
-- `web/lib/chain.ts` → `ADDR.testnet.pool`
-- `agent/.env` → `VAULT_ADDRESS`
+Then repoint `web/lib/chain.ts` (`ADDR.testnet.pool`) and `agent/.env` (`VAULT_ADDRESS`) at the new
+address, and update `agent/config/venues.testnet.json` with the new mock venue addresses.
 
-Re-mint test USDT0 (§3), deposit (§4), and run the agent (§5) against the fresh pool.
+**Hosted agent (Railway):** set `VAULT_ADDRESS` to the pool, mount a persistent volume and set
+`RECEIPTS_DIR` to it (so the receipt trail survives restarts), and redeploy.
 
-## Safety reminders
-
-- Testnet only. Throwaway wallet, throwaway keys. Never put a mainnet key in `agent/.env`.
-- `EXECUTE=0` is the default and sends nothing. Flip to `1` deliberately.
-- The public `mint` on the test USDT0 exists only because it is a testnet mock; the mainnet USDT0 has
-  no such function.
+**Safety:** testnet only, throwaway keys. `EXECUTE=0` is the default and sends nothing. Never put a
+mainnet key in `agent/.env`.
