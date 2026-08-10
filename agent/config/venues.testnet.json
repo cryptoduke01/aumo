@@ -3,7 +3,7 @@
   "note": "X Layer testnet has no real DeFi, so these are mock adapters with illustrative metrics — two venues so the risk engine actually chooses between them. On mainnet these are the real Aave / Uniswap adapters with live reads.",
   "venues": [
     {
-      "address": "0x05398D5289a8ed29629362290cf7954430a95702",
+      "address": "0x923A9faAd9902CD7016D5E24615dc7af21AC9ad2",
       "name": "MockYield",
       "kind": "mock",
       "apyBps": 850,
@@ -14,7 +14,7 @@
       "pegDeviationBps": 10
     },
     {
-      "address": "0xD831D3e472c4E39f43C6de60a2b5954a8FB54A24",
+      "address": "0xC1a0EB3Ee25153674D11eFD483E0367e72CdFAa8",
       "name": "StableVault",
       "kind": "mock",
       "apyBps": 420,

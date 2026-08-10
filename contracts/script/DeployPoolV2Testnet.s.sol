@@ -23,6 +23,9 @@ contract DeployPoolV2Testnet is Script {
         pool.setVenueAllowed(address(venueA), true);
         pool.setVenueAllowed(address(venueB), true);
         pool.setPolicy(200e6, 800e6, 2000e6); // maxMove, perVenueCap, maxTotalDeployed
+        // Mirror the mainnet config so the testnet exercises the same guardrails as launch:
+        pool.setLossBudget(50e6, 1 days); // <=50 USDT0 realized round-trip loss per day
+        pool.setDeployBudget(2000e6, 1 days); // <=2000 USDT0 allocated per day
         vm.stopBroadcast();
 
         console2.log("AumoPool (audited):", address(pool));

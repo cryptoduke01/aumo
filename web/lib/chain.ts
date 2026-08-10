@@ -33,7 +33,9 @@ export const isMainnet = NET === "mainnet";
 // mainnet pool address is set at launch via NEXT_PUBLIC_POOL (from DeployPoolMainnet).
 const ADDR = {
   testnet: {
-    pool: "0x057Caa4fC699bF830b8AE2E3B1f5D0D75eABd626",
+    // AumoPool redeployed from the fixed source (loss/deploy budgets, impairment, redemption
+    // isolation). Supersedes the pre-fix 0x057C…d626. Deployed 2026-08-10.
+    pool: "0x9A972bEeA00C6f2D76781586eAbd0c16e9b6d360",
     usdt0: "0xFc440733d882f28012B190b11Bbec56b44508448",
   },
   mainnet: {
