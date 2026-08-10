@@ -1,17 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccount } from "wagmi";
+import { AnimatePresence, motion } from "motion/react";
 import { Panel, Label } from "@/components/ui";
 import { Orb } from "@/components/orb";
 import { LayerZeroLogo } from "@/components/brand";
 import type { BridgeQuote } from "@/lib/bridge";
 
 const CHAINS = [
-  { key: "ethereum", label: "Ethereum" },
-  { key: "arbitrum", label: "Arbitrum" },
-  { key: "optimism", label: "Optimism" },
-  { key: "polygon", label: "Polygon" },
+  { key: "ethereum", label: "Ethereum", logo: "/brand/chains/ethereum.svg" },
+  { key: "arbitrum", label: "Arbitrum", logo: "/brand/chains/arbitrum.svg" },
+  { key: "optimism", label: "Optimism", logo: "/brand/chains/optimism.svg" },
+  { key: "polygon", label: "Polygon", logo: "/brand/chains/polygon.svg" },
 ];
 
 export function BridgeIn() {
@@ -68,45 +69,32 @@ export function BridgeIn() {
       <div className="mb-4 flex items-center justify-between">
         <Label>Fund from another chain</Label>
         <span className="inline-flex items-center gap-1.5 text-[11px] text-faint">
-          <LayerZeroLogo className="size-3.5 text-muted-foreground" />
+          <LayerZeroLogo className="size-3.5 rounded-[3px]" />
           Powered by LayerZero
         </span>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {CHAINS.map((c) => (
-          <button
-            key={c.key}
-            onClick={() => setSource(c.key)}
-            className={`rounded-lg border px-3 py-1.5 text-sm transition-[transform,color,border-color] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-              source === c.key
-                ? "border-primary/60 bg-primary/5 text-foreground"
-                : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
-            }`}
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-card-2 px-4 py-3 transition-colors focus-within:border-primary/50">
-        <input
-          inputMode="decimal"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-          className="tnum w-full bg-transparent text-2xl font-medium outline-none placeholder:text-faint"
-          placeholder="0.00"
-          aria-label="Bridge amount in USDT0"
-        />
-        <span className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground">USDT0</span>
+      <div className="flex flex-col gap-2.5 sm:flex-row">
+        <ChainSelect value={source} onChange={setSource} />
+        <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-card-2 px-3.5 py-2 transition-colors focus-within:border-primary/50">
+          <input
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+            className="tnum w-full min-w-0 bg-transparent text-xl font-medium outline-none placeholder:text-faint"
+            placeholder="0.00"
+            aria-label="Bridge amount in USDT0"
+          />
+          <span className="shrink-0 text-xs font-medium text-muted-foreground">USDT0</span>
+        </div>
       </div>
 
       {!isConnected ? (
-        <div className="flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-3.5 text-sm text-muted-foreground">
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-dashed border-border px-3.5 py-2.5 text-sm text-muted-foreground">
           Connect your wallet to see the route and network fee.
         </div>
       ) : (
-        <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-card-2 p-4 text-sm">
+        <div className="mt-3 flex flex-col gap-2.5 rounded-lg border border-border bg-card-2 p-3.5 text-sm">
           <Row
             label="Route"
             value={
@@ -135,6 +123,75 @@ export function BridgeIn() {
         before you send. Nothing moves until you confirm in your wallet.
       </p>
     </Panel>
+  );
+}
+
+function ChainSelect({ value, onChange }: { value: string; onChange: (k: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const current = CHAINS.find((c) => c.key === value) ?? CHAINS[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 rounded-lg border border-border bg-card-2 px-3 py-2 text-sm transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-40"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={current.logo} alt="" className="size-5 shrink-0 rounded-full" />
+        <span className="truncate text-foreground">{current.label}</span>
+        <svg viewBox="0 0 16 16" className={`ml-auto size-3.5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} fill="none" aria-hidden="true">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.ul
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.16, ease: [0.2, 0.7, 0.2, 1] }}
+            className="absolute left-0 z-50 mt-2 w-full min-w-44 overflow-hidden rounded-xl border border-border bg-surface p-1.5 shadow-lg shadow-black/20"
+          >
+            {CHAINS.map((c) => {
+              const active = c.key === value;
+              return (
+                <li key={c.key}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange(c.key);
+                      setOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${active ? "text-foreground" : "text-muted-foreground"}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.logo} alt="" className="size-5 shrink-0 rounded-full" />
+                    <span className="truncate">{c.label}</span>
+                    {active ? (
+                      <svg viewBox="0 0 16 16" className="ml-auto size-3.5 shrink-0 text-accent" fill="none" aria-hidden="true">
+                        <path d="M3.5 8.5 6.5 11.5l6-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    ) : null}
+                  </button>
+                </li>
+              );
+            })}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
