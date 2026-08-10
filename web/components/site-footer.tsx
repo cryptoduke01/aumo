@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AumoWordmark } from "./mark";
+import { DitherBg } from "./dither-bg";
 
 function XIcon({ className = "" }: { className?: string }) {
   return (
@@ -56,7 +57,8 @@ function Col({ label, links }: { label: string; links: [string, string][] }) {
 // Aligned, grouped footer on one grid. Sits at the bottom of the page (mt-auto in the flex layout).
 export function SiteFooter() {
   return (
-    <footer className="mt-auto border-t border-border/70">
+    <footer className="relative isolate mt-auto overflow-hidden border-t border-border/70">
+      <DitherBg src="/dither-images/HMtauliaQAAqwjB.jpeg" from="top" opacity={0.22} />
       <div className="mx-auto w-full max-w-6xl px-5 py-14 sm:px-8">
         <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-[2fr_1fr_1fr]">
           <div className="col-span-2 sm:col-span-1">

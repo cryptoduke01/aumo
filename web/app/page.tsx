@@ -1,5 +1,6 @@
 import { AsciiField } from "@/components/ascii-field";
 import { AgentConsole } from "@/components/agent-console";
+import { DitherBg } from "@/components/dither-bg";
 import { Grain } from "@/components/grain";
 import { Orb } from "@/components/orb";
 import { AumoMark } from "@/components/mark";
@@ -112,18 +113,20 @@ export default function Landing() {
           <img
             src="/dither-images/HMtauliaQAAqwjB.jpeg"
             alt=""
-            className="h-full w-full object-cover object-top opacity-[0.55] [mask-image:linear-gradient(to_bottom,#000_0%,#000_42%,transparent_92%)] [filter:saturate(0.9)_contrast(1.05)]"
+            className="h-full w-full object-cover object-top opacity-[0.5] [mask-image:linear-gradient(to_bottom,#000_0%,#000_42%,transparent_92%)] [filter:saturate(0.9)_contrast(1.05)]"
+          />
+          {/* warm Sovereign glow bleeding THROUGH the dither (keryx model) */}
+          <div
+            className="absolute inset-0 mix-blend-soft-light"
+            style={{ background: "radial-gradient(58% 46% at 50% 26%, color-mix(in srgb, var(--primary) 34%, transparent), transparent 62%)" }}
           />
           {/* fade the frame into the Ink page: bottom + vignette */}
           <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/5 to-background" />
           <div className="absolute inset-0 bg-[radial-gradient(120%_85%_at_50%_-5%,transparent_28%,var(--background)_84%)]" />
         </div>
         <Grain />
-        <div className="mx-auto flex w-full max-w-4xl flex-col items-center px-5 pt-28 pb-24 text-center sm:px-8 sm:pt-40 sm:pb-32">
-          <span className="inline-flex items-center gap-2 self-center rounded-full border border-border/70 bg-background/30 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground backdrop-blur-sm">
-            <span className="size-1.5 rounded-full bg-primary" /> Autonomous treasury · X Layer
-          </span>
-          <h1 className="mt-7 max-w-3xl text-balance text-[2.9rem] font-medium leading-[1.02] tracking-[-0.02em] sm:text-7xl">
+        <div className="mx-auto flex w-full max-w-4xl flex-col items-center px-5 pt-32 pb-24 text-center sm:px-8 sm:pt-44 sm:pb-32">
+          <h1 className="max-w-3xl text-balance text-[2.9rem] font-medium leading-[1.02] tracking-[-0.02em] sm:text-7xl">
             Put your stablecoins to work.
           </h1>
           <p className="mt-6 max-w-xl text-balance text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -137,9 +140,6 @@ export default function Landing() {
       {/* ── the agent, live (calm, minimal) ──────────────────── */}
       <section className="border-t border-border/70">
         <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8">
-          <span className="mb-5 block text-xs uppercase tracking-[0.14em] text-muted-foreground">
-            The agent, live
-          </span>
           <AgentConsole />
         </div>
       </section>
@@ -182,20 +182,27 @@ export default function Landing() {
             that the receipt can&apos;t show.
           </p>
 
-          <ol className="mt-14 flex flex-col gap-10 md:flex-row md:gap-0">
+          <ol className="mt-14 flex flex-col gap-10 md:flex-row md:items-start md:gap-0">
             {CYCLE.map(([verb, body], i) => (
               <li key={verb} className="relative flex-1 md:px-6 md:first:pl-0 md:last:pr-0">
-                {i > 0 && (
-                  <span
-                    aria-hidden
-                    className="absolute -left-px top-1.5 hidden h-2.5 w-px rounded-full bg-accent md:block"
-                  />
-                )}
-                <div className="flex items-baseline gap-3">
+                <div className="flex items-center gap-3">
+                  <span aria-hidden className="relative flex size-2 shrink-0">
+                    <span className="size-2 rounded-full bg-accent" />
+                    <span className="cycle-ping absolute inset-0 rounded-full bg-accent" />
+                  </span>
                   <span className="text-sm font-medium text-accent">{verb}</span>
-                  <span className="h-px flex-1 bg-border" />
+                  {/* flowing connector: a gold dash travels toward the next step, staggered so the
+                      whole cycle reads left to right */}
+                  {i < CYCLE.length - 1 && (
+                    <span aria-hidden className="relative hidden h-px flex-1 overflow-hidden bg-border md:block">
+                      <span
+                        className="cycle-flow absolute top-0 h-px w-7 bg-accent"
+                        style={{ animationDelay: `${i * 0.38}s` }}
+                      />
+                    </span>
+                  )}
                 </div>
-                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{body}</p>
+                <p className="mt-4 text-sm leading-relaxed text-muted-foreground md:pr-6">{body}</p>
               </li>
             ))}
           </ol>
@@ -233,8 +240,9 @@ export default function Landing() {
 
       {/* ── closing ─────────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden border-t border-border/70">
+        <DitherBg src="/dither-images/HMxjjf9awAA2faD.jpeg" from="center" opacity={0.28} />
         <Grain />
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-5 py-24 text-center sm:px-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-5 py-28 text-center sm:px-8">
           <h2 className="max-w-xl text-balance text-3xl font-medium tracking-tight sm:text-4xl">
             The autonomous treasury for stablecoins.
           </h2>
