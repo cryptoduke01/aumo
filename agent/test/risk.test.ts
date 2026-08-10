@@ -81,6 +81,17 @@ test("peg deviation is bounded and flagged past 50bps", () => {
   assert.ok(r.notes.some((n) => n.includes("off $1")));
 });
 
+test("RWA peg is scored conservatively when unverified (F-2)", () => {
+  // An RWA venue reporting a perfect 0bps peg with no live peg source must NOT be treated as
+  // perfectly pegged — the peg guardrail would be silently disabled. Peg risk is floored.
+  const unverified = scoreVenue(venue({ kind: "rwa", pegDeviationBps: 0 }), 6, 1000);
+  assert.ok(unverified.pegRisk >= 0.5, "unmonitored RWA peg floored, not treated as perfect");
+  assert.ok(unverified.notes.some((n) => n.includes("peg unverified")));
+  // A verified live reading is trusted and uses the measured value.
+  const verified = scoreVenue(venue({ kind: "rwa", pegDeviationBps: 0, pegVerified: true }), 6, 1000);
+  assert.equal(verified.pegRisk, 0);
+});
+
 test("utilization only bites for lending venues", () => {
   const lending = scoreVenue(venue({ kind: "lending", utilization: 0.95 }), 6, 1000);
   const rwa = scoreVenue(venue({ kind: "rwa", utilization: 0.95 }), 6, 1000);

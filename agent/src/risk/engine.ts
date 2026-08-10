@@ -97,9 +97,20 @@ export function scorePortfolio(
     if (exitRisk > 0.5) notes.push("our position is large vs withdrawable liquidity");
 
     // --- Peg: RWA / yield-asset deviation from $1; RWA assets are more peg-sensitive ---
+    // Fail conservative (F-2): if this is an RWA venue whose peg was NOT verified from a live source
+    // this cycle, we must not treat a static/zero pegDeviationBps as a perfect peg — that silently
+    // disables the peg guardrail, the single most important signal for an RWA/stablecoin strategy.
+    // Floor peg risk at a cautious level so the peg weight always bites for an unmonitored RWA venue;
+    // a real live-peg read (pegVerified=true) uses the measured value instead.
     const pegCeiling = v.kind === "rwa" ? 150 : 200; // bps at which peg risk saturates
-    const pegRisk = clamp01(v.pegDeviationBps / pegCeiling);
-    if (v.pegDeviationBps >= 50) notes.push(`asset ${v.pegDeviationBps}bps off $1`);
+    const measuredPegRisk = clamp01(v.pegDeviationBps / pegCeiling);
+    const pegUnverified = v.kind === "rwa" && v.pegVerified !== true;
+    const PEG_UNVERIFIED_FLOOR = 0.5; // an unmonitored RWA peg is treated as materially uncertain
+    const pegRisk = pegUnverified
+      ? Math.max(measuredPegRisk, PEG_UNVERIFIED_FLOOR)
+      : measuredPegRisk;
+    if (pegUnverified) notes.push("RWA peg unverified — scored conservatively");
+    else if (v.pegDeviationBps >= 50) notes.push(`asset ${v.pegDeviationBps}bps off $1`);
 
     // --- Utilization: lending only. High utilization means withdrawals can be gated ---
     const utilizationRisk =

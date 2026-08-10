@@ -37,6 +37,9 @@ export interface VenueMeta {
   utilization: number; // 0..1 (lending)
   protocolRisk: number; // 0..1 curated base risk
   pegDeviationBps: number; // yield-asset deviation from $1
+  pegVerified?: boolean; // true only when pegDeviationBps came from a live peg source this cycle;
+  // when false/absent for an RWA venue, the risk engine floors peg risk conservatively (F-2) rather
+  // than trusting a static/zero value as a perfect peg
   feed?: VenueFeed; // when set, live reads replace the static market metrics
 }
 
