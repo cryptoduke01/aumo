@@ -64,6 +64,11 @@ export function SiteFooter() {
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
               Autonomous, guardrailed stablecoin yield on X Layer.
             </p>
+            <span className="mt-4 inline-flex items-center gap-2 text-xs text-faint">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/xlayer.jpg" alt="" className="size-4 rounded" />
+              Built on X Layer
+            </span>
           </div>
           <Col label="Product" links={product} />
           <Col label="Learn" links={learn} />

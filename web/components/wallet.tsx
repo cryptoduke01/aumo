@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
+import { useAppBase } from "@/lib/use-app-base";
 import {
   useAccount,
   useConnect,
@@ -247,10 +249,20 @@ function PowerIcon({ className = "" }: { className?: string }) {
   );
 }
 
+function GearIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none" aria-hidden="true">
+      <circle cx="10" cy="10" r="2.4" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M15.3 4.7l-1.4 1.4M6.1 13.9l-1.4 1.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function AccountMenu({ address, onDisconnect }: { address: string; onDisconnect: () => void }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
+  const base = useAppBase();
 
   useEffect(() => {
     if (!open) return;
@@ -318,6 +330,10 @@ function AccountMenu({ address, onDisconnect }: { address: string; onDisconnect:
               <OutIcon className="size-4 text-muted-foreground" />
               View on explorer
             </a>
+            <Link className={item} href={`${base}/settings`} onClick={() => setOpen(false)}>
+              <GearIcon className="size-4 text-muted-foreground" />
+              Settings
+            </Link>
             <button
               className={`${item} text-negative hover:bg-negative/10`}
               onClick={() => {
