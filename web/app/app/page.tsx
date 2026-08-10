@@ -19,6 +19,7 @@ import { AreaChart, Donut, type Segment } from "@/components/charts";
 import { Loader } from "@/components/loader";
 import { AskAumo } from "@/components/ask-aumo";
 import { VenueIcon } from "@/components/venue-icon";
+import { useAppBase } from "@/lib/use-app-base";
 
 const unit = (raw: string | number, dec: number) => Number(raw) / 10 ** dec;
 const VENUE_TONES = ["var(--accent)", "var(--muted-foreground)", "var(--foreground)", "var(--negative)"];
@@ -156,9 +157,17 @@ function Metric({ label, value, sub, suffix, currency, frac = 0, accent }: { lab
 
 function Header({ identity }: { identity: Identity }) {
   return (
-    <header className="flex flex-col gap-1 border-b border-border pb-5">
-      <h1 className="text-xl font-medium tracking-tight">Overview</h1>
-      <span className="text-sm text-muted-foreground">The autonomous agent, live on {identity.chainName}.</span>
+    <header className="flex flex-col gap-2 border-b border-border pb-5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <h1 className="text-xl font-medium tracking-tight">Overview</h1>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-0.5 text-[11px] text-muted-foreground">
+          <span className="size-1.5 rounded-full bg-accent" /> Public view
+        </span>
+      </div>
+      <span className="text-sm text-muted-foreground">
+        The autonomous agent, live on {identity.chainName}. This is public, on-chain state, the same
+        view everyone sees. Only your own deposit and balance need a connected wallet.
+      </span>
     </header>
   );
 }
@@ -265,6 +274,7 @@ function RiskTable({ rec }: { rec: DecisionRecord }) {
 }
 
 function Receipts({ records }: { records: DecisionRecord[] }) {
+  const base = useAppBase();
   if (records.length === 0) {
     return (
       <Panel className="p-8 text-center">
@@ -276,7 +286,7 @@ function Receipts({ records }: { records: DecisionRecord[] }) {
     <Panel className="p-5">
       <div className="mb-4 flex items-center justify-between">
         <Label>Recent decisions</Label>
-        <Link href="/app/activity" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+        <Link href={`${base}/activity`} className="text-xs text-muted-foreground transition-colors hover:text-foreground">
           View all →
         </Link>
       </div>

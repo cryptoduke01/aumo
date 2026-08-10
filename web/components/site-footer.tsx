@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { AumoWordmark } from "./mark";
 
+// App destinations point at the canonical app subdomain (clean URLs, no /app prefix); these are
+// absolute so they resolve the same from the marketing site and the app.
+const APP = "https://app.aumo.finance";
 const product: [string, string][] = [
-  ["/app", "App"],
-  ["/app/vault", "Deposit"],
-  ["/app/venues", "Venues"],
-  ["/app/activity", "Activity"],
+  [`${APP}`, "App"],
+  [`${APP}/vault`, "Deposit"],
+  [`${APP}/venues`, "Venues"],
+  [`${APP}/activity`, "Activity"],
 ];
 const learn: [string, string][] = [
   ["/docs", "Docs"],
