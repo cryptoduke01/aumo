@@ -42,7 +42,7 @@ export function AppNav() {
           <AumoWordmark markClass="size-[1.15em] text-primary" />
         </Link>
 
-        <nav className="hidden items-center gap-7 md:ml-8 md:flex">
+        <nav className="hidden flex-1 items-center justify-center gap-7 md:flex">
           {tabs.map((t) => {
             const active = isActive(t.seg);
             return (

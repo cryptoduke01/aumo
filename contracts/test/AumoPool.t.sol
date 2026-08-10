@@ -450,6 +450,28 @@ contract AumoPoolTest is Test {
         pool.setAgent(address(0));
     }
 
+    /// C-candidate (deviykee): a dust withdraw must NOT force-liquidate the whole lossy venue.
+    /// Previously lastPass used pull=max, so withdraw(1) drained the entire position through the
+    /// exit swap (O(1) action -> O(TVL) forced exit + MEV on full notional). The over-ask fix pulls
+    /// only ~need.
+    function test_DustRedeem_DoesNotLiquidateLossyVenue() public {
+        pool.setPolicy(20_000 * U, 20_000 * U, 20_000 * U);
+        LossyVenue lv = _lossy(200); // 2% exit swap
+        _deposit(alice, 10_000 * U);
+        vm.prank(agent);
+        pool.allocate(address(lv), 10_000 * U, "all"); // idle 0, whole pool in the lossy venue
+
+        uint256 faceBefore = lv.position(address(pool));
+        assertEq(faceBefore, 10_000 * U);
+
+        vm.prank(alice);
+        pool.withdraw(1 * U, alice, alice); // 1 USDT0 dust
+
+        uint256 faceAfter = lv.position(address(pool));
+        assertGt(faceAfter, 9_900 * U, "dust redeem must not liquidate the venue");
+        assertLt(faceBefore - faceAfter, 10 * U, "pulled only ~need, not the full notional");
+    }
+
     // --- HIGH finding fix: a compromised agent cannot drain the treasury by churning a lossy venue ---
 
     function _lossy(uint256 lossBps) internal returns (LossyVenue lv) {

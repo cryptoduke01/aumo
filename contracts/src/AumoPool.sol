@@ -66,6 +66,9 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
 
     uint256 private constant DUST = 1e3; // ~0.001 USDT0 (6dp): residual dust tolerated on prune
     uint256 private constant MAX_VENUES = 12; // bound the totalAssets loop (gas / DoS)
+    // Over-ask margin when pulling from a venue to cover a withdrawal: comfortably above any sane
+    // swap floor so a single pull covers `need` without liquidating the whole (lossy) venue.
+    uint256 private constant PULL_MARGIN_BPS = 300; // 3%
 
     address[] private _venues; // every venue ever allowlisted (for totalAssets summation)
     mapping(address => bool) private _inList;
@@ -230,7 +233,6 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         // blocks an exit.
         for (uint256 pass; pass < n + 2 && idle < assets; ++pass) {
             uint256 startIdle = idle;
-            bool lastPass = pass + 1 == n + 2;
             for (uint256 i; i < n && idle < assets; ++i) {
                 address v = _venues[i];
                 // Isolate a reverting balanceOf too (not just a reverting withdraw): a single broken
@@ -243,11 +245,17 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
                 }
                 if (live == 0) continue;
                 uint256 need = assets - idle;
-                // A lossy venue nets slightly less than the requested amount, so requesting its
-                // exact realizable value under-delivers. When we need its whole balance — or on the
-                // final pass, as a backstop — pull the max sentinel to liquidate it fully and
-                // realize its entire value, so a redemption is never left a few wei short.
-                uint256 pull = (need >= live || lastPass) ? type(uint256).max : need;
+                // Size the pull to just cover `need`. First pass: request exactly `need` (a lossless
+                // venue delivers it exactly, no waste). Later passes only run if a lossy venue
+                // under-delivered, so they over-ask the residual by a fixed margin (> any sane swap
+                // floor) to close the gap in one more pull. Only when we genuinely need the venue's
+                // whole balance do we drain it with the max sentinel.
+                // Critical: NEVER liquidate the full venue for a small/dust redemption — that would
+                // force the entire position through the exit swap (and its MEV surface) from a 1-wei
+                // action. This keeps a dust redeem pulling only ~dust.
+                uint256 pull = need >= live
+                    ? type(uint256).max
+                    : pass == 0 ? need : (need * (10_000 + PULL_MARGIN_BPS)) / 10_000;
                 // Isolate each venue: if its withdraw reverts (a USDG depeg past the swap floor, a
                 // paused Aave reserve), skip it and let a healthy venue cover the redemption instead
                 // of failing the whole exit. try/catch requires an external call, hence retreatSelf.
