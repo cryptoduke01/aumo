@@ -21,9 +21,15 @@ const BAYER8 = [
 export function DitherField({
   className = "",
   cell = 3,
+  coreY = 0.46,
+  intensity = 1,
 }: {
   className?: string;
   cell?: number;
+  // vertical position of the dense core (0 = top, 1 = bottom). Push it low to keep a headline clear.
+  coreY?: number;
+  // overall alpha multiplier — dial the whole field down when it sits behind text.
+  intensity?: number;
 }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
 
@@ -64,7 +70,7 @@ export function DitherField({
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = accent;
       const cx = cols * 0.5;
-      const cy = rows * 0.46;
+      const cy = rows * coreY;
       const time = t * 0.0006;
       for (let gy = 0; gy < rows; gy++) {
         for (let gx = 0; gx < cols; gx++) {
@@ -81,7 +87,7 @@ export function DitherField({
           const threshold = (BAYER8[gy & 7][gx & 7] + 0.5) / 64;
           if (v > threshold) {
             // fade opacity toward the edges so the field dissolves into the page
-            const a = Math.min(1, 0.35 + core * 0.9);
+            const a = Math.min(1, 0.35 + core * 0.9) * intensity;
             ctx.globalAlpha = a;
             ctx.fillRect(gx * cell, gy * cell, cell - 0.6, cell - 0.6);
           }
@@ -134,7 +140,7 @@ export function DitherField({
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("themechange", onTheme);
     };
-  }, [cell]);
+  }, [cell, coreY, intensity]);
 
   return <canvas ref={ref} aria-hidden className={`block h-full w-full ${className}`} />;
 }

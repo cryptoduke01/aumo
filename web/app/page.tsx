@@ -106,23 +106,28 @@ export default function Landing() {
     <div className="flex flex-1 flex-col">
       <SiteHeader />
 
-      {/* ── hero: dithered Sovereign-gold horizon over ink ──── */}
+      {/* ── hero: the living dither field, blooming below the headline over ink ── */}
       <section className="relative isolate overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/dither-images/HMtauliaQAAqwjB.jpeg"
-            alt=""
-            className="h-full w-full object-cover object-top opacity-[0.5] [mask-image:linear-gradient(to_bottom,#000_0%,#000_42%,transparent_92%)] [filter:saturate(0.9)_contrast(1.05)]"
+          {/* generative Sovereign field — dense core pushed low so it blooms under the CTA and the
+              headline sits on near-ink; dialed down so it never fights the type */}
+          <DitherField
+            coreY={0.82}
+            intensity={0.6}
+            className="[mask-image:linear-gradient(to_bottom,transparent_0%,#000_34%,#000_78%,transparent_100%)]"
           />
-          {/* warm Sovereign glow bleeding THROUGH the dither (keryx model) */}
+          {/* warm Sovereign glow bleeding THROUGH the field (keryx model) */}
           <div
             className="absolute inset-0 mix-blend-soft-light"
-            style={{ background: "radial-gradient(58% 46% at 50% 26%, color-mix(in srgb, var(--primary) 34%, transparent), transparent 62%)" }}
+            style={{ background: "radial-gradient(60% 50% at 50% 74%, color-mix(in srgb, var(--primary) 40%, transparent), transparent 64%)" }}
           />
-          {/* fade the frame into the Ink page: bottom + vignette */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/5 to-background" />
-          <div className="absolute inset-0 bg-[radial-gradient(120%_85%_at_50%_-5%,transparent_28%,var(--background)_84%)]" />
+          {/* ink scrim behind the text column so the headline + subhead stay fully legible */}
+          <div
+            className="absolute inset-0"
+            style={{ background: "radial-gradient(66% 52% at 50% 34%, var(--background) 0%, color-mix(in srgb, var(--background) 82%, transparent) 40%, transparent 72%)" }}
+          />
+          {/* fade the field into the Ink page top and bottom */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
         </div>
         <Grain />
         <div className="mx-auto flex w-full max-w-4xl flex-col items-center px-5 pt-32 pb-24 text-center sm:px-8 sm:pt-44 sm:pb-32">
@@ -134,45 +139,6 @@ export default function Landing() {
             on-chain lending and a Treasury-backed dollar, inside guardrails it can&apos;t break.
           </p>
           <Cta className="mt-9" />
-        </div>
-      </section>
-
-      {/* ── the signal field: the agent sensing the market (generative dither) ─ */}
-      <section className="relative isolate overflow-hidden border-t border-border/70">
-        <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-          <div className="relative isolate overflow-hidden rounded-2xl border border-border/70 bg-background">
-            {/* the living dither field, densest at the core, dissolving into the page at the edges */}
-            <div
-              aria-hidden
-              className="absolute inset-0 -z-10 [mask-image:radial-gradient(78%_78%_at_50%_46%,#000_18%,transparent_80%)]"
-            >
-              <DitherField />
-            </div>
-            {/* warm Sovereign bloom bleeding through the field (keryx model) */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 -z-10 mix-blend-soft-light"
-              style={{ background: "radial-gradient(46% 46% at 50% 46%, color-mix(in srgb, var(--primary) 40%, transparent), transparent 66%)" }}
-            />
-            <Grain />
-            <div className="relative flex min-h-[26rem] flex-col items-center justify-center gap-5 px-6 py-20 text-center sm:min-h-[32rem]">
-              <span className="relative inline-flex items-center justify-center">
-                <span
-                  aria-hidden
-                  className="absolute size-16 rounded-full opacity-40 blur-xl"
-                  style={{ background: "radial-gradient(circle, var(--primary) 0%, transparent 70%)" }}
-                />
-                <AumoMark className="relative size-9 text-primary" />
-              </span>
-              <h2 className="max-w-lg text-balance text-2xl font-medium tracking-tight sm:text-3xl">
-                Always sensing. Only ever tightening.
-              </h2>
-              <p className="max-w-md text-balance text-sm leading-relaxed text-muted-foreground">
-                Every cycle the agent reads the whole field, scores each venue against live risk, and
-                moves inside caps it can never widen.
-              </p>
-            </div>
-          </div>
         </div>
       </section>
 
