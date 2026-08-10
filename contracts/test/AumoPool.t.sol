@@ -4,6 +4,8 @@ pragma solidity 0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {AumoPool} from "../src/AumoPool.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IVenueAdapter} from "../src/interfaces/IVenueAdapter.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockVenueAdapter} from "./mocks/MockVenueAdapter.sol";
 
@@ -270,6 +272,107 @@ contract AumoPoolTest is Test {
         vm.expectRevert(AumoPool.VenueNotAllowed.selector);
         pool.removeVenue(address(venue)); // still allowed
     }
+
+    // --- HIGH finding fix: a compromised agent cannot drain the treasury by churning a lossy venue ---
+
+    function _lossy(uint256 lossBps) internal returns (LossyVenue lv) {
+        lv = new LossyVenue(address(usdt0), lossBps);
+        pool.setVenueAllowed(address(lv), true);
+    }
+
+    /// The core finding: caps bound size, not frequency/cumulative loss. Each round trip through a
+    /// lossy swap venue burns value; a hostile agent loops allocate->deallocate to empty the vault.
+    /// The per-epoch loss budget caps that value destruction.
+    function test_LossBudget_BoundsCompromisedAgentChurn() public {
+        _deposit(alice, 200 * U);
+        LossyVenue lv = _lossy(300); // 3% burned per round trip
+        pool.setLossBudget(5 * U, 1 days); // at most 5 USDT0 of churn loss per day
+
+        vm.startPrank(agent);
+        pool.allocate(address(lv), 100 * U, "1");
+        pool.deallocate(address(lv), 100 * U); // realizes ~3 loss, inside budget
+        assertApproxEqAbs(pool.epochLoss(), 3 * U, 1, "first round-trip loss charged");
+
+        // keep churning; the next realized loss pushes cumulative loss over the budget and reverts
+        uint256 idleNow = pool.idleBalance();
+        pool.allocate(address(lv), idleNow, "2");
+        vm.expectRevert(AumoPool.LossBudgetExceeded.selector);
+        pool.deallocate(address(lv), idleNow);
+        vm.stopPrank();
+
+        assertLe(pool.epochLoss(), 5 * U, "committed value destruction never exceeds the budget");
+    }
+
+    /// The budget is a rate limit, not a permanent lock: it refreshes each epoch.
+    function test_LossBudget_ResetsNextEpoch() public {
+        _deposit(alice, 200 * U);
+        LossyVenue lv = _lossy(300);
+        pool.setLossBudget(5 * U, 1 days);
+
+        vm.startPrank(agent);
+        pool.allocate(address(lv), 100 * U, "1");
+        pool.deallocate(address(lv), 100 * U);
+        assertGt(pool.epochLoss(), 0, "spent some budget");
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 1 days + 1); // a full epoch later
+        vm.startPrank(agent);
+        pool.allocate(address(lv), 100 * U, "2"); // same-size trip, loss ~3 < budget
+        pool.deallocate(address(lv), 100 * U); // succeeds -> epoch rolled, counter reset
+        vm.stopPrank();
+        assertApproxEqAbs(pool.epochLoss(), 3 * U, 1, "counter reset to just this epoch's loss");
+    }
+
+    /// A depositor can always exit through a lossy venue, even with the agent budget fully spent
+    /// (here zero): the user-withdrawal path ignores the budget, so redemptions never brick.
+    function test_LossBudget_DoesNotBlockUserWithdrawals() public {
+        _deposit(alice, 200 * U);
+        LossyVenue lv = _lossy(300);
+        pool.setLossBudget(0, 1 days); // agent cannot churn at all...
+
+        vm.prank(agent);
+        pool.allocate(address(lv), 100 * U, "1"); // idle 100, venue 100
+
+        // ...yet the depositor still redeems, serviced by retreating from the lossy venue.
+        uint256 before = usdt0.balanceOf(alice);
+        uint256 sh = pool.balanceOf(alice); // compute before prank (arg-eval would consume it)
+        vm.prank(alice);
+        pool.redeem(sh, alice, alice);
+        assertGt(usdt0.balanceOf(alice) - before, 195 * U, "user exits despite zero agent budget");
+    }
+
+    /// Fail-closed default: before the owner sets a budget (maxEpochLoss == 0), the agent cannot
+    /// realize any round-trip loss at all.
+    function test_LossBudget_DefaultFailsClosedOnLossyChurn() public {
+        _deposit(alice, 200 * U);
+        LossyVenue lv = _lossy(300);
+        vm.startPrank(agent);
+        pool.allocate(address(lv), 100 * U, "1");
+        vm.expectRevert(AumoPool.LossBudgetExceeded.selector);
+        pool.deallocate(address(lv), 100 * U);
+        vm.stopPrank();
+    }
+
+    /// A lossless retreat (yield covered the round trip) is never charged, even at zero budget.
+    function test_LossBudget_LosslessDeallocateAlwaysAllowed() public {
+        _deposit(alice, 200 * U);
+        vm.prank(agent);
+        pool.allocate(address(venue), 200 * U, "supply"); // lossless mock venue
+        vm.prank(agent);
+        pool.deallocate(address(venue), 200 * U); // returned == principal -> no loss, no charge
+        assertEq(pool.epochLoss(), 0, "no loss charged");
+    }
+
+    function test_SetLossBudget_OnlyOwner() public {
+        vm.prank(stranger);
+        vm.expectRevert();
+        pool.setLossBudget(1, 1 days);
+    }
+
+    function test_SetLossBudget_ZeroEpochReverts() public {
+        vm.expectRevert(AumoPool.ZeroEpoch.selector);
+        pool.setLossBudget(1, 0);
+    }
 }
 
 /// @dev A venue adapter whose balanceOf() always reverts, to prove the totalAssets DoS + fix.
@@ -294,5 +397,44 @@ contract RevertingVenue {
 
     function withdraw(uint256 a) external pure returns (uint256) {
         return a;
+    }
+}
+
+/// @dev A venue that burns `lossBps` of value on every round trip (models the USDT0<->USDG AMM
+///      spread in RwaUsdgAdapter). balanceOf reports the realizable (post-exit) value and withdraw
+///      pays it out, so the two stay consistent — a single discount, matching the real adapter.
+contract LossyVenue is IVenueAdapter {
+    using SafeERC20 for IERC20;
+
+    IERC20 public immutable token;
+    uint256 public immutable lossBps; // burned on exit
+    mapping(address => uint256) public position; // face value held (in asset terms)
+
+    constructor(address token_, uint256 lossBps_) {
+        token = IERC20(token_);
+        lossBps = lossBps_;
+    }
+
+    function asset() external view returns (address) {
+        return address(token);
+    }
+
+    function deposit(uint256 amount) external returns (uint256) {
+        token.safeTransferFrom(msg.sender, address(this), amount);
+        position[msg.sender] += amount;
+        return amount;
+    }
+
+    function withdraw(uint256 amount) external returns (uint256) {
+        uint256 bal = position[msg.sender];
+        uint256 amt = amount > bal ? bal : amount;
+        position[msg.sender] = bal - amt;
+        uint256 out = (amt * (10_000 - lossBps)) / 10_000; // burn the spread on exit
+        token.safeTransfer(msg.sender, out);
+        return out;
+    }
+
+    function balanceOf(address account) external view returns (uint256) {
+        return (position[account] * (10_000 - lossBps)) / 10_000; // realizable value
     }
 }

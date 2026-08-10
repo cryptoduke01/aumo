@@ -9,9 +9,26 @@ Control lives in the contract, not the agent.
 - The **vault** custodies funds and enforces policy. The **agent** only proposes and submits
   actions; it holds no special authority.
 - Every allocation is bounded onchain by: allowlisted venues, per-move cap, per-venue cap, global
-  cap, owner-set risk band, and a pause switch.
+  cap, a per-epoch loss budget, owner-set risk band, and a pause switch.
 - The agent cannot exceed policy, use a non-allowlisted venue, or withdraw to an arbitrary address.
-  If the agent key is lost or compromised, funds cannot leave the allowed venues or the owner.
+  If the agent key is lost or compromised, funds cannot leave the allowed venues or reach the
+  attacker; the caps and the no-external-withdrawal rule hold.
+
+### Churn / value-destruction bound
+
+Custody is not the only thing worth protecting: a venue that swaps (the RWA USDG route) loses a
+small spread on each round trip, so a compromised agent that cannot *steal* funds could still try
+to *destroy* value by churning allocate→deallocate. The caps bound position size, not frequency,
+so on their own they do not stop this.
+
+The pool therefore meters agent-driven realized loss against a rolling **per-epoch loss budget**
+(`maxEpochLoss` per `lossEpochLength`, owner-set). Once an epoch's budget is spent, further lossy
+agent retreats revert; the owner rotates the agent key (`setAgent`, which revokes instantly) long
+before meaningful value is lost. The budget defaults to fail-closed (zero) until the owner sets it.
+Crucially, **user withdrawals never consult this budget**, so depositors can always exit even when
+the agent's budget is exhausted or the pool is paused. Realizable venue value is reported net of
+the exit swap cost, so share pricing is honest and a depositor who exits first cannot leave the
+round-trip cost for those who remain.
 
 ## Onchain
 

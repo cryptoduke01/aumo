@@ -35,7 +35,7 @@ function Cta({ children, className = "" }: { children?: React.ReactNode; classNa
 
 // A still, non-interactive mirror of the in-app Ask Aumo panel. It shows what
 // talking to the agent looks like without spending a live model call on every
-// landing visit — the real, live version lives behind the app.
+// landing visit. The real, live version lives behind the app.
 function AskPreview() {
   return (
     <div className="chamfer-edge w-full">
@@ -146,7 +146,7 @@ export default function Landing() {
             </h2>
             <p className="mt-4 max-w-md text-balance text-muted-foreground">
               It can explain any move it made, how it scored a venue, and what would turn it
-              defensive — in plain language, from its own live state. No dashboards to decode.
+              defensive, in plain language, from its own live state. No dashboards to decode.
             </p>
             <Cta className="mt-8 self-start">Talk to Aumo</Cta>
           </div>

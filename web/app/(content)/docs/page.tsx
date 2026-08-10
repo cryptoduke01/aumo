@@ -139,6 +139,7 @@ export default function DocsPage() {
               <li><strong>Per-move cap.</strong> The most that can move in a single transaction.</li>
               <li><strong>Per-venue cap.</strong> The most that can sit in any one venue.</li>
               <li><strong>Max total deployed.</strong> The ceiling on how much of the pool is ever at work.</li>
+              <li><strong>Per-epoch loss budget.</strong> A swap venue costs a small spread on each round trip, so even the value a rogue agent could burn by churning is capped per epoch. Your own withdrawals are never subject to it, so you can always exit.</li>
               <li><strong>Allowlisted venues only.</strong> The agent can send funds nowhere else.</li>
               <li><strong>No external withdrawal path.</strong> The agent can shuffle funds between allowlisted venues and back to the pool. It cannot withdraw to any outside address.</li>
             </ul>

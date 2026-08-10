@@ -44,6 +44,11 @@ contract DeployPoolMainnet is Script {
         uint256 maxMove = vm.envOr("MAX_MOVE", uint256(100e6));
         uint256 perVenue = vm.envOr("PER_VENUE_CAP", uint256(1_000e6));
         uint256 maxTotal = vm.envOr("MAX_TOTAL", uint256(5_000e6));
+        // Churn budget: most realized round-trip loss the agent may cause per epoch. Default 1% of
+        // max total deployed per day — ample for legitimate rebalances, but it caps a compromised
+        // agent's value destruction to ~1%/day (owner rotates the key long before that bites).
+        uint256 maxEpochLoss = vm.envOr("MAX_EPOCH_LOSS", maxTotal / 100);
+        uint256 lossEpoch = vm.envOr("LOSS_EPOCH", uint256(1 days));
 
         require(msg.sender == owner, "broadcaster must be VAULT_OWNER");
         require(maxMove > 0, "set MAX_MOVE");
@@ -61,6 +66,7 @@ contract DeployPoolMainnet is Script {
         pool.setVenueAllowed(address(aave), true);
         pool.setVenueAllowed(address(usdg), true);
         pool.setPolicy(maxMove, perVenue, maxTotal);
+        pool.setLossBudget(maxEpochLoss, lossEpoch); // bound agent churn/value destruction
         if (agent != owner) pool.setAgent(agent);
         vm.stopBroadcast();
 
@@ -71,5 +77,6 @@ contract DeployPoolMainnet is Script {
         console2.log("owner:         ", owner);
         console2.log("agent:         ", agent);
         console2.log("caps (maxMove/perVenue/maxTotal):", maxMove, perVenue, maxTotal);
+        console2.log("loss budget (maxEpochLoss/epoch):", maxEpochLoss, lossEpoch);
     }
 }

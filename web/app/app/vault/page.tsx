@@ -193,7 +193,7 @@ export default function VaultPage() {
             </div>
             <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
               You&apos;ll need some USDT0 to deposit and a little OKB for gas.{" "}
-              <span className="text-foreground">Withdraw anytime</span> — your deposit is always
+              <span className="text-foreground">Withdraw anytime.</span> Your deposit is always
               yours, redeemable for your share of the pool plus any yield it earned.
             </p>
           </Panel>

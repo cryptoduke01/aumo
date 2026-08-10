@@ -56,6 +56,7 @@ contract RwaUsdgAdapterForkTest is Test {
         adapter = new RwaUsdgAdapter(USDT0, USDG, AUSDG, AAVE_POOL, ROUTER, address(pool), fee, 200); // 2% bound
         pool.setVenueAllowed(address(adapter), true);
         pool.setPolicy(1_000e6, 5_000e6, 10_000e6);
+        pool.setLossBudget(500e6, 1 days); // generous churn budget so the legit retreat clears
         pool.setAgent(agent);
         vm.stopPrank();
         active = true;

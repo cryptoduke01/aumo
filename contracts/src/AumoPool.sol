@@ -37,6 +37,17 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     mapping(address => uint256) public allocated; // venue => principal deployed
     uint256 public totalDeployed;
 
+    // --- Churn / loss budget (owner-controlled) ---
+    // Caps bound how MUCH can move; this bounds how much VALUE an agent can destroy by churning a
+    // lossy venue (each USDT0->USDG->USDT0 round trip burns the AMM spread). A compromised agent
+    // can realize at most `maxEpochLoss` of round-trip loss per rolling `lossEpochLength` window,
+    // then setAgent() rotation locks it out — value cannot be destroyed without bound. User-driven
+    // withdrawals never consult this budget, so exits always work.
+    uint256 public maxEpochLoss; // max realized loss the agent may cause per epoch, in asset units
+    uint256 public lossEpochLength; // rolling window length, seconds
+    uint256 public epochLossStart; // timestamp the current window opened
+    uint256 public epochLoss; // realized loss charged in the current window
+
     address[] private _venues; // every venue ever allowlisted (for totalAssets summation)
     mapping(address => bool) private _inList;
 
@@ -47,6 +58,7 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     event VenueAllowed(address indexed venue, bool allowed);
     event VenueRemoved(address indexed venue);
     event PolicyUpdated(uint256 maxMoveSize, uint256 perVenueCap, uint256 maxTotalDeployed);
+    event LossBudgetUpdated(uint256 maxEpochLoss, uint256 lossEpochLength);
 
     error NotAgent();
     error VenueNotAllowed();
@@ -57,6 +69,8 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     error TotalCapExceeded();
     error AssetMismatch();
     error RenounceDisabled();
+    error LossBudgetExceeded();
+    error ZeroEpoch();
 
     modifier onlyAgent() {
         if (msg.sender != agent) revert NotAgent();
@@ -70,6 +84,11 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     {
         agent = owner_;
         emit AgentUpdated(owner_);
+
+        // Fail closed by default: until the owner sets a budget, the agent cannot realize ANY
+        // round-trip loss (maxEpochLoss == 0). The deploy script sets a working budget.
+        lossEpochLength = 1 days;
+        epochLossStart = block.timestamp;
     }
 
     // ------------------------------------------------------------------ accounting
@@ -164,16 +183,30 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     function _ensureIdle(uint256 assets) internal {
         uint256 idle = idleBalance();
         if (idle >= assets) return;
-        uint256 need = assets - idle;
         uint256 n = _venues.length;
-        for (uint256 i; i < n && need > 0; ++i) {
-            address v = _venues[i];
-            uint256 live = IVenueAdapter(v).balanceOf(address(this));
-            if (live == 0) continue;
-            uint256 pull = need > live ? live : need;
-            _doDeallocate(v, pull);
-            uint256 nowIdle = idleBalance();
-            need = assets > nowIdle ? assets - nowIdle : 0;
+        // Sweep venues in repeated passes until idle covers the withdrawal or no venue can yield
+        // more. A retreat from a lossy venue nets slightly less than requested (the exit swap
+        // cost), so a second pass collects the residual — a full redemption is never left short by
+        // rounding/slippage. Bounded by (n + 2) passes; stalls out cleanly if liquidity truly
+        // can't cover. User-withdrawal driven, so `enforce` is false and the loss budget never
+        // blocks an exit.
+        for (uint256 pass; pass < n + 2 && idle < assets; ++pass) {
+            uint256 startIdle = idle;
+            bool lastPass = pass + 1 == n + 2;
+            for (uint256 i; i < n && idle < assets; ++i) {
+                address v = _venues[i];
+                uint256 live = IVenueAdapter(v).balanceOf(address(this));
+                if (live == 0) continue;
+                uint256 need = assets - idle;
+                // A lossy venue nets slightly less than the requested amount, so requesting its
+                // exact realizable value under-delivers. When we need its whole balance — or on the
+                // final pass, as a backstop — pull the max sentinel to liquidate it fully and
+                // realize its entire value, so a redemption is never left a few wei short.
+                uint256 pull = (need >= live || lastPass) ? type(uint256).max : need;
+                _doDeallocate(v, pull, false);
+                idle = idleBalance();
+            }
+            if (idle == startIdle) break; // no venue could yield more this pass
         }
     }
 
@@ -233,6 +266,19 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         emit PolicyUpdated(maxMoveSize_, perVenueCap_, maxTotalDeployed_);
     }
 
+    /// @notice Set the agent's per-epoch churn-loss budget. `maxEpochLoss_` is the most realized
+    ///         round-trip loss the agent may cause within each `lossEpochLength_` window; setting
+    ///         it opens a fresh window. Raising it is the escape hatch if a legitimate de-risk needs
+    ///         to realize more loss than the current budget allows.
+    function setLossBudget(uint256 maxEpochLoss_, uint256 lossEpochLength_) external onlyOwner {
+        if (lossEpochLength_ == 0) revert ZeroEpoch();
+        maxEpochLoss = maxEpochLoss_;
+        lossEpochLength = lossEpochLength_;
+        epochLossStart = block.timestamp;
+        epochLoss = 0;
+        emit LossBudgetUpdated(maxEpochLoss_, lossEpochLength_);
+    }
+
     function pause() external onlyOwner {
         _pause();
     }
@@ -273,26 +319,45 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         emit Allocated(venue, supplied, reason, block.timestamp);
     }
 
-    /// @notice Retreat up to `amount` from a venue back into the pool. Allowed even while paused.
+    /// @notice Retreat up to `amount` from a venue back into the pool. Allowed even while paused so
+    ///         the agent can always de-risk. Agent-initiated retreats are metered by the loss budget.
     function deallocate(address venue, uint256 amount) external onlyAgent nonReentrant {
         // retreat only from a venue we have ever allowlisted; never a bare call to an arbitrary
         // address. (_ensureIdle only ever targets venues already in the list.)
         if (!_inList[venue]) revert VenueNotAllowed();
-        _doDeallocate(venue, amount);
+        _doDeallocate(venue, amount, true);
     }
 
-    function _doDeallocate(address venue, uint256 amount) internal {
+    /// @param enforce When true (agent-initiated), any realized round-trip loss is charged to the
+    ///        rolling loss budget and reverts once the epoch's budget is spent. When false
+    ///        (user-withdrawal driven), the retreat is never blocked, so redemptions always clear.
+    function _doDeallocate(address venue, uint256 amount, bool enforce) internal {
         if (amount == 0) revert ZeroAmount();
 
         uint256 principal = allocated[venue];
         uint256 pulledPrincipal = amount > principal ? principal : amount;
 
+        // Effects before the external interaction (CEI): decrement principal accounting up front.
+        // A revert below (including the loss-budget check) rolls this back atomically.
+        allocated[venue] = principal - pulledPrincipal;
+        totalDeployed -= pulledPrincipal;
+
         uint256 balBefore = IERC20(asset()).balanceOf(address(this));
         IVenueAdapter(venue).withdraw(amount);
         uint256 returned = IERC20(asset()).balanceOf(address(this)) - balBefore;
 
-        allocated[venue] = principal - pulledPrincipal;
-        totalDeployed -= pulledPrincipal;
+        // Meter agent-driven value destruction. A round trip through the lossy RWA swap returns
+        // less than its principal; charge that loss to a rolling per-epoch budget so a compromised
+        // agent can churn only until the budget is spent, not until the treasury is empty.
+        if (enforce && returned < pulledPrincipal) {
+            uint256 loss = pulledPrincipal - returned;
+            if (block.timestamp >= epochLossStart + lossEpochLength) {
+                epochLossStart = block.timestamp;
+                epochLoss = 0;
+            }
+            epochLoss += loss;
+            if (epochLoss > maxEpochLoss) revert LossBudgetExceeded();
+        }
 
         emit Deallocated(venue, pulledPrincipal, returned, block.timestamp);
     }

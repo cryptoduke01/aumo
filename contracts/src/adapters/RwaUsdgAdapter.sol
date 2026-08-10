@@ -105,7 +105,9 @@ contract RwaUsdgAdapter is IVenueAdapter {
         uint256 gotUsdg = _swap(token, address(usdg), amount);
         usdg.forceApprove(address(pool), gotUsdg);
         pool.supply(address(usdg), gotUsdg, address(this), 0);
-        return amount;
+        // Report what actually reached the venue (after the entry swap cost), not the gross input,
+        // so the onchain receipt doesn't overstate the supplied amount.
+        return gotUsdg;
     }
 
     function withdraw(uint256 amount) external onlyVault returns (uint256 withdrawn) {
@@ -120,7 +122,14 @@ contract RwaUsdgAdapter is IVenueAdapter {
         return gotUsdt;
     }
 
+    /// @notice Realizable value in USDT0 terms: the aUSDG held, discounted by the worst-case exit
+    ///         swap cost (`maxSlippageBps`). Reporting the exit-adjusted value — not the gross 1:1
+    ///         aUSDG — keeps share pricing honest, so a depositor who exits first cannot leave the
+    ///         round-trip cost for later depositors, and full redemption is never blocked by an
+    ///         overstated balance. The discount is conservative: the actual exit usually beats the
+    ///         floor, and that surplus accrues to remaining depositors.
     function balanceOf(address) external view returns (uint256) {
-        return aUsdg.balanceOf(address(this)); // USDG ~ USDT0 (both dollar-pegged, 6dp)
+        uint256 held = aUsdg.balanceOf(address(this)); // USDG ~ USDT0 (both dollar-pegged, 6dp)
+        return (held * (10_000 - maxSlippageBps)) / 10_000;
     }
 }

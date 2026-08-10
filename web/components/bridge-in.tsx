@@ -29,7 +29,7 @@ export function BridgeIn() {
   }, [source, amount, address]);
 
   useEffect(() => {
-    // Only quote once a wallet is connected — the fee depends on the recipient,
+    // Only quote once a wallet is connected; the fee depends on the recipient,
     // and there's nothing to bridge to before then.
     if (!address || !amount || Number(amount) <= 0) {
       setQuote(null);
@@ -117,13 +117,13 @@ export function BridgeIn() {
               ) : loading ? (
                 <Orb className="size-4 text-accent" />
               ) : (
-                "—"
+                "·"
               )
             }
           />
           <Row
             label="Network fee"
-            value={quote ? `${Number(quote.nativeFeeEth).toFixed(6)} (gas)` : loading ? <Orb className="size-4 text-accent" /> : "—"}
+            value={quote ? `${Number(quote.nativeFeeEth).toFixed(6)} (gas)` : loading ? <Orb className="size-4 text-accent" /> : "·"}
           />
           <Row label="Arrives as" value="USDT0 on X Layer, ready to deposit" />
           {error ? <span className="text-xs text-negative">{error}</span> : null}
@@ -132,7 +132,7 @@ export function BridgeIn() {
 
       <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
         Move USDT0 from another chain straight into Aumo. We show the real route and network fee
-        before you send — nothing moves until you confirm in your wallet.
+        before you send. Nothing moves until you confirm in your wallet.
       </p>
     </Panel>
   );
