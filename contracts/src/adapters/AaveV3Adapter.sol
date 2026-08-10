@@ -46,6 +46,7 @@ contract AaveV3Adapter is IVenueAdapter {
         token.safeTransferFrom(msg.sender, address(this), amount);
         token.forceApprove(address(pool), amount);
         pool.supply(address(token), amount, address(this), 0);
+        token.forceApprove(address(pool), 0); // never leave a standing allowance
         return amount;
     }
 

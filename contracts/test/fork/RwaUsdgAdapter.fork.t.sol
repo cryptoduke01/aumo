@@ -53,7 +53,8 @@ contract RwaUsdgAdapterForkTest is Test {
 
         vm.startPrank(owner);
         pool = new AumoPool(IERC20(USDT0), owner);
-        adapter = new RwaUsdgAdapter(USDT0, USDG, AUSDG, AAVE_POOL, ROUTER, address(pool), fee, 200); // 2% bound
+        // owner=owner, 2% swap floor, 30bps valuation discount
+        adapter = new RwaUsdgAdapter(USDT0, USDG, AUSDG, AAVE_POOL, ROUTER, address(pool), owner, fee, 200, 30);
         pool.setVenueAllowed(address(adapter), true);
         pool.setPolicy(1_000e6, 5_000e6, 10_000e6);
         pool.setLossBudget(500e6, 1 days); // generous churn budget so the legit retreat clears

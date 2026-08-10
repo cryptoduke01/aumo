@@ -4,31 +4,52 @@ Aumo moves real funds. Safety is a product feature, not an afterthought.
 
 ## Trust model
 
-Control lives in the contract, not the agent.
+Custody lives in the contract, not the agent. Policy lives with the owner.
 
-- The **vault** custodies funds and enforces policy. The **agent** only proposes and submits
-  actions; it holds no special authority.
+- The **pool** custodies funds and enforces guardrails. The **agent** only proposes and submits
+  allocate/deallocate actions; it holds no special authority and no path to an outside address.
 - Every allocation is bounded onchain by: allowlisted venues, per-move cap, per-venue cap, global
-  cap, a per-epoch loss budget, owner-set risk band, and a pause switch.
+  cap, a per-epoch loss budget, a per-epoch deploy budget, and a pause switch. (Risk bands and
+  appetite are *off-chain* agent policy that can only tighten these onchain limits, never loosen
+  them; they are not themselves enforced onchain.)
 - The agent cannot exceed policy, use a non-allowlisted venue, or withdraw to an arbitrary address.
   If the agent key is lost or compromised, funds cannot leave the allowed venues or reach the
   attacker; the caps and the no-external-withdrawal rule hold.
 
+### The owner is trusted
+
+Depositor safety ultimately rests on the owner. The owner chooses which venues are allowlisted, and
+a malicious or buggy allowlisted venue combined with `setAgent(self)` could route funds to loss.
+So the owner is a trusted role: it holds ownership through a multisig (the deploy hands ownership to
+a Safe via `Ownable2Step`), renouncing is disabled, and the pool ships **paused** so nothing is live
+until the multisig verifies the wiring and unpauses. What the owner cannot do: directly withdraw
+depositor funds to itself (there is no owner-withdraw path).
+
 ### Churn / value-destruction bound
 
-Custody is not the only thing worth protecting: a venue that swaps (the RWA USDG route) loses a
-small spread on each round trip, so a compromised agent that cannot *steal* funds could still try
-to *destroy* value by churning allocate→deallocate. The caps bound position size, not frequency,
-so on their own they do not stop this.
+A swap venue (the RWA USDG route) loses a small spread on each round trip, so a compromised agent
+that cannot *steal* funds could still try to *destroy* value by churning allocate→deallocate. Caps
+bound position size, not frequency, so two rolling **per-epoch rate limits** bound the damage:
 
-The pool therefore meters agent-driven realized loss against a rolling **per-epoch loss budget**
-(`maxEpochLoss` per `lossEpochLength`, owner-set). Once an epoch's budget is spent, further lossy
-agent retreats revert; the owner rotates the agent key (`setAgent`, which revokes instantly) long
-before meaningful value is lost. The budget defaults to fail-closed (zero) until the owner sets it.
-Crucially, **user withdrawals never consult this budget**, so depositors can always exit even when
-the agent's budget is exhausted or the pool is paused. Realizable venue value is reported net of
-the exit swap cost, so share pricing is honest and a depositor who exits first cannot leave the
-round-trip cost for those who remain.
+- **Loss budget** (`maxEpochLoss` per `lossEpochLength`): meters realized round-trip loss on the
+  *agent* `deallocate` path. Once the epoch's budget is spent, further lossy agent retreats revert.
+  Defaults to fail-closed (zero) until the owner sets it.
+- **Deploy budget** (`maxEpochDeploy`): caps how much the agent can *allocate* per epoch. The
+  redeem exit path is intentionally unmetered (so exits never block), which alone would let a
+  compromised agent who is also a depositor socialize swap loss by looping deposit→allocate→redeem.
+  Capping deploy throughput bounds how fast that churn can be re-staged.
+
+Both are *rate* limits per rolling window, not lifetime totals; across a window boundary up to
+about two budgets can be realized before the owner rotates the key (`setAgent`, which revokes
+instantly). **User withdrawals never consult either budget**, so depositors can always exit.
+
+Realizable venue value is reported net of a small valuation discount (the realistic marginal
+round-trip cost, decoupled from the larger swap floor), so share pricing is honest and a depositor
+who exits first cannot leave the round-trip cost for those who remain. Redemptions are isolated
+per venue: a venue whose exit reverts (a USDG depeg past the swap floor, a paused Aave reserve) is
+skipped so a healthy venue still covers the exit. Value stranded in such a venue is realized once
+the owner widens the adapter's slippage or calls its `emergencyWithdraw`; until then that portion,
+and only that portion, is illiquid.
 
 ## Onchain
 

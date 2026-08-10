@@ -5,9 +5,13 @@ import {Script, console2} from "forge-std/Script.sol";
 import {AumoVault} from "../src/AumoVault.sol";
 import {AaveV3Adapter} from "../src/adapters/AaveV3Adapter.sol";
 
-/// @notice One-command mainnet deploy on X Layer (chainId 196): the vault plus a real
-///         Aave v3 adapter, wired and allowlisted. This moves real capital once funded, so
-///         the broadcaster must equal VAULT_OWNER and the policy caps must be set explicitly.
+/// @notice NOT THE LAUNCH ARTIFACT. The public product ships via DeployPoolMainnet (the
+///         multi-depositor AumoPool). This deploys the legacy single-depositor AumoVault, which has
+///         NO loss budget and NO deploy budget: only ever allowlist a lossless venue (Aave) on it,
+///         never a swap-based (lossy) venue like USDG. Kept for reference/testing only.
+///
+/// One-command deploy on X Layer (chainId 196): the vault plus a real Aave v3 adapter, wired and
+/// allowlisted. Moves real capital once funded, so the broadcaster must equal VAULT_OWNER.
 ///
 /// Addresses from aave-address-book/src/AaveV3XLayer.sol, verified on-chain:
 ///   USDT0 (USD₮0, 6dp)  0x779Ded0c9e1022225f8E0630b35a9b54bE713736
@@ -23,6 +27,7 @@ contract DeployMainnet is Script {
     address constant AUSDT0 = 0xF356ae412dB5df43BD3a10746f7ad4e1C4De4297;
 
     function run() external {
+        require(block.chainid == 196, "not X Layer mainnet");
         address owner = vm.envAddress("VAULT_OWNER");
         address agent = vm.envOr("AGENT_ADDRESS", owner);
         uint256 maxMove = vm.envOr("MAX_MOVE", uint256(0));

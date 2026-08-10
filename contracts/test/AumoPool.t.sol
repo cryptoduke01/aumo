@@ -245,24 +245,25 @@ contract AumoPoolTest is Test {
         pool.deallocate(address(0xDEAD), 1);
     }
 
-    /// @notice KENSHO finding fix: a venue whose balanceOf() reverts would DoS totalAssets()
-    ///         (and thus every deposit/withdrawal). removeVenue() prunes it and restores pricing.
-    function test_RemoveVenue_RecoversFromBalanceOfDoS() public {
+    /// @notice A venue whose balanceOf() reverts no longer DoSes totalAssets (try/catch treats it
+    ///         as 0); forceRemoveVenue then prunes the bricked adapter. removeVenue can't read it.
+    function test_TotalAssets_SurvivesBrokenAdapter_AndForceRemove() public {
         _deposit(alice, 100 * U);
         RevertingVenue bad = new RevertingVenue(address(usdt0));
         pool.setVenueAllowed(address(bad), true);
 
-        // Bricked: totalAssets reverts, so deposits and withdrawals revert too.
-        vm.expectRevert();
-        pool.totalAssets();
+        // Defense in depth: a reverting balanceOf contributes 0 instead of bricking pricing.
+        assertEq(pool.totalAssets(), 100 * U, "pricing survives a broken adapter");
         vm.prank(bob);
-        vm.expectRevert();
-        pool.deposit(10 * U, bob);
+        pool.deposit(10 * U, bob); // deposits still work
+        assertEq(pool.totalAssets(), 110 * U, "still priced");
 
-        // Owner disallows and prunes; the pool prices and redeems again.
+        // removeVenue can't read the bricked adapter (its balanceOf reverts); forceRemoveVenue can.
         pool.setVenueAllowed(address(bad), false);
+        vm.expectRevert();
         pool.removeVenue(address(bad));
-        assertEq(pool.totalAssets(), 100 * U, "pricing restored");
+        pool.forceRemoveVenue(address(bad));
+
         uint256 shares = pool.balanceOf(alice);
         vm.prank(alice);
         pool.redeem(shares, alice, alice);
@@ -271,6 +272,51 @@ contract AumoPoolTest is Test {
     function test_RemoveVenue_RequiresDisallowFirst() public {
         vm.expectRevert(AumoPool.VenueNotAllowed.selector);
         pool.removeVenue(address(venue)); // still allowed
+    }
+
+    /// removeVenue must not silently strand recoverable value.
+    function test_RemoveVenue_RevertsIfVenueHasValue() public {
+        _deposit(alice, 200 * U);
+        vm.prank(agent);
+        pool.allocate(address(venue), 100 * U, "x"); // venue holds value
+        pool.setVenueAllowed(address(venue), false);
+        vm.expectRevert(AumoPool.VenueHasValue.selector);
+        pool.removeVenue(address(venue));
+    }
+
+    /// HIGH fix: one venue whose withdraw reverts must not brick redemptions a healthy venue can
+    /// cover. The stuck venue is skipped (try/catch), the exit clears from idle + the healthy venue.
+    function test_Redemption_SkipsStuckVenue() public {
+        _deposit(alice, 300 * U);
+        StuckVenue stuck = new StuckVenue(address(usdt0));
+        pool.setVenueAllowed(address(stuck), true);
+        vm.startPrank(agent);
+        pool.allocate(address(stuck), 100 * U, "s"); // 100 in a venue that can't be exited
+        pool.allocate(address(venue), 100 * U, "h"); // 100 in a healthy venue
+        vm.stopPrank();
+
+        uint256 before = usdt0.balanceOf(alice);
+        vm.prank(alice);
+        pool.withdraw(180 * U, alice, alice); // 100 idle + 80 from the healthy venue
+        assertEq(usdt0.balanceOf(alice) - before, 180 * U, "redemption clears past the stuck venue");
+    }
+
+    /// HIGH fix: the deploy budget caps re-staging via the unmetered redeem exit path.
+    function test_DeployBudget_BoundsRestaging() public {
+        _deposit(alice, 500 * U);
+        LossyVenue lv = _lossy(300);
+        pool.setDeployBudget(300 * U); // at most 300 allocated per epoch
+        vm.startPrank(agent);
+        pool.allocate(address(lv), 200 * U, "1"); // 200 <= 300 ok
+        vm.expectRevert(AumoPool.DeployBudgetExceeded.selector);
+        pool.allocate(address(lv), 200 * U, "2"); // 400 > 300 -> revert
+        vm.stopPrank();
+    }
+
+    function test_SetDeployBudget_OnlyOwner() public {
+        vm.prank(stranger);
+        vm.expectRevert();
+        pool.setDeployBudget(1);
     }
 
     // --- HIGH finding fix: a compromised agent cannot drain the treasury by churning a lossy venue ---
@@ -436,5 +482,36 @@ contract LossyVenue is IVenueAdapter {
 
     function balanceOf(address account) external view returns (uint256) {
         return (position[account] * (10_000 - lossBps)) / 10_000; // realizable value
+    }
+}
+
+/// @dev A venue that holds funds and reports a balance, but whose withdraw always reverts (models a
+///      USDG depeg past the swap floor or a paused Aave reserve). Used to prove redemption isolation.
+contract StuckVenue is IVenueAdapter {
+    using SafeERC20 for IERC20;
+
+    IERC20 public immutable token;
+    mapping(address => uint256) public position;
+
+    constructor(address token_) {
+        token = IERC20(token_);
+    }
+
+    function asset() external view returns (address) {
+        return address(token);
+    }
+
+    function deposit(uint256 amount) external returns (uint256) {
+        token.safeTransferFrom(msg.sender, address(this), amount);
+        position[msg.sender] += amount;
+        return amount;
+    }
+
+    function withdraw(uint256) external pure returns (uint256) {
+        revert("stuck");
+    }
+
+    function balanceOf(address account) external view returns (uint256) {
+        return position[account];
     }
 }

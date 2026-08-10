@@ -44,9 +44,20 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     // then setAgent() rotation locks it out — value cannot be destroyed without bound. User-driven
     // withdrawals never consult this budget, so exits always work.
     uint256 public maxEpochLoss; // max realized loss the agent may cause per epoch, in asset units
-    uint256 public lossEpochLength; // rolling window length, seconds
-    uint256 public epochLossStart; // timestamp the current window opened
+    uint256 public lossEpochLength; // rolling window length, seconds (shared by both budgets)
+    uint256 public epochLossStart; // timestamp the current loss window opened
     uint256 public epochLoss; // realized loss charged in the current window
+
+    // Allocate-side rate limit: bounds how much the agent can (re-)deploy per epoch. The redeem
+    // exit path is intentionally unmetered so exits never block, which on its own would let a
+    // compromised agent who is also a depositor socialize realized swap loss without bound by
+    // looping deposit -> allocate -> redeem. Capping deploy throughput caps how fast churn can be
+    // re-staged, which bounds that leak. 0 disables (rate limit off).
+    uint256 public maxEpochDeploy; // max cumulative allocate per epoch, in asset units (0 = off)
+    uint256 public epochDeployStart; // timestamp the current deploy window opened
+    uint256 public epochDeployed; // amount allocated in the current window
+
+    uint256 private constant DUST = 1e3; // ~0.001 USDT0 (6dp): residual dust tolerated on prune
 
     address[] private _venues; // every venue ever allowlisted (for totalAssets summation)
     mapping(address => bool) private _inList;
@@ -59,6 +70,7 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     event VenueRemoved(address indexed venue);
     event PolicyUpdated(uint256 maxMoveSize, uint256 perVenueCap, uint256 maxTotalDeployed);
     event LossBudgetUpdated(uint256 maxEpochLoss, uint256 lossEpochLength);
+    event DeployBudgetUpdated(uint256 maxEpochDeploy);
 
     error NotAgent();
     error VenueNotAllowed();
@@ -70,7 +82,10 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     error AssetMismatch();
     error RenounceDisabled();
     error LossBudgetExceeded();
+    error DeployBudgetExceeded();
     error ZeroEpoch();
+    error VenueHasValue();
+    error NotSelf();
 
     modifier onlyAgent() {
         if (msg.sender != agent) revert NotAgent();
@@ -103,7 +118,11 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
             // Sum each venue's LIVE balance, not its principal counter. A venue can still hold
             // accrued yield after its principal is fully deallocated; that value must keep
             // counting toward the share price. Untouched venues report zero.
-            sum += IVenueAdapter(_venues[i]).balanceOf(address(this));
+            // Defense in depth: a venue whose balanceOf reverts contributes 0 rather than bricking
+            // share pricing (and thus deposits/exits); the owner then prunes it via forceRemoveVenue.
+            try IVenueAdapter(_venues[i]).balanceOf(address(this)) returns (uint256 b) {
+                sum += b;
+            } catch {}
         }
         return sum;
     }
@@ -203,11 +222,22 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
                 // final pass, as a backstop — pull the max sentinel to liquidate it fully and
                 // realize its entire value, so a redemption is never left a few wei short.
                 uint256 pull = (need >= live || lastPass) ? type(uint256).max : need;
-                _doDeallocate(v, pull, false);
+                // Isolate each venue: if its withdraw reverts (a USDG depeg past the swap floor, a
+                // paused Aave reserve), skip it and let a healthy venue cover the redemption instead
+                // of failing the whole exit. try/catch requires an external call, hence retreatSelf.
+                try this.retreatSelf(v, pull) {} catch {}
                 idle = idleBalance();
             }
             if (idle == startIdle) break; // no venue could yield more this pass
         }
+    }
+
+    /// @dev Self-only external wrapper so `_ensureIdle` can `try/catch` a single-venue retreat.
+    ///      Never metered by the loss budget (this is the user-withdrawal path). Not callable by
+    ///      anyone but the pool itself.
+    function retreatSelf(address venue, uint256 amount) external {
+        if (msg.sender != address(this)) revert NotSelf();
+        _doDeallocate(venue, amount, false);
     }
 
     // ------------------------------------------------------------------ owner: policy
@@ -238,6 +268,22 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     ///         model (owner already controls the allowlist and policy).
     function removeVenue(address venue) external onlyOwner {
         if (venueAllowed[venue]) revert VenueNotAllowed(); // disallow before pruning
+        // Don't silently strand recoverable value: the venue must be (near-)empty. Retreat via
+        // deallocate first. For a genuinely bricked adapter whose balanceOf reverts, use
+        // forceRemoveVenue, which acknowledges writing off any residual value.
+        if (IVenueAdapter(venue).balanceOf(address(this)) > DUST) revert VenueHasValue();
+        _pruneVenue(venue);
+    }
+
+    /// @notice Escape hatch for a bricked adapter (its balanceOf reverts, so removeVenue can't even
+    ///         read it) to restore totalAssets pricing. Explicitly writes off any value still held
+    ///         in the venue. Owner-only, disallow first.
+    function forceRemoveVenue(address venue) external onlyOwner {
+        if (venueAllowed[venue]) revert VenueNotAllowed();
+        _pruneVenue(venue);
+    }
+
+    function _pruneVenue(address venue) internal {
         uint256 n = _venues.length;
         for (uint256 i; i < n; ++i) {
             if (_venues[i] == venue) {
@@ -279,6 +325,16 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         emit LossBudgetUpdated(maxEpochLoss_, lossEpochLength_);
     }
 
+    /// @notice Set the agent's per-epoch deploy budget (allocate-side rate limit), using the same
+    ///         window length as the loss budget. 0 disables the limit. Setting it opens a fresh
+    ///         window.
+    function setDeployBudget(uint256 maxEpochDeploy_) external onlyOwner {
+        maxEpochDeploy = maxEpochDeploy_;
+        epochDeployStart = block.timestamp;
+        epochDeployed = 0;
+        emit DeployBudgetUpdated(maxEpochDeploy_);
+    }
+
     function pause() external onlyOwner {
         _pause();
     }
@@ -308,6 +364,17 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         if (amount > idleBalance()) revert InsufficientIdle();
         if (allocated[venue] + amount > perVenueCap) revert PerVenueCapExceeded();
         if (totalDeployed + amount > maxTotalDeployed) revert TotalCapExceeded();
+
+        // Rate-limit deploy throughput per epoch. This caps how fast the agent can re-stage churn,
+        // which bounds realized swap loss even via the unmetered redeem exit path (see maxEpochDeploy).
+        if (maxEpochDeploy != 0) {
+            if (block.timestamp >= epochDeployStart + lossEpochLength) {
+                epochDeployStart = block.timestamp;
+                epochDeployed = 0;
+            }
+            epochDeployed += amount;
+            if (epochDeployed > maxEpochDeploy) revert DeployBudgetExceeded();
+        }
 
         allocated[venue] += amount;
         totalDeployed += amount;
