@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Config } from "./config.js";
-import type { VaultState } from "./types.js";
+import type { VaultState, MarketSnapshot } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -78,7 +78,17 @@ export function buildIdentity(cfg: Config): AgentIdentity {
  * provably bound to the limits that were in force when it was made — change a cap
  * and the fingerprint changes.
  */
-export function policyFingerprint(vault: VaultState, cfg: Config): string {
+export function policyFingerprint(snap: MarketSnapshot, cfg: Config): string {
+  const vault = snap.vault;
+  // Fold the sorted venue allowlist into the stamp: the guardrails that matter most (which venues
+  // the agent may touch) must change the fingerprint when they change, or the non-repudiation claim
+  // ("a decision is bound to the exact policy in force") is false for exactly the part F-1/F-2 make
+  // most sensitive. (F-4) The loss-budget params fold in here too once the pool exposes them on-chain
+  // (post-redeploy from the fixed source — the current live pool has no maxEpochLoss selector).
+  const allowlist = snap.venues
+    .filter((v) => v.allowed)
+    .map((v) => v.address.toLowerCase())
+    .sort();
   const canonical = JSON.stringify({
     chainId: cfg.chainId,
     vault: vault.address.toLowerCase(),
@@ -88,6 +98,7 @@ export function policyFingerprint(vault: VaultState, cfg: Config): string {
     maxTotalDeployed: vault.maxTotalDeployed.toString(),
     appetite: cfg.appetite,
     maxConcentration: cfg.maxConcentration,
+    allowlist,
   });
   return keccak256(toHex(canonical));
 }

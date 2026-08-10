@@ -8,6 +8,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IVenueAdapter} from "../src/interfaces/IVenueAdapter.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockVenueAdapter} from "./mocks/MockVenueAdapter.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @notice Proves the multi-depositor pool: shares track pooled value including venue yield,
 ///         withdrawals pull from venues, the agent stays inside every guardrail, and the
@@ -336,8 +337,7 @@ contract AumoPoolTest is Test {
         vm.stopPrank();
         assertEq(pool.totalAssets(), 400 * U, "full NAV before impairment");
 
-        // Agent detects the venue can't exit and marks it impaired: NAV writes down to realizable.
-        vm.prank(agent);
+        // Owner marks the un-exitable venue impaired: NAV writes down to realizable value.
         pool.setVenueImpaired(address(stuck), true);
         assertEq(pool.totalAssets(), 200 * U, "stuck value excluded from NAV");
 
@@ -353,14 +353,18 @@ contract AumoPoolTest is Test {
         assertApproxEqAbs(pool.totalAssets(), 100 * U, 2, "healthy remainder still priced");
     }
 
-    function test_SetVenueImpaired_OnlyOwnerOrAgent() public {
+    function test_SetVenueImpaired_OnlyOwner() public {
         pool.setVenueAllowed(address(venue), true);
+        // A stranger cannot impair.
         vm.prank(stranger);
-        vm.expectRevert(AumoPool.NotOwnerOrAgent.selector);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, stranger));
         pool.setVenueImpaired(address(venue), true);
-        // owner and agent both allowed
-        pool.setVenueImpaired(address(venue), true);
+        // The agent cannot impair either: impairment is an owner-only NAV lever (C-1).
         vm.prank(agent);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, agent));
+        pool.setVenueImpaired(address(venue), true);
+        // The owner can set and clear it.
+        pool.setVenueImpaired(address(venue), true);
         pool.setVenueImpaired(address(venue), false);
     }
 

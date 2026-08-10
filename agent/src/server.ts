@@ -4,9 +4,11 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { Config } from "./config.js";
 import { buildIdentity } from "./identity.js";
+import { RECEIPTS_FILE } from "./act/receipts.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const RECEIPTS = join(__dirname, "..", "receipts", "decisions.jsonl");
+// Same env-resolved path the writer uses (RECEIPTS_DIR), so a persistent volume is read back correctly.
+const RECEIPTS = RECEIPTS_FILE;
 
 function readRecent(limit: number): unknown[] {
   if (!existsSync(RECEIPTS)) return [];
@@ -71,6 +73,26 @@ function buildContext(cfg: Config) {
 const ASK_SYSTEM = `You are Aumo, an autonomous treasury agent for stablecoins on X Layer. You put idle USDT0 to work in on-chain yield within strict, on-chain guardrails, and you prove every move.
 
 Answer the user's question about YOUR decisions, venues, risk scoring, guardrails, and strategy, speaking in the first person as the agent. Ground every answer ONLY in the state provided to you; if the state does not contain the answer, say so plainly. Be concise: 2 to 4 sentences, plain language, no hype. Never give financial or investment advice, never predict prices, and never claim to do anything outside your on-chain guardrails. If asked to do something you cannot (move funds off-chain, exceed a cap), explain that you cannot.`;
+
+/**
+ * Resolve the client IP for rate-limiting. `X-Forwarded-For` is a client-writable header of the form
+ * `client, proxy1, proxy2`; a trusted reverse proxy APPENDS the peer it saw, so the entry it added is
+ * the RIGHTMOST one. Reading the leftmost token (the old behaviour) let a caller prepend a random
+ * fake IP on every request and never trip the limiter — an unauthenticated way to drive unbounded
+ * LLM calls (cost/DoS). Trust only the rightmost forwarded entry, and fall back to the socket peer
+ * when there is no proxy header. Set TRUST_PROXY_HOPS>1 if several proxies are chained; a misconfig
+ * then fails safe (over-restrictive), never open. (F-3)
+ */
+function clientIp(req: IncomingMessage): string {
+  const hops = Math.max(1, Number(process.env.TRUST_PROXY_HOPS ?? 1));
+  const xff = req.headers["x-forwarded-for"];
+  if (xff) {
+    const parts = xff.toString().split(",").map((s) => s.trim()).filter(Boolean);
+    const picked = parts[Math.max(0, parts.length - hops)];
+    if (picked) return picked;
+  }
+  return (req.socket.remoteAddress || "?").trim();
+}
 
 const rate = new Map<string, number[]>(); // ip -> recent request timestamps
 function rateLimited(ip: string, now: number): boolean {
@@ -150,7 +172,7 @@ export function startServer(cfg: Config) {
     }
 
     if (url.pathname === "/ask" && req.method === "POST") {
-      const ip = (req.headers["x-forwarded-for"]?.toString().split(",")[0] || req.socket.remoteAddress || "?").trim();
+      const ip = clientIp(req);
       if (rateLimited(ip, Date.now())) {
         res.statusCode = 429;
         res.end(JSON.stringify({ error: "Too many questions. Give me a moment." }));

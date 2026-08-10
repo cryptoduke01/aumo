@@ -78,7 +78,7 @@ export async function tick(cfg: Config, opts: { dryRun?: boolean } = {}): Promis
   const { publicClient, walletClient, agentAddress } = makeClients(cfg);
   const identity = buildIdentity(cfg);
   const snap = await sense(publicClient, cfg);
-  const fingerprint = policyFingerprint(snap.vault, cfg);
+  const fingerprint = policyFingerprint(snap, cfg);
 
   const base = buildPlan(snap, {
     appetite: cfg.appetite,

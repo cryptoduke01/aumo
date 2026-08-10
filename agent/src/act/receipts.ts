@@ -7,7 +7,13 @@ import type { MoveResult } from "./execute.js";
 import type { AgentIdentity } from "../identity.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const RECEIPTS_DIR = join(__dirname, "..", "..", "receipts");
+// The receipt trail is the product's proof of every move, so it must survive restarts. In a
+// container with an ephemeral filesystem (e.g. Railway with no volume) the default in-repo path is
+// wiped on every redeploy — set RECEIPTS_DIR to a mounted persistent volume (e.g. /data) to keep the
+// history. Reader (server.ts) resolves the same env, so they always agree.
+export const RECEIPTS_DIR =
+  process.env.RECEIPTS_DIR?.trim() || join(__dirname, "..", "..", "receipts");
+export const RECEIPTS_FILE = join(RECEIPTS_DIR, "decisions.jsonl");
 
 const jsonSafe = (x: unknown) =>
   JSON.parse(JSON.stringify(x, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
@@ -44,6 +50,6 @@ export function record(
     execution: execution ? jsonSafe(execution) : null,
   };
   mkdirSync(RECEIPTS_DIR, { recursive: true });
-  appendFileSync(join(RECEIPTS_DIR, "decisions.jsonl"), JSON.stringify(rec) + "\n");
+  appendFileSync(RECEIPTS_FILE, JSON.stringify(rec) + "\n");
   return rec;
 }

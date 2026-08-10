@@ -85,7 +85,6 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     event DeployBudgetUpdated(uint256 maxEpochDeploy, uint256 deployEpochLength);
 
     error NotAgent();
-    error NotOwnerOrAgent();
     error ZeroAgent();
     error VenueNotAllowed();
     error VenueIsImpaired();
@@ -297,12 +296,16 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
 
     /// @notice Mark a venue impaired (or clear it): impaired venues are excluded from totalAssets so
     ///         the share price writes down to realizable value, and they cannot receive new
-    ///         allocations. Settable by the owner or the agent (which monitors venue peg/health), so
-    ///         a depegged/stuck venue is written down before first redeemers can drain healthy
-    ///         liquidity against inflated NAV. Does not move funds; use deallocate / the adapter's
-    ///         emergencyWithdraw to recover value.
-    function setVenueImpaired(address venue, bool impaired) external {
-        if (msg.sender != owner() && msg.sender != agent) revert NotOwnerOrAgent();
+    ///         allocations. Does not move funds; use deallocate / the adapter's emergencyWithdraw to
+    ///         recover value.
+    /// @dev    Owner-only. Impairment is a NAV lever in BOTH directions (writing a venue down and
+    ///         restoring it), so it must never sit with the agent: a compromised agent could impair a
+    ///         healthy venue to depress NAV, buy shares cheap, clear the flag and redeem at the
+    ///         recovered price — or impair mid-redemption to underpay an exiting depositor. Hard-
+    ///         reverting venues are already auto-excluded from totalAssets via try/catch, and the RWA
+    ///         adapter already reports balanceOf net of a conservative valuation discount, so the fast
+    ///         depeg case is covered by owner pause()/impair without handing the agent the lever.
+    function setVenueImpaired(address venue, bool impaired) external onlyOwner {
         venueImpaired[venue] = impaired;
         emit VenueImpairment(venue, impaired);
     }
