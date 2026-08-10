@@ -143,6 +143,15 @@ button:disabled {
   border-radius: 2px;
 }
 
+/* Amount fields show focus on their container (focus-within border), so the bare
+   input inside needs no second outline. Higher specificity than the :where rule
+   above, so it wins cleanly. */
+input.field-input:focus,
+input.field-input:focus-visible {
+  outline: none;
+  outline-offset: 0;
+}
+
 /* Nav enters by moving, never by hiding content behind opacity:0. */
 @keyframes settle-down {
   from {

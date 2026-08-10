@@ -232,7 +232,7 @@ export default function VaultPage() {
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                className="tnum w-full min-w-0 bg-transparent text-xl font-medium outline-none placeholder:text-faint"
+                className="field-input tnum w-full min-w-0 bg-transparent text-xl font-medium outline-none placeholder:text-faint"
                 aria-label={`${tab} amount in USDT0`}
               />
               <span className="shrink-0 text-xs font-medium text-muted-foreground">USDT0</span>

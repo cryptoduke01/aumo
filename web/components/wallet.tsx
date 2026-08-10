@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   useAccount,
   useConnect,
@@ -38,16 +39,6 @@ export function ConnectButton() {
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [open]);
 
   if (isConnected && chainId !== activeChain.id) {
     return (
@@ -61,52 +52,140 @@ export function ConnectButton() {
     return <AccountMenu address={address} onDisconnect={() => disconnect()} />;
   }
 
-  const wallets = pickWallets(connectors);
-
   return (
-    <div ref={ref} className="relative">
-      <button className={btn} onClick={() => setOpen((o) => !o)} disabled={isPending}>
+    <>
+      <button className={btn} onClick={() => setOpen(true)} disabled={isPending}>
         {isPending ? "Connecting…" : "Connect wallet"}
       </button>
-      <AnimatePresence>
-        {open && (
+      <ConnectModal
+        open={open}
+        onClose={() => setOpen(false)}
+        wallets={pickWallets(connectors)}
+        onPick={(c) => connect({ connector: c })}
+        hasWcProject={Boolean(process.env.NEXT_PUBLIC_WC_PROJECT_ID)}
+      />
+    </>
+  );
+}
+
+function CloseIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none" aria-hidden="true">
+      <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// A centred, portalled modal for picking a wallet. Opened from any "Connect wallet" button
+// (the nav one stays put); the overlay renders to <body> so it's always screen-centred and
+// never clipped by a header's stacking context.
+function ConnectModal({
+  open,
+  onClose,
+  wallets,
+  onPick,
+  hasWcProject,
+}: {
+  open: boolean;
+  onClose: () => void;
+  wallets: Connector[];
+  onPick: (c: Connector) => void;
+  hasWcProject: boolean;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
+
+  if (!mounted) return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Connect a wallet"
+            className="chamfer-edge relative z-10 w-full max-w-sm"
+            initial={{ opacity: 0, y: 14, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-            transition={{ duration: 0.16, ease: [0.2, 0.7, 0.2, 1] }}
-            className="absolute left-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-border bg-surface p-1.5 shadow-lg shadow-black/20 md:left-auto md:right-0"
+            exit={{ opacity: 0, y: 14, scale: 0.97 }}
+            transition={{ duration: 0.18, ease: [0.2, 0.7, 0.2, 1] }}
           >
-            {wallets.length === 0 ? (
-              <p className="px-3 py-3 text-xs leading-relaxed text-muted-foreground">
-                No wallet detected. Open this page inside your wallet&apos;s browser (OKX, MetaMask), or install a browser wallet.
-              </p>
-            ) : (
-              wallets.map((c) => (
+            <div className="chamfer bg-surface">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium leading-none">Connect a wallet</span>
+                  <span className="mt-1.5 text-[11px] text-muted-foreground">Choose how you want to connect.</span>
+                </div>
                 <button
-                  key={c.uid}
-                  onClick={() => connect({ connector: c })}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
                 >
-                  {c.icon ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.icon} alt="" className="size-5 rounded" />
-                  ) : (
-                    <span className="size-5 rounded bg-surface-2" aria-hidden />
-                  )}
-                  <span className="text-foreground">{c.name}</span>
+                  <CloseIcon className="size-4" />
                 </button>
-              ))
-            )}
-            {!process.env.NEXT_PUBLIC_WC_PROJECT_ID ? (
-              <p className="mt-1 border-t border-border px-3 pb-1 pt-2 text-[11px] leading-relaxed text-faint">
-                On mobile, open in your wallet app&apos;s browser to connect.
-              </p>
-            ) : null}
+              </div>
+
+              <div className="flex flex-col gap-1 p-3">
+                {wallets.length === 0 ? (
+                  <p className="px-2 py-6 text-center text-sm leading-relaxed text-muted-foreground">
+                    No wallet detected. Open this page in your wallet&apos;s browser (OKX, MetaMask), or install a
+                    browser wallet.
+                  </p>
+                ) : (
+                  wallets.map((c) => (
+                    <button
+                      key={c.uid}
+                      onClick={() => onPick(c)}
+                      className="flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-3 text-left text-sm transition-colors hover:border-border hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {c.icon ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.icon} alt="" className="size-7 rounded-md" />
+                      ) : (
+                        <span className="size-7 rounded-md bg-surface-2" aria-hidden />
+                      )}
+                      <span className="font-medium text-foreground">{c.name}</span>
+                      <svg viewBox="0 0 16 16" className="ml-auto size-4 text-faint" fill="none" aria-hidden="true">
+                        <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  ))
+                )}
+              </div>
+
+              {!hasWcProject ? (
+                <p className="border-t border-border px-5 py-3 text-[11px] leading-relaxed text-faint">
+                  On mobile, open in your wallet app&apos;s browser to connect.
+                </p>
+              ) : null}
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body,
   );
 }
 

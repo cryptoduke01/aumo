@@ -81,7 +81,7 @@ export function BridgeIn() {
             inputMode="decimal"
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-            className="tnum w-full min-w-0 bg-transparent text-xl font-medium outline-none placeholder:text-faint"
+            className="field-input tnum w-full min-w-0 bg-transparent text-xl font-medium outline-none placeholder:text-faint"
             placeholder="0.00"
             aria-label="Bridge amount in USDT0"
           />
