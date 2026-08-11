@@ -55,6 +55,15 @@ export default function Dashboard() {
     ],
     query: { refetchInterval: 15000 },
   });
+  // Live per-venue balances (the agent snapshot's venue figures lag its ~15-min cycle, so without
+  // this the allocation donut trails the live headline). Keyed on the venues the snapshot reports.
+  const venueAddrs = (records?.[0]?.snapshot.venues ?? []).map((v) => v.address as `0x${string}`);
+  const venueBalRead = useReadContracts({
+    contracts: venueAddrs.map(
+      (a) => ({ address: POOL, abi: poolAbi, functionName: "venueBalance", args: [a] }) as const,
+    ),
+    query: { enabled: venueAddrs.length > 0, refetchInterval: 15000 },
+  });
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -103,10 +112,17 @@ export default function Dashboard() {
     .filter((v): v is number => v !== null);
   const bestNow = series.length ? series[series.length - 1] : 0;
 
+  // Live venue balances by address (fall back to the snapshot until the read resolves).
+  const liveVenueBal = new Map<string, number>();
+  venueAddrs.forEach((a, i) => {
+    const r = venueBalRead.data?.[i]?.result;
+    if (typeof r === "bigint") liveVenueBal.set(a.toLowerCase(), Number(r) / 10 ** dec);
+  });
   const venues = (latest?.snapshot.venues ?? [])
     .map((v) => {
       const risk = latest?.plan.risks.find((r) => r.address === v.address);
-      return { ...v, bal: unit(v.liveBalance, dec), band: risk?.band, riskAdj: risk?.riskAdjustedApyBps };
+      const bal = liveVenueBal.get(v.address.toLowerCase()) ?? unit(v.liveBalance, dec);
+      return { ...v, bal, band: risk?.band, riskAdj: risk?.riskAdjustedApyBps };
     })
     .filter((v) => v.bal > 0)
     .sort((a, b) => b.bal - a.bal);
