@@ -308,6 +308,16 @@ function GuardrailsCard({ vault, identity, dec }: { vault: NonNullable<DecisionR
     ["Max deployed", <Num key="3" value={unit(vault.maxTotalDeployed, dec)} currency maximumFractionDigits={0} />],
     ["Risk appetite", <span key="4" className="capitalize">{identity.policy.appetite}</span>],
     ["Max concentration", `${Math.round(identity.policy.maxConcentration * 100)}%`],
+    [
+      "Agent signer",
+      identity.signer === "turnkey" ? (
+        <span key="5" className="inline-flex items-center gap-1.5 text-accent">
+          <Dot /> Turnkey TEE
+        </span>
+      ) : (
+        <span key="5" className="text-muted-foreground">Testnet key</span>
+      ),
+    ],
   ];
   return (
     <Panel className="flex flex-col p-5">
@@ -336,7 +346,7 @@ function Decision({ rec, dec }: { rec: DecisionRecord; dec: number }) {
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="neutral"><span className="capitalize">{plan.regime}</span></Badge>
           <Badge tone="neutral">Appetite {plan.appetite}</Badge>
-          <Badge tone="accent">{plan.source === "risk-engine+llm" ? "AI reasoning" : "Risk engine"}</Badge>
+          <Badge tone="accent">{plan.source.startsWith("risk-engine+") ? "AI reasoning" : "Risk engine"}</Badge>
         </div>
       </div>
       <p className="text-sm leading-relaxed text-foreground/90">{plan.summary}</p>

@@ -45,14 +45,24 @@ export interface AgentIdentity {
   vault: string;
   agentAddress: string | null;
   hasReasoningLayer: boolean;
+  // How the agent's signing key is custodied. "turnkey" = the key lives in a Turnkey secure enclave
+  // (TEE) and the agent only holds an API credential that requests signatures for the two whitelisted
+  // actions — it can never export the key or sign anything else. "hotkey" = a raw private key in the
+  // process env (used on testnet with throwaway funds). Reported honestly per environment.
+  signer: "turnkey" | "hotkey";
   policy: { appetite: string; maxConcentration: number; execute: boolean };
 }
 
 /** The agent's self-description. Deterministic, no network required. */
 export function buildIdentity(cfg: Config): AgentIdentity {
-  const agentAddress = cfg.agentPrivateKey
-    ? privateKeyToAccount(cfg.agentPrivateKey).address
-    : null;
+  // When Turnkey is configured the signing key never touches this process, so the agent address is
+  // the Turnkey account's on-chain address (which must equal the pool's agent()); otherwise it is
+  // derived from the local throwaway key.
+  const agentAddress = cfg.turnkey
+    ? cfg.turnkey.signWith
+    : cfg.agentPrivateKey
+      ? privateKeyToAccount(cfg.agentPrivateKey).address
+      : null;
   return {
     name: "Aumo",
     codename: "aumo-agent",
@@ -64,6 +74,7 @@ export function buildIdentity(cfg: Config): AgentIdentity {
     vault: cfg.vaultAddress,
     agentAddress,
     hasReasoningLayer: Boolean(cfg.anthropicKey),
+    signer: cfg.turnkey ? "turnkey" : "hotkey",
     policy: {
       appetite: cfg.appetite,
       maxConcentration: cfg.maxConcentration,
@@ -110,7 +121,9 @@ export function renderBanner(id: AgentIdentity): string {
   return [
     `  ▲ ${id.name} · autonomous treasury agent`,
     `    v${id.version} (build ${id.build}) · ${id.chainName} · vault ${short(id.vault)}`,
-    `    agent ${short(id.agentAddress)} · appetite ${id.policy.appetite} · max concentration ${(
+    `    agent ${short(id.agentAddress)} · signer ${
+      id.signer === "turnkey" ? "Turnkey TEE" : "hot key (testnet)"
+    } · appetite ${id.policy.appetite} · max concentration ${(
       id.policy.maxConcentration * 100
     ).toFixed(0)}%`,
     `    reasoning ${id.hasReasoningLayer ? "on" : "off"} · execute ${

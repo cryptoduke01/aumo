@@ -24,6 +24,8 @@ export interface Identity {
   vault: string;
   agentAddress: string | null;
   hasReasoningLayer: boolean;
+  // "turnkey" = signing key sealed in a Turnkey TEE (mainnet); "hotkey" = throwaway key (testnet).
+  signer?: "turnkey" | "hotkey";
   policy: { appetite: Band; maxConcentration: number; execute: boolean };
 }
 
