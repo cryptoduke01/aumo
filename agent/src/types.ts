@@ -69,4 +69,7 @@ export interface MarketSnapshot {
   // Recent history per venue (from prior receipts). When present, the risk engine adds a trend
   // (momentum) penalty so a venue that is deteriorating is scored riskier than its level alone.
   history?: VenueHistory;
+  // Reflection-derived multiplier (>= 1) scaling the momentum penalty: the agent trusts trend
+  // signals more when they have been predictive. Tighten-only; defaults to 1.
+  momentumCalibration?: number;
 }

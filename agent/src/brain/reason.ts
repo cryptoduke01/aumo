@@ -68,6 +68,8 @@ function modelView(snap: MarketSnapshot, base: Plan) {
         band: m.band,
       })),
     },
+    // Reflection: the agent's self-graded lesson from replaying its own past trend calls.
+    reflection: base.reflection?.lessons?.length ? base.reflection.lessons : null,
     // Scenario simulation: how the plan's portfolio holds up under plausible adverse shocks. Venues
     // listed fragile are already blocked from new deploys; treat high fragility as a reason to tighten.
     stress: base.stress
@@ -221,6 +223,7 @@ export async function reason(
   return {
     ...tightened,
     stress: base.stress,
+    reflection: base.reflection,
     source: "risk-engine+llm",
     summary: reply.narrative.trim(),
   };

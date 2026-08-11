@@ -80,6 +80,7 @@ export function scorePortfolio(
   decimals: number,
   portfolioUnits: number,
   history?: VenueHistory,
+  momentumCalibration = 1,
 ): VenueRisk[] {
   const unit = 10 ** decimals;
   const weight = (v: VenueState) =>
@@ -157,7 +158,9 @@ export function scorePortfolio(
       W.peg * pegRisk +
       W.utilization * utilizationRisk +
       W.concentration * concentrationRisk;
-    const riskScore = clamp01(levelScore + MOMENTUM_PENALTY * momentumRisk);
+    // Reflection can scale the momentum penalty UP (never below 1x) when trend has been predictive.
+    const cal = Math.max(1, momentumCalibration);
+    const riskScore = clamp01(levelScore + MOMENTUM_PENALTY * cal * momentumRisk);
 
     return {
       address: v.address,

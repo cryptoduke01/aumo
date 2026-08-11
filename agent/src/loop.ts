@@ -5,6 +5,7 @@ import { buildPlan, type Plan } from "./brain/plan.js";
 import { reason } from "./brain/reason.js";
 import { stressTest } from "./risk/stress.js";
 import { readDepositorAppetite } from "./sense/appetite.js";
+import { reflect } from "./brain/reflect.js";
 import { BAND_RANK } from "./risk/engine.js";
 import type { Address } from "viem";
 import { execute, type MoveResult } from "./act/execute.js";
@@ -55,6 +56,14 @@ function printReport(
       }${st.fragileNames.length ? ` · fragile: ${st.fragileNames.join(", ")}` : " · none fragile"}`,
     );
   }
+  if (plan.reflection && plan.reflection.flagged > 0) {
+    const rf = plan.reflection;
+    console.log(
+      ` Reflection: momentum ${rf.hits}/${rf.flagged} predictive (${(rf.hitRate * 100).toFixed(
+        0,
+      )}%) · calibration ${rf.calibration.toFixed(2)}x`,
+    );
+  }
 
   console.log(`\n Decision (${plan.source}) — ${plan.regime}/${plan.appetite}:`);
   console.log(`  ${plan.summary}`);
@@ -94,6 +103,9 @@ export async function tick(cfg: Config, opts: { dryRun?: boolean } = {}): Promis
   // Attach recent per-venue history so the risk engine can penalise deteriorating venues (temporal
   // awareness). Prior receipts are the source; a fresh trail simply scores on levels.
   snap.history = loadHistory(6);
+  // Reflection: grade past trend calls and self-calibrate how much momentum bites (tighten-only).
+  const reflection = reflect(snap.history);
+  snap.momentumCalibration = reflection.calibration;
   const fingerprint = policyFingerprint(snap, cfg);
 
   // Collective risk steering: depositors' share-weighted appetite, clamped to the owner's hard
@@ -121,6 +133,7 @@ export async function tick(cfg: Config, opts: { dryRun?: boolean } = {}): Promis
     deny: stressDeny,
   });
   base.stress = stress;
+  base.reflection = reflection;
   const plan = await reason(snap, base, cfg, stressDeny);
 
   const willExecute = cfg.execute && !opts.dryRun;

@@ -1,6 +1,7 @@
 import type { Address, MarketSnapshot, Regime, RiskBand } from "../types.js";
 import { BAND_RANK, scorePortfolio, type VenueRisk } from "../risk/engine.js";
 import type { StressReport } from "../risk/stress.js";
+import type { Reflection } from "./reflect.js";
 
 export interface Move {
   venue: Address;
@@ -25,6 +26,7 @@ export interface Plan {
   summary: string;
   source: "risk-engine" | "risk-engine+llm";
   stress?: StressReport; // scenario-simulation result attached in the tick, carried into the receipt
+  reflection?: Reflection; // self-calibration from replaying past trend calls, carried into the receipt
 }
 
 // A defensive regime deploys less of the idle balance; a calm one deploys it all.
@@ -56,7 +58,13 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
   const unit = 10 ** vault.decimals;
   const portfolioUnits = (Number(vault.idle) + Number(vault.totalDeployed)) / unit;
 
-  const risks = scorePortfolio(snap.venues, vault.decimals, portfolioUnits, snap.history);
+  const risks = scorePortfolio(
+    snap.venues,
+    vault.decimals,
+    portfolioUnits,
+    snap.history,
+    snap.momentumCalibration ?? 1,
+  );
   const riskByAddr = new Map(risks.map((r) => [r.address.toLowerCase(), r]));
 
   const moves: Move[] = [];
