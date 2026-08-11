@@ -2,7 +2,7 @@ import type { Config } from "./config.js";
 import { makeClients } from "./chain/client.js";
 import { sense } from "./sense/sense.js";
 import { buildPlan, type Plan } from "./brain/plan.js";
-import { reason } from "./brain/reason.js";
+import { convenePanel } from "./brain/panel.js";
 import { stressTest } from "./risk/stress.js";
 import { readDepositorAppetite } from "./sense/appetite.js";
 import { reflect } from "./brain/reflect.js";
@@ -71,6 +71,17 @@ function printReport(
         " ",
       )}`,
     );
+  }
+
+  if (plan.panel) {
+    console.log("\n Panel:");
+    for (const v of plan.panel.verdicts) {
+      console.log(
+        `  • ${v.role.padEnd(10)} ${v.ok ? `concern ${(v.concern * 100).toFixed(0)}%` : "abstained"}${
+          v.vetoes.length ? ` · veto ${v.vetoes.length}` : ""
+        }${v.regime ? ` · regime ${v.regime}` : ""}${v.ok && v.note ? `  — ${v.note}` : ""}`,
+      );
+    }
   }
 
   console.log(`\n Decision (${plan.source}) — ${plan.regime}/${plan.appetite}:`);
@@ -142,7 +153,9 @@ export async function tick(cfg: Config, opts: { dryRun?: boolean } = {}): Promis
   });
   base.stress = stress;
   base.reflection = reflection;
-  const reasoned = await reason(snap, base, cfg, stressDeny);
+  // The reasoning layer is a PANEL of specialist agents (peg / liquidity / macro), synthesized
+  // tighten-only. It preserves the stress-test's denials and only ever adds caution.
+  const reasoned = await convenePanel(snap, base, cfg, stressDeny);
   // Final adversarial gate: the critic tries to break the plan and can veto allocations or, on a
   // serious worry, hold the cycle. It only ever removes risk — retreats are never blocked.
   const plan = critique(snap, reasoned);
