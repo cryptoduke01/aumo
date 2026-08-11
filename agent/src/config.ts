@@ -35,6 +35,16 @@ export interface Config {
   rpcUrl: string;
   vaultAddress: Address;
   agentPrivateKey?: Address;
+  // Turnkey signer (preferred on mainnet): the signing key lives in Turnkey, the agent only holds an
+  // API key that requests signatures. When all four are set, the agent signs via Turnkey and
+  // agentPrivateKey is ignored. Leave unset on testnet to use the throwaway agentPrivateKey.
+  turnkey?: {
+    baseUrl: string;
+    organizationId: string;
+    apiPublicKey: string;
+    apiPrivateKey: string;
+    signWith: Address; // the Turnkey account's ETH address (must equal on-chain agent())
+  };
   anthropicKey?: string;
   model: string;
   appetite: RiskBand;
@@ -60,6 +70,19 @@ export function loadConfig(): Config {
     rpcUrl: envOr("RPC_URL", DEFAULT_RPC),
     vaultAddress: envOr("VAULT_ADDRESS", DEFAULT_VAULT) as Address,
     agentPrivateKey: key,
+    turnkey:
+      process.env.TURNKEY_ORGANIZATION_ID &&
+      process.env.TURNKEY_API_PUBLIC_KEY &&
+      process.env.TURNKEY_API_PRIVATE_KEY &&
+      process.env.TURNKEY_SIGN_WITH
+        ? {
+            baseUrl: process.env.TURNKEY_BASE_URL ?? "https://api.turnkey.com",
+            organizationId: process.env.TURNKEY_ORGANIZATION_ID,
+            apiPublicKey: process.env.TURNKEY_API_PUBLIC_KEY,
+            apiPrivateKey: process.env.TURNKEY_API_PRIVATE_KEY,
+            signWith: process.env.TURNKEY_SIGN_WITH as Address,
+          }
+        : undefined,
     anthropicKey: process.env.ANTHROPIC_API_KEY?.trim() || undefined,
     model: process.env.AUMO_MODEL ?? "claude-sonnet-4-5",
     appetite: bandFrom(process.env.RISK_APPETITE),

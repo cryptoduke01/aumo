@@ -19,6 +19,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.116.0",
+    "@turnkey/sdk-server": "^8.1.0",
+    "@turnkey/viem": "^0.14.34",
     "dotenv": "^17.4.2",
     "viem": "^2.55.11",
     "zod": "^4.4.3"

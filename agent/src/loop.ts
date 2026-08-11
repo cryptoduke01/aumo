@@ -105,7 +105,7 @@ function printReport(
 
 /** One full cycle: sense → score → reason → (execute) → record. */
 export async function tick(cfg: Config, opts: { dryRun?: boolean } = {}): Promise<void> {
-  const { publicClient, walletClient, agentAddress } = makeClients(cfg);
+  const { publicClient, walletClient, agentAddress } = await makeClients(cfg);
   const identity = buildIdentity(cfg);
   const snap = await sense(publicClient, cfg);
   // Attach recent per-venue history so the risk engine can penalise deteriorating venues (temporal
