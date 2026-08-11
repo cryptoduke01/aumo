@@ -36,6 +36,54 @@ export const metadata: Metadata = {
       "An autonomous treasury agent for stablecoins. Real yield, on-chain guardrails, every move proved.",
     images: ["/brand/og.png"],
   },
+  keywords: [
+    "Aumo",
+    "Aumo Finance",
+    "autonomous treasury",
+    "stablecoin yield",
+    "X Layer",
+    "RWA yield",
+    "USDT0",
+    "AI agent DeFi",
+    "real-world assets",
+  ],
+  alternates: { canonical: "https://aumo.finance" },
+  // Set NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION in the host env to the token from Google Search Console
+  // (the HTML-tag verification method). When unset, Next omits the tag.
+  verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION },
+};
+
+// Structured data so search engines understand what Aumo is and can show a rich result.
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://aumo.finance/#org",
+      name: "Aumo",
+      alternateName: "Aumo Finance",
+      url: "https://aumo.finance",
+      logo: "https://aumo.finance/brand/logo/mark.png",
+      description: "An autonomous treasury agent for stablecoins on X Layer.",
+      sameAs: ["https://x.com/aumofinance", "https://github.com/cryptoduke01/aumo"],
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://aumo.finance/#website",
+      url: "https://aumo.finance",
+      name: "Aumo",
+      publisher: { "@id": "https://aumo.finance/#org" },
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "Aumo",
+      applicationCategory: "FinanceApplication",
+      operatingSystem: "Web",
+      description:
+        "Deposit stablecoins; an AI agent earns risk-managed real-world-asset and lending yield on X Layer, within on-chain guardrails, with every move provable.",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    },
+  ],
 };
 
 // Set the theme before first paint so there is no flash: saved choice, else system.
@@ -53,6 +101,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Script id="aumo-theme" strategy="beforeInteractive">
           {themeScript}
         </Script>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+        />
         <Providers>{children}</Providers>
       </body>
     </html>

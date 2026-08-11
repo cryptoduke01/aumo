@@ -27,7 +27,9 @@ const erc20 = parseAbi([
 ]);
 
 async function main() {
-  const days = Number(process.argv[2] ?? "30");
+  // Accept the day count regardless of how the runner forwards args: npm strips the `--`, pnpm keeps
+  // it, so take the first numeric token rather than a fixed position.
+  const days = Number(process.argv.slice(2).find((a) => a !== "--" && Number.isFinite(Number(a))) ?? "30");
   if (!Number.isFinite(days) || days <= 0) throw new Error("usage: npm run simulate-yield -- <days>");
 
   const cfg = loadConfig();

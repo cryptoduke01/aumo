@@ -5,8 +5,11 @@
 
 type Brand = { src: string; alt: string; round: string };
 
-// Order matters: first match wins.
+// Order matters: first match wins. Pendle is listed BEFORE usdg so "Pendle PT-USDG" shows the
+// Pendle mark, not the USDG one. (pendle.svg is a clean brand-palette stand-in; swap in Pendle's
+// official brand-kit SVG when handy, same as aave.svg / usdg.png.)
 const BRANDS: { test: (n: string) => boolean; brand: Brand }[] = [
+  { test: (n) => n.includes("pendle"), brand: { src: "/brand/pendle.svg", alt: "Pendle", round: "rounded-md" } },
   { test: (n) => n.includes("aave"), brand: { src: "/brand/aave.svg", alt: "Aave", round: "rounded-md" } },
   {
     test: (n) => n.includes("usdg") || n.includes("global dollar"),
