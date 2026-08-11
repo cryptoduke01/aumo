@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [records, setRecords] = useState<DecisionRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<"public" | "mine">("public");
+  const base = useAppBase();
 
   // The connected wallet's own position — read on-chain (maxWithdraw = their redeemable USDT0). Lets
   // the Overview flip between the public pool view and a private, per-user view of just their money.
@@ -102,9 +103,14 @@ export default function Dashboard() {
 
   // Personal view: the connected wallet's own slice.
   const myPosition = positionRead.data ? Number(positionRead.data as bigint) / 10 ** dec : 0;
-  const mySharePct = total > 0 ? (myPosition / total) * 100 : 0;
+  const share = total > 0 ? myPosition / total : 0;
+  const mySharePct = share * 100;
   const myYield = (myPosition * bestNow) / 100;
   const mine = view === "mine" && isConnected;
+  // Your slice of each venue is pro-rata: same proportions as the pool, scaled to your position.
+  const mySegments: Segment[] = segments.map((s) => ({ ...s, value: s.value * share }));
+  const shownSegments = mine ? mySegments : segments;
+  const hasPosition = myPosition > 0;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6">
@@ -132,22 +138,36 @@ export default function Dashboard() {
       {/* charts + guardrails bento */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Panel className="flex flex-col p-5">
-          <Label>Allocation</Label>
-          <div className="mt-4 flex items-center gap-5">
-            <Donut segments={segments} className="size-28 shrink-0" centerLabel={`${deployedPct}%`} centerSub="deployed" />
-            <ul className="flex min-w-0 flex-1 flex-col gap-2">
-              {segments.map((s) => (
-                <li key={s.label} className="flex items-center gap-2 text-sm">
-                  <span className="size-2 shrink-0 rounded-full" style={{ background: s.tone }} />
-                  {s.label !== "Idle" ? <VenueIcon name={s.label} className="size-3.5 shrink-0 text-muted-foreground" /> : null}
-                  <span className="truncate text-muted-foreground">{s.label}</span>
-                  <span className="tnum ml-auto text-foreground">
-                    <Num value={s.value} currency maximumFractionDigits={0} />
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <Label>{mine ? "Your allocation" : "Allocation"}</Label>
+          {mine && !hasPosition ? (
+            <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-2 py-6 text-center">
+              <span className="text-sm text-muted-foreground">You haven&apos;t deposited yet.</span>
+              <Link href={`${base}/vault`} className="text-sm text-accent transition-opacity hover:opacity-80">
+                Deposit to see your allocation →
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center gap-5">
+              <Donut
+                segments={shownSegments}
+                className="size-28 shrink-0"
+                centerLabel={`${deployedPct}%`}
+                centerSub={mine ? "of yours" : "deployed"}
+              />
+              <ul className="flex min-w-0 flex-1 flex-col gap-2">
+                {shownSegments.map((s) => (
+                  <li key={s.label} className="flex items-center gap-2 text-sm">
+                    <span className="size-2 shrink-0 rounded-full" style={{ background: s.tone }} />
+                    {s.label !== "Idle" ? <VenueIcon name={s.label} className="size-3.5 shrink-0 text-muted-foreground" /> : null}
+                    <span className="truncate text-muted-foreground">{s.label}</span>
+                    <span className="tnum ml-auto text-foreground">
+                      <Num value={s.value} currency maximumFractionDigits={mine ? 2 : 0} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </Panel>
 
         <Panel className="flex flex-col p-5">
