@@ -101,6 +101,15 @@ const GUARANTEES: [string, string][] = [
   ["Every move is provable", "A plain-language rationale, bound to a fingerprint of the governing policy, anchored by an on-chain receipt."],
 ];
 
+function Fig({ label, value, negative = false }: { label: string; value: string; negative?: boolean }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className={`tnum text-xl font-medium sm:text-2xl ${negative ? "text-negative" : "text-foreground"}`}>{value}</span>
+      <span className="text-[11px] leading-tight text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
 export default function Landing() {
   return (
     <div className="flex flex-1 flex-col">
@@ -234,6 +243,48 @@ export default function Landing() {
               </div>
             ))}
           </dl>
+        </div>
+      </section>
+
+      {/* ── proof / backtest ────────────────────────────────── */}
+      <section id="proof" className="border-t border-border/70">
+        <div className="mx-auto w-full max-w-6xl px-5 py-24 sm:px-8">
+          <span className="text-xs uppercase tracking-[0.14em] text-accent">Backtested, not promised</span>
+          <h2 className="mt-3 max-w-2xl text-balance text-2xl font-medium tracking-tight sm:text-3xl">
+            Chasing the highest APY is how you get caught. Aumo leaves before the break.
+          </h2>
+          <p className="mt-4 max-w-xl text-muted-foreground">
+            A 30-cycle simulation through a venue that quietly deteriorates, then breaks. Same market,
+            two strategies. Aumo&apos;s temporal read and stress test get it out in time; the
+            yield-chaser is still inside when it snaps.
+          </p>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-accent/40 bg-surface/60 p-6">
+              <span className="text-sm font-medium text-accent">Aumo</span>
+              <div className="mt-5 grid grid-cols-3 gap-4">
+                <Fig label="Final value" value="$10,384" />
+                <Fig label="Max drawdown" value="0%" />
+                <Fig label="Exposed at break" value="$0" />
+              </div>
+            </div>
+            <div className="rounded-2xl border border-border bg-surface/40 p-6">
+              <span className="text-sm font-medium text-muted-foreground">Chase the highest APY</span>
+              <div className="mt-5 grid grid-cols-3 gap-4">
+                <Fig label="Final value" value="$8,175" />
+                <Fig label="Max drawdown" value="21.4%" negative />
+                <Fig label="Exposed at break" value="$6,334" negative />
+              </div>
+            </div>
+          </div>
+          <p className="mt-6 max-w-2xl text-sm text-muted-foreground">
+            Aumo ends <span className="text-foreground">$2,209 (27%) ahead</span> with{" "}
+            <span className="text-foreground">21.4% less drawdown</span>, by exiting the hot venue
+            before it broke. Method and math in the{" "}
+            <a className="text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent" href="/research">
+              research note
+            </a>
+            .
+          </p>
         </div>
       </section>
 
