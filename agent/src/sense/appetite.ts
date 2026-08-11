@@ -20,6 +20,9 @@ const RISK_APPETITE_EVENT = {
   ],
 } as const;
 
+// Upper bound on depositors weighted per read, so a spammer can't bloat the balance multicall.
+const MAX_VOTERS = 1000;
+
 export interface DepositorAppetite {
   band: RiskBand; // share-weighted aggregate
   avgTier: number; // 1..3
@@ -34,7 +37,19 @@ export async function readDepositorAppetite(
   let addrs: Address[];
   try {
     const logs = await pc.getLogs({ address: pool, event: RISK_APPETITE_EVENT, fromBlock, toBlock: "latest" });
-    addrs = [...new Set(logs.map((l) => (l.args.depositor as Address).toLowerCase() as Address))];
+    // Dedupe to unique depositors. Bound the set so the balance multicall can't be griefed unbounded
+    // by an attacker spamming setRiskAppetite from many addresses — keep the most RECENT setters
+    // (last-write-wins on tier anyway). Non-share-holders contribute 0 weight and are dropped below,
+    // so this only caps cost; the whole read is best-effort and falls back to the config appetite.
+    const seen = new Set<Address>();
+    addrs = [];
+    for (let i = logs.length - 1; i >= 0 && addrs.length < MAX_VOTERS; i--) {
+      const a = (logs[i]!.args.depositor as Address).toLowerCase() as Address;
+      if (!seen.has(a)) {
+        seen.add(a);
+        addrs.push(a);
+      }
+    }
   } catch {
     return null;
   }
