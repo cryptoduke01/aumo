@@ -1,6 +1,6 @@
 {
   "chainId": 196,
-  "note": "X Layer MAINNET venues. Each `address` is the deployed Aumo adapter (fill from the DeployPoolMainnet output: AaveV3Adapter and RwaUsdgAdapter). Feeds read live Aave rates. Both legs are fork-proven against live X Layer (Aave + Uniswap).",
+  "note": "X Layer MAINNET venues. Each `address` is the deployed Aumo adapter (fill from the DeployPoolMainnet output: AaveV3Adapter, RwaUsdgAdapter, PendlePtAdapter). Aave/USDG feeds read live Aave rates; the Pendle leg is fixed-yield (implied APY at entry). All three legs are fork-proven against live X Layer (Aave + Uniswap + Pendle).",
   "venues": [
     {
       "address": "0x0000000000000000000000000000000000000000",
@@ -33,6 +33,19 @@
         "pool": "0xE3F3Caefdd7180F884c01E57f65Df979Af84f116",
         "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8"
       }
+    },
+    {
+      "address": "0x0000000000000000000000000000000000000000",
+      "name": "Pendle PT-USDG (fixed, Oct 2026)",
+      "kind": "rwa",
+      "apyBps": 466,
+      "tvlUsd": 60000,
+      "liquidityUsd": 30000,
+      "utilization": 0,
+      "protocolRisk": 0.16,
+      "pegDeviationBps": 0,
+      "pegVerified": true,
+      "note": "Pendle PT-USDG market 0xcFB506cb34DD340e80d3dF8764182a5187636032 (Router V4, PT oracle 0x5542be50420E88dd7D5B4a3D488FA6ED82F6DAc2). Fixed yield to maturity 2026-10-29; keep apyBps in step with the market's implied APY and liquidity to the live market depth until a live Pendle feed reader lands."
     }
   ]
 }

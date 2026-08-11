@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AumoPool} from "../src/AumoPool.sol";
 import {AaveV3Adapter} from "../src/adapters/AaveV3Adapter.sol";
 import {RwaUsdgAdapter} from "../src/adapters/RwaUsdgAdapter.sol";
+import {PendlePtAdapter} from "../src/adapters/PendlePtAdapter.sol";
 
 /// @notice One-command X Layer MAINNET launch (chainId 196): the multi-depositor AumoPool
 ///         (ERC-4626) plus a real Aave v3 adapter and the USDG RWA adapter, wired and allowlisted.
@@ -37,6 +38,10 @@ contract DeployPoolMainnet is Script {
     address constant UNI_ROUTER = 0x4f0C28f5926AFDA16bf2506D5D9e57Ea190f9bcA; // SwapRouter02
     uint24 constant USDG_FEE = 100; // live USDT0/USDG pool fee tier (0.01%)
     uint256 constant USDG_SLIPPAGE_BPS = 200; // 2% swap floor; a thin swap reverts, never bleeds
+    // Venue 3: Pendle PT-USDG fixed yield (matures 2026-10-29). USDT0->USDG->PT; TWAP-oracle NAV.
+    address constant PENDLE_ROUTER = 0x888888888889758F76e7103c6CbF23ABbF58F946; // Router V4
+    address constant PENDLE_MARKET = 0xcFB506cb34DD340e80d3dF8764182a5187636032; // PT-USDG market
+    address constant PENDLE_PT_ORACLE = 0x5542be50420E88dd7D5B4a3D488FA6ED82F6DAc2; // PendlePYLpOracle
 
     function run() external {
         require(block.chainid == 196, "not X Layer mainnet");
@@ -71,8 +76,18 @@ contract DeployPoolMainnet is Script {
             USDT0, USDG, AUSDG, AAVE_POOL, UNI_ROUTER, address(pool), adapterOwner, USDG_FEE,
             USDG_SLIPPAGE_BPS, vm.envOr("USDG_VALUATION_BPS", uint256(30))
         );
+        // Venue 3: Pendle PT-USDG fixed yield (fork-proven). 2% Uniswap floor + 1% Pendle floor,
+        // 50bps NAV discount, 900s TWAP. NOTE: before the agent allocates here, the market's oracle
+        // cardinality must support the 900s window — call
+        // PENDLE_MARKET.increaseObservationsCardinalityNext(cardinalityRequired) once and let it fill.
+        PendlePtAdapter pendle = new PendlePtAdapter(
+            USDT0, USDG, PENDLE_MARKET, PENDLE_ROUTER, PENDLE_PT_ORACLE, UNI_ROUTER, address(pool),
+            adapterOwner, USDG_FEE, USDG_SLIPPAGE_BPS, vm.envOr("PENDLE_SLIPPAGE_BPS", uint256(100)),
+            vm.envOr("PENDLE_VALUATION_BPS", uint256(50)), uint32(vm.envOr("PENDLE_TWAP", uint256(900)))
+        );
         pool.setVenueAllowed(address(aave), true);
         pool.setVenueAllowed(address(usdg), true);
+        pool.setVenueAllowed(address(pendle), true);
         pool.setPolicy(maxMove, perVenue, maxTotal);
         // Loss budget: most realized round-trip EXIT loss per epoch (~1% of max total / day). The
         // deploy budget caps allocate throughput per epoch so churn can't be re-staged via the
@@ -92,6 +107,7 @@ contract DeployPoolMainnet is Script {
         console2.log("AumoPool:      ", address(pool));
         console2.log("AaveV3Adapter: ", address(aave));
         console2.log("RwaUsdgAdapter:", address(usdg));
+        console2.log("PendlePtAdapter:", address(pendle));
         console2.log("owner (now):   ", owner);
         console2.log("owner (pending Safe):", safe);
         console2.log("agent:         ", agent);

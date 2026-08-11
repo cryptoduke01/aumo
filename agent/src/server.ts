@@ -110,6 +110,7 @@ const STRATEGY = {
   mainnetVenues: [
     "Aave v3 on X Layer — supplying USDT0 for lending interest",
     "USDG — a tokenized, Treasury-backed dollar (a real-world asset), for RWA yield",
+    "Pendle PT-USDG — buying the Principal Token to lock in a FIXED yield on USDG to maturity",
   ],
   testnetNote:
     "On X Layer testnet there is no real DeFi, so the current venues (MockYield, StableVault) are mock stand-ins with illustrative metrics that let the risk engine choose between them. On mainnet they are the real adapters above.",
