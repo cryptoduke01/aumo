@@ -11,7 +11,8 @@
     "loop": "tsx src/index.ts loop",
     "serve": "tsx src/index.ts serve",
     "test": "node --import tsx --test test/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "backtest": "tsx scripts/backtest.ts"
   },
   "engines": {
     "node": ">=20"
