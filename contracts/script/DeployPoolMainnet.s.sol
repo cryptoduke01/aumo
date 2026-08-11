@@ -74,11 +74,15 @@ contract DeployPoolMainnet is Script {
         pool.setVenueAllowed(address(aave), true);
         pool.setVenueAllowed(address(usdg), true);
         pool.setPolicy(maxMove, perVenue, maxTotal);
-        // Loss budget: most realized round-trip loss per epoch (~1% of max total / day). Deploy
-        // budget: caps allocate throughput per epoch (~3x total / day) so churn can't be re-staged
-        // via the unmetered redeem path. Each has its own window.
+        // Loss budget: most realized round-trip EXIT loss per epoch (~1% of max total / day). The
+        // deploy budget caps allocate throughput per epoch so churn can't be re-staged via the
+        // unmetered redeem path. It ALSO bounds the entry-swap leak: the entry swap is not loss-
+        // metered, so the worst an adversary sandwiching the RWA entry swaps can bleed per epoch is
+        // maxEpochDeploy x USDG_SLIPPAGE_BPS. Default 2x total/day x 2% = 4% of max total/day; size
+        // MAX_EPOCH_DEPLOY / USDG_SLIPPAGE_BPS together to set that bound. (The agent's Turnkey
+        // signing policy also forbids the agent key from depositing, so it can't self-sandwich.)
         pool.setLossBudget(vm.envOr("MAX_EPOCH_LOSS", maxTotal / 100), vm.envOr("LOSS_EPOCH", uint256(1 days)));
-        pool.setDeployBudget(vm.envOr("MAX_EPOCH_DEPLOY", maxTotal * 3), vm.envOr("DEPLOY_EPOCH", uint256(1 days)));
+        pool.setDeployBudget(vm.envOr("MAX_EPOCH_DEPLOY", maxTotal * 2), vm.envOr("DEPLOY_EPOCH", uint256(1 days)));
         pool.setAgent(agent);
         pool.pause(); // deploy paused; go-live is a deliberate unpause after verification
         if (safe != address(0)) pool.transferOwnership(safe); // Ownable2Step: Safe must accept

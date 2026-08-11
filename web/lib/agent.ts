@@ -96,6 +96,10 @@ export interface DecisionRecord {
     summary: string;
     moves: Move[];
     risks: VenueRisk[];
+    // Safeguards attached each cycle (present on newer receipts).
+    stress?: { fragility: number; recommendedRegime: string; fragileNames: string[] };
+    reflection?: { flagged: number; hitRate: number; calibration: number };
+    critic?: { approved: boolean; vetoes: string[]; doubt: boolean; concerns: string[] };
   };
   execution: Execution[] | null;
 }

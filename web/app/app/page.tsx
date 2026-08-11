@@ -340,6 +340,27 @@ function Decision({ rec, dec }: { rec: DecisionRecord; dec: number }) {
         </div>
       </div>
       <p className="text-sm leading-relaxed text-foreground/90">{plan.summary}</p>
+      {plan.stress || plan.critic || plan.reflection ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {plan.stress ? (
+            <Badge tone={plan.stress.fragility > 0 ? "negative" : "neutral"}>
+              Stress {Math.round(plan.stress.fragility * 100)}% fragility
+            </Badge>
+          ) : null}
+          {plan.critic ? (
+            plan.critic.doubt ? (
+              <Badge tone="negative">Critic: hold</Badge>
+            ) : plan.critic.vetoes.length > 0 ? (
+              <Badge tone="neutral">Critic: {plan.critic.vetoes.length} veto{plan.critic.vetoes.length === 1 ? "" : "es"}</Badge>
+            ) : (
+              <Badge tone="positive">Critic: passed</Badge>
+            )
+          ) : null}
+          {plan.reflection && plan.reflection.flagged > 0 ? (
+            <Badge tone="neutral">Reflection {plan.reflection.calibration.toFixed(2)}×</Badge>
+          ) : null}
+        </div>
+      ) : null}
       <div className="mt-5 flex flex-col gap-3">
         {plan.moves.length === 0 ? (
           <p className="text-sm text-muted-foreground">Holding. No move improves the risk-adjusted position under the current policy.</p>

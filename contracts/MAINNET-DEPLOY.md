@@ -56,6 +56,23 @@ is needed (leave `SAFE` unset; the script's "move to a multisig" warning is expe
 4. Seed the pool with a small real USDT0 deposit, sanity-check `totalAssets`, run one agent `plan`.
 5. **Unpause** (owner) when ready to go live.
 
+## Operational safeguards (from the pre-launch audit)
+
+The money-path audit found the core clean (no Critical/High). Two items are owner-operational, not
+code bugs, and belong in the live runbook:
+
+- **USDG depeg monitoring (the one real decision).** NAV marks the RWA venue at a fixed ~30bps
+  valuation discount and assumes USDG holds its peg; there is no on-chain peg oracle by design (an
+  oracle would add its own risk). If USDG depegs beyond that discount, early redeemers are made whole
+  against slightly stale NAV and the gap socializes onto remaining holders (bounded per exit by the
+  2% swap floor). **Mitigation:** the owner watches the USDG peg; on a depeg, promptly
+  `setVenueImpaired(usdg, true)` (writes the venue down in NAV, agent cannot do this) and/or
+  `pause()`. Keep this monitor + response ready before funding.
+- **After an adapter `emergencyWithdraw`.** It returns value to the pool as idle but cannot clear the
+  pool's `allocated[venue]` / `totalDeployed`, so that venue keeps consuming cap headroom and a later
+  `deallocate` reverts (`EmptyWithdraw`). NAV stays correct (it reads live balances). **Recovery:**
+  `setVenueAllowed(venue, false)` then `removeVenue(venue)` to zero the stale principal ledger.
+
 ## Rollback / safety
 
 - The pool is paused until step 5; deposits/allocations are inert before then.
