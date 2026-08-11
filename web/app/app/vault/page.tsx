@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatUnits, parseUnits, maxUint256, parseAbi } from "viem";
 import {
   useAccount,
-  useChainId,
   useReadContract,
   useReadContracts,
+  useSwitchChain,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
@@ -33,9 +33,25 @@ const primaryBtn =
   "chamfer inline-flex w-full items-center justify-center bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-[transform,opacity] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export default function VaultPage() {
-  const { address, isConnected } = useAccount();
-  const chainId = useChainId();
-  const wrongChain = isConnected && chainId !== activeChain.id;
+  // Read the WALLET's real chain (useAccount), not the app config's chain. The wagmi config only
+  // lists X Layer, so useChainId() always returned X Layer even when the wallet sat on Ethereum —
+  // which let a mint/deposit fire on the wrong network. walletChainId reflects the connected wallet.
+  const { address, isConnected, chainId: walletChainId } = useAccount();
+  const { switchChain, isPending: switching } = useSwitchChain();
+  const wrongChain =
+    isConnected && walletChainId !== undefined && walletChainId !== activeChain.id;
+
+  // Auto-switch a connected wallet to X Layer once per wrong chain, so deposits/mints never default
+  // to whatever network the wallet happened to be on (e.g. Ethereum). Keyed on walletChainId via a
+  // ref so a declined switch doesn't loop the prompt; it re-offers only if the wallet moves to
+  // another wrong chain.
+  const autoSwitched = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (isConnected && wrongChain && !switching && autoSwitched.current !== walletChainId) {
+      autoSwitched.current = walletChainId;
+      switchChain({ chainId: activeChain.id });
+    }
+  }, [isConnected, wrongChain, walletChainId, switching, switchChain]);
 
   const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
@@ -90,7 +106,7 @@ export default function VaultPage() {
   }, [faucetReceipt.isSuccess]);
   function faucet() {
     if (!address) return;
-    writeFaucet({ address: USDT0, abi: FAUCET_ABI, functionName: "mint", args: [address, parseUnits("1000", DEC)] });
+    writeFaucet({ address: USDT0, abi: FAUCET_ABI, functionName: "mint", args: [address, parseUnits("1000", DEC)], chainId: activeChain.id });
   }
 
   // Refresh balances and clear the form once a transaction confirms.
@@ -133,22 +149,29 @@ export default function VaultPage() {
   const busy = isPending || receipt.isLoading;
 
   function submit() {
+    // On the wrong network the button switches instead of firing a transaction on the wrong chain.
+    if (wrongChain) {
+      switchChain({ chainId: activeChain.id });
+      return;
+    }
     if (!address || amountWei <= 0n) return;
     if (tab === "deposit") {
       if (needsApproval) {
-        writeContract({ address: USDT0, abi: erc20Abi, functionName: "approve", args: [POOL, maxUint256] });
+        writeContract({ address: USDT0, abi: erc20Abi, functionName: "approve", args: [POOL, maxUint256], chainId: activeChain.id });
       } else {
-        writeContract({ address: POOL, abi: poolAbi, functionName: "deposit", args: [amountWei, address] });
+        writeContract({ address: POOL, abi: poolAbi, functionName: "deposit", args: [amountWei, address], chainId: activeChain.id });
       }
     } else {
-      writeContract({ address: POOL, abi: poolAbi, functionName: "withdraw", args: [amountWei, address, address] });
+      writeContract({ address: POOL, abi: poolAbi, functionName: "withdraw", args: [amountWei, address, address], chainId: activeChain.id });
     }
   }
 
   const label = !isConnected
     ? "Connect wallet"
     : wrongChain
-      ? "Wrong network"
+      ? switching
+        ? "Switching…"
+        : `Switch to ${activeChain.name}`
       : amountWei <= 0n
         ? "Enter an amount"
         : overMax
@@ -228,19 +251,29 @@ export default function VaultPage() {
               <span className="text-foreground">Withdraw anytime.</span> Your deposit is always
               yours, redeemable for your share of the pool plus any yield it earned.
             </p>
-            {!isMainnet && isConnected && !wrongChain ? (
+            {!isMainnet && isConnected ? (
               <div className="mt-4 flex flex-col gap-2 rounded-lg border border-border bg-card-2 px-3.5 py-3">
                 <span className="text-xs text-muted-foreground">
-                  Testnet: grab test USDT0 to try a deposit. Not real money.
+                  {wrongChain
+                    ? `Switch to ${activeChain.name} to mint test USDT0. It's a testnet mint, so it costs a tiny bit of testnet OKB for gas — no real money.`
+                    : "Testnet: grab test USDT0 to try a deposit. Not real money."}
                 </span>
                 <button
                   type="button"
-                  onClick={faucet}
-                  disabled={faucetPending || faucetReceipt.isLoading}
+                  onClick={wrongChain ? () => switchChain({ chainId: activeChain.id }) : faucet}
+                  disabled={faucetPending || faucetReceipt.isLoading || switching}
                   className="chamfer inline-flex items-center justify-center gap-2 self-start bg-surface-2 px-3.5 py-2 text-xs font-medium text-foreground transition-[transform,opacity] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                   style={{ ["--cut" as string]: "8px" }}
                 >
-                  {faucetPending || faucetReceipt.isLoading ? (
+                  {wrongChain ? (
+                    switching ? (
+                      <>
+                        <Orb className="size-3.5 text-accent" /> Switching…
+                      </>
+                    ) : (
+                      `Switch to ${activeChain.name}`
+                    )
+                  ) : faucetPending || faucetReceipt.isLoading ? (
                     <>
                       <Orb className="size-3.5 text-accent" /> Minting…
                     </>
