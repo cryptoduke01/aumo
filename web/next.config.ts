@@ -11,7 +11,10 @@ const nextConfig: NextConfig = {
           destination: "/app",
         },
       ],
-      afterFiles: [],
+      afterFiles: [
+        // Clean URL for the investor pitch deck (self-contained HTML in /public).
+        { source: "/pitch", destination: "/pitch.html" },
+      ],
       fallback: [],
     };
   },
