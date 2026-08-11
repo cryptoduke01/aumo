@@ -93,6 +93,15 @@ export default function VaultPage() {
 
   const { writeContract, data: hash, isPending, reset, error } = useWriteContract();
   const receipt = useWaitForTransactionReceipt({ hash });
+  // Tracks the in-flight step so an approval can automatically continue into the deposit (they are
+  // two separate transactions; without this the form reset after the approve and the deposit never
+  // fired — the wallet showed "confirmed" but nothing moved).
+  const pending = useRef<{ action: "approve" | "deposit" | "withdraw"; amountWei: bigint } | null>(null);
+
+  function doDeposit(amt: bigint) {
+    pending.current = { action: "deposit", amountWei: amt };
+    writeContract({ address: POOL, abi: poolAbi, functionName: "deposit", args: [amt, address!], chainId: activeChain.id });
+  }
 
   // Testnet faucet: mint 1,000 test USDT0 to the connected wallet.
   const { writeContract: writeFaucet, data: faucetHash, isPending: faucetPending } = useWriteContract();
@@ -109,20 +118,29 @@ export default function VaultPage() {
     writeFaucet({ address: USDT0, abi: FAUCET_ABI, functionName: "mint", args: [address, parseUnits("1000", DEC)], chainId: activeChain.id });
   }
 
-  // Refresh balances and clear the form once a transaction confirms.
+  // Once a transaction confirms: if it was the approval, immediately fire the deposit for the same
+  // amount (so the user doesn't have to click again and think it's done). Otherwise refresh and clear.
   useEffect(() => {
-    if (receipt.isSuccess) {
-      reads.refetch();
-      tvlRead.refetch();
-      setAmount("");
-      toast.success("Transaction confirmed", {
-        action: hash
-          ? { label: "View", onClick: () => window.open(txUrl(hash), "_blank") }
-          : undefined,
-      });
-      const t = setTimeout(() => reset(), 4000);
-      return () => clearTimeout(t);
+    if (!receipt.isSuccess) return;
+    const p = pending.current;
+    reads.refetch(); // allowance/balances moved
+    if (p?.action === "approve") {
+      toast.success("Approved — confirming your deposit…");
+      const amt = p.amountWei;
+      reset(); // clear the approve's hash so the deposit gets a fresh one
+      // next tick so the reset lands before the new write
+      setTimeout(() => doDeposit(amt), 0);
+      return;
     }
+    // deposit or withdraw settled
+    tvlRead.refetch();
+    setAmount("");
+    pending.current = null;
+    toast.success("Transaction confirmed", {
+      action: hash ? { label: "View", onClick: () => window.open(txUrl(hash), "_blank") } : undefined,
+    });
+    const t = setTimeout(() => reset(), 4000);
+    return () => clearTimeout(t);
   }, [receipt.isSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Toast when a tx is submitted to the network.
@@ -159,11 +177,14 @@ export default function VaultPage() {
       if (needsApproval) {
         // Approve exactly what's being deposited (not an unlimited allowance): the wallet then shows
         // the same number the user typed, instead of a confusing "0 / set unlimited" approval editor.
+        // The deposit fires automatically once this confirms (see the receipt effect).
+        pending.current = { action: "approve", amountWei };
         writeContract({ address: USDT0, abi: erc20Abi, functionName: "approve", args: [POOL, amountWei], chainId: activeChain.id });
       } else {
-        writeContract({ address: POOL, abi: poolAbi, functionName: "deposit", args: [amountWei, address], chainId: activeChain.id });
+        doDeposit(amountWei);
       }
     } else {
+      pending.current = { action: "withdraw", amountWei };
       writeContract({ address: POOL, abi: poolAbi, functionName: "withdraw", args: [amountWei, address, address], chainId: activeChain.id });
     }
   }
