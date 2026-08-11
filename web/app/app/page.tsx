@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { useAccount, useReadContract } from "wagmi";
+import { POOL, poolAbi } from "@/lib/chain";
 import {
   getReceipts,
   getStatus,
@@ -29,6 +31,18 @@ export default function Dashboard() {
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [records, setRecords] = useState<DecisionRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<"public" | "mine">("public");
+
+  // The connected wallet's own position — read on-chain (maxWithdraw = their redeemable USDT0). Lets
+  // the Overview flip between the public pool view and a private, per-user view of just their money.
+  const { address, isConnected } = useAccount();
+  const positionRead = useReadContract({
+    address: POOL,
+    abi: poolAbi,
+    functionName: "maxWithdraw",
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(address), refetchInterval: 15000 },
+  });
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -86,16 +100,33 @@ export default function Dashboard() {
   ];
   const deployedPct = total > 0 ? Math.round((deployed / total) * 100) : 0;
 
+  // Personal view: the connected wallet's own slice.
+  const myPosition = positionRead.data ? Number(positionRead.data as bigint) / 10 ** dec : 0;
+  const mySharePct = total > 0 ? (myPosition / total) * 100 : 0;
+  const myYield = (myPosition * bestNow) / 100;
+  const mine = view === "mine" && isConnected;
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6">
-      <Header identity={identity} />
+      <Header identity={identity} view={view} setView={setView} isConnected={isConnected} />
 
       {/* metrics */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Metric label="Total assets" value={total} currency sub="Under management" />
-        <Metric label="Idle" value={idle} currency sub="Ready to deploy" />
-        <Metric label="Deployed" value={deployed} currency sub="Working in venues" />
-        <Metric label="Best risk-adjusted" value={bestNow} suffix="%" frac={2} accent sub="Live yield" />
+        {mine ? (
+          <>
+            <Metric label="Your position" value={myPosition} currency sub="Redeemable USDT0" accent />
+            <Metric label="Your share" value={mySharePct} suffix="%" frac={2} sub="Of the pool" />
+            <Metric label="Est. annual yield" value={myYield} currency frac={2} sub="At the live rate" />
+            <Metric label="Best risk-adjusted" value={bestNow} suffix="%" frac={2} sub="Live yield" />
+          </>
+        ) : (
+          <>
+            <Metric label="Total assets" value={total} currency sub="Under management" />
+            <Metric label="Idle" value={idle} currency sub="Ready to deploy" />
+            <Metric label="Deployed" value={deployed} currency sub="Working in venues" />
+            <Metric label="Best risk-adjusted" value={bestNow} suffix="%" frac={2} accent sub="Live yield" />
+          </>
+        )}
       </div>
 
       {/* charts + guardrails bento */}
@@ -156,17 +187,48 @@ function Metric({ label, value, sub, suffix, currency, frac = 0, accent }: { lab
   );
 }
 
-function Header({ identity }: { identity: Identity }) {
+function Header({
+  identity,
+  view,
+  setView,
+  isConnected,
+}: {
+  identity: Identity;
+  view: "public" | "mine";
+  setView: (v: "public" | "mine") => void;
+  isConnected: boolean;
+}) {
+  const mine = view === "mine" && isConnected;
   return (
     <header className="flex flex-col gap-2 border-b border-border pb-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <h1 className="text-xl font-medium tracking-tight">Overview</h1>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-0.5 text-[11px] text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-accent" /> Public view
-        </span>
+        {isConnected ? (
+          // Toggle between the public pool view and a private view of just the connected wallet.
+          <div className="inline-flex items-center rounded-full border border-border p-0.5 text-[11px]">
+            {(["public", "mine"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setView(v)}
+                className={`rounded-full px-2.5 py-0.5 transition-colors ${
+                  view === v ? "bg-surface-2 text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {v === "public" ? "Public view" : "My position"}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-0.5 text-[11px] text-muted-foreground">
+            <span className="size-1.5 rounded-full bg-accent" /> Public view
+          </span>
+        )}
       </div>
       <span className="text-sm text-muted-foreground">
-        Live on {identity.chainName}. Public on-chain state; only your own deposit needs a wallet.
+        {mine
+          ? "Your private view: your deposit, your share, and what it's earning."
+          : `Live on ${identity.chainName}. Public on-chain state; only your own deposit needs a wallet.`}
       </span>
     </header>
   );

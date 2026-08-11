@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { formatUnits, parseUnits, maxUint256, parseAbi } from "viem";
+import { formatUnits, parseUnits, parseAbi } from "viem";
 import {
   useAccount,
   useReadContract,
@@ -157,7 +157,9 @@ export default function VaultPage() {
     if (!address || amountWei <= 0n) return;
     if (tab === "deposit") {
       if (needsApproval) {
-        writeContract({ address: USDT0, abi: erc20Abi, functionName: "approve", args: [POOL, maxUint256], chainId: activeChain.id });
+        // Approve exactly what's being deposited (not an unlimited allowance): the wallet then shows
+        // the same number the user typed, instead of a confusing "0 / set unlimited" approval editor.
+        writeContract({ address: USDT0, abi: erc20Abi, functionName: "approve", args: [POOL, amountWei], chainId: activeChain.id });
       } else {
         writeContract({ address: POOL, abi: poolAbi, functionName: "deposit", args: [amountWei, address], chainId: activeChain.id });
       }

@@ -14,8 +14,8 @@ export function Toaster() {
           color: "var(--foreground)",
           border: "1px solid var(--border)",
           borderRadius: "0.5rem",
-          fontFamily: "var(--font-mono)",
-          fontSize: "12px",
+          fontFamily: "var(--font-sans)",
+          fontSize: "13px",
         },
       }}
     />
