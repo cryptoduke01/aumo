@@ -6,6 +6,7 @@ import { reason } from "./brain/reason.js";
 import { stressTest } from "./risk/stress.js";
 import { readDepositorAppetite } from "./sense/appetite.js";
 import { reflect } from "./brain/reflect.js";
+import { critique } from "./brain/critic.js";
 import { BAND_RANK } from "./risk/engine.js";
 import type { Address } from "viem";
 import { execute, type MoveResult } from "./act/execute.js";
@@ -62,6 +63,13 @@ function printReport(
       ` Reflection: momentum ${rf.hits}/${rf.flagged} predictive (${(rf.hitRate * 100).toFixed(
         0,
       )}%) · calibration ${rf.calibration.toFixed(2)}x`,
+    );
+  }
+  if (plan.critic && (plan.critic.vetoes.length > 0 || plan.critic.doubt)) {
+    console.log(
+      ` Critic: ${plan.critic.doubt ? "HOLD (doubt)" : `${plan.critic.vetoes.length} veto(es)`} — ${plan.critic.concerns.join(
+        " ",
+      )}`,
     );
   }
 
@@ -134,7 +142,10 @@ export async function tick(cfg: Config, opts: { dryRun?: boolean } = {}): Promis
   });
   base.stress = stress;
   base.reflection = reflection;
-  const plan = await reason(snap, base, cfg, stressDeny);
+  const reasoned = await reason(snap, base, cfg, stressDeny);
+  // Final adversarial gate: the critic tries to break the plan and can veto allocations or, on a
+  // serious worry, hold the cycle. It only ever removes risk — retreats are never blocked.
+  const plan = critique(snap, reasoned);
 
   const willExecute = cfg.execute && !opts.dryRun;
   let exec: MoveResult[] | null = null;

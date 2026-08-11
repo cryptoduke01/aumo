@@ -2,6 +2,7 @@ import type { Address, MarketSnapshot, Regime, RiskBand } from "../types.js";
 import { BAND_RANK, scorePortfolio, type VenueRisk } from "../risk/engine.js";
 import type { StressReport } from "../risk/stress.js";
 import type { Reflection } from "./reflect.js";
+import type { CriticVerdict } from "./critic.js";
 
 export interface Move {
   venue: Address;
@@ -27,6 +28,7 @@ export interface Plan {
   source: "risk-engine" | "risk-engine+llm";
   stress?: StressReport; // scenario-simulation result attached in the tick, carried into the receipt
   reflection?: Reflection; // self-calibration from replaying past trend calls, carried into the receipt
+  critic?: CriticVerdict; // adversarial final-gate verdict (vetoes / doubt-hold)
 }
 
 // A defensive regime deploys less of the idle balance; a calm one deploys it all.
