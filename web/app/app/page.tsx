@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { POOL, poolAbi } from "@/lib/chain";
 import {
   getReceipts,
@@ -44,6 +44,16 @@ export default function Dashboard() {
     args: address ? [address] : undefined,
     query: { enabled: Boolean(address), refetchInterval: 15000 },
   });
+  // Live pool totals, read straight from chain so a deposit shows up immediately in the public view
+  // (the agent's receipt snapshot only refreshes on its ~15-min cycle) and so the personal share is
+  // computed against the SAME denominator as the on-chain position, not a lagging snapshot.
+  const poolRead = useReadContracts({
+    contracts: [
+      { address: POOL, abi: poolAbi, functionName: "totalAssets" },
+      { address: POOL, abi: poolAbi, functionName: "idleBalance" },
+    ],
+    query: { refetchInterval: 15000 },
+  });
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -77,9 +87,14 @@ export default function Dashboard() {
   const latest = records[0];
   const vault = latest?.snapshot.vault;
   const dec = vault?.decimals ?? 6;
-  const idle = vault ? unit(vault.idle, dec) : 0;
-  const deployed = vault ? unit(vault.totalDeployed, dec) : 0;
-  const total = idle + deployed;
+  // Prefer the live on-chain totals; fall back to the agent snapshot if the read hasn't resolved.
+  const liveTotal = poolRead.data?.[0]?.result as bigint | undefined;
+  const liveIdle = poolRead.data?.[1]?.result as bigint | undefined;
+  const snapIdle = vault ? unit(vault.idle, dec) : 0;
+  const snapDeployed = vault ? unit(vault.totalDeployed, dec) : 0;
+  const total = liveTotal != null ? Number(liveTotal) / 10 ** dec : snapIdle + snapDeployed;
+  const idle = liveIdle != null ? Number(liveIdle) / 10 ** dec : snapIdle;
+  const deployed = Math.max(0, total - idle);
 
   const series = [...records]
     .reverse()
@@ -101,16 +116,21 @@ export default function Dashboard() {
   ];
   const deployedPct = total > 0 ? Math.round((deployed / total) * 100) : 0;
 
-  // Personal view: the connected wallet's own slice.
+  // Personal view: the connected wallet's own slice. `share` is clamped to [0,1] — position comes
+  // from maxWithdraw (includes accrued yield) while total is principal-based, so a sole/large
+  // depositor could otherwise read >100% and over-scale the per-venue slice.
   const myPosition = positionRead.data ? Number(positionRead.data as bigint) / 10 ** dec : 0;
-  const share = total > 0 ? myPosition / total : 0;
+  const share = total > 0 ? Math.min(1, myPosition / total) : 0;
   const mySharePct = share * 100;
   const myYield = (myPosition * bestNow) / 100;
   const mine = view === "mine" && isConnected;
   // Your slice of each venue is pro-rata: same proportions as the pool, scaled to your position.
   const mySegments: Segment[] = segments.map((s) => ({ ...s, value: s.value * share }));
   const shownSegments = mine ? mySegments : segments;
+  // Only show the "haven't deposited yet" prompt once the position read has actually resolved, so an
+  // existing depositor doesn't briefly flash it while maxWithdraw is loading.
   const hasPosition = myPosition > 0;
+  const positionKnown = !positionRead.isLoading;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6">
@@ -139,7 +159,7 @@ export default function Dashboard() {
       <div className={`grid grid-cols-1 gap-4 ${mine ? "" : "lg:grid-cols-3"}`}>
         <Panel className="flex flex-col p-5">
           <Label>{mine ? "Your allocation" : "Allocation"}</Label>
-          {mine && !hasPosition ? (
+          {mine && !hasPosition && positionKnown ? (
             <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-2 py-6 text-center">
               <span className="text-sm text-muted-foreground">You haven&apos;t deposited yet.</span>
               <Link href={`${base}/vault`} className="text-sm text-accent transition-opacity hover:opacity-80">

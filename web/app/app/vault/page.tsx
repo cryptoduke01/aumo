@@ -97,8 +97,18 @@ export default function VaultPage() {
   // two separate transactions; without this the form reset after the approve and the deposit never
   // fired — the wallet showed "confirmed" but nothing moved).
   const pending = useRef<{ action: "approve" | "deposit" | "withdraw"; amountWei: bigint } | null>(null);
+  // The post-confirmation reset() is deferred 4s; keep its handle so a new write can cancel a stray
+  // reset that would otherwise wipe the in-flight tx state.
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelReset = () => {
+    if (resetTimer.current) {
+      clearTimeout(resetTimer.current);
+      resetTimer.current = null;
+    }
+  };
 
   function doDeposit(amt: bigint) {
+    cancelReset();
     pending.current = { action: "deposit", amountWei: amt };
     writeContract({ address: POOL, abi: poolAbi, functionName: "deposit", args: [amt, address!], chainId: activeChain.id });
   }
@@ -107,9 +117,13 @@ export default function VaultPage() {
   const { writeContract: writeFaucet, data: faucetHash, isPending: faucetPending } = useWriteContract();
   const faucetReceipt = useWaitForTransactionReceipt({ hash: faucetHash });
   useEffect(() => {
-    if (faucetReceipt.isSuccess) {
+    if (!faucetReceipt.isSuccess) return;
+    // isSuccess only means a receipt arrived; a reverted mint has one too. Check the on-chain status.
+    if (faucetReceipt.data?.status === "success") {
       reads.refetch();
       toast.success("Minted 1,000 test USDT0 to your wallet");
+    } else if (faucetReceipt.data?.status === "reverted") {
+      toast.error("Faucet mint reverted on-chain");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faucetReceipt.isSuccess]);
@@ -122,6 +136,19 @@ export default function VaultPage() {
   // amount (so the user doesn't have to click again and think it's done). Otherwise refresh and clear.
   useEffect(() => {
     if (!receipt.isSuccess) return;
+    // `isSuccess` only means a receipt was fetched — a tx that REVERTED on-chain also produces a
+    // receipt (status "reverted") and never throws. Without this check a reverted approve would be
+    // treated as success and auto-fire a deposit against an allowance that was never set. So gate on
+    // the actual on-chain status.
+    if (receipt.data?.status !== "success") {
+      if (receipt.data?.status === "reverted") {
+        pending.current = null;
+        reads.refetch();
+        toast.error("Transaction reverted on-chain. No funds moved.");
+        reset();
+      }
+      return;
+    }
     const p = pending.current;
     reads.refetch(); // allowance/balances moved
     if (p?.action === "approve") {
@@ -139,8 +166,9 @@ export default function VaultPage() {
     toast.success("Transaction confirmed", {
       action: hash ? { label: "View", onClick: () => window.open(txUrl(hash), "_blank") } : undefined,
     });
-    const t = setTimeout(() => reset(), 4000);
-    return () => clearTimeout(t);
+    cancelReset();
+    resetTimer.current = setTimeout(() => reset(), 4000);
+    return () => cancelReset();
   }, [receipt.isSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Toast when a tx is submitted to the network.
@@ -148,9 +176,13 @@ export default function VaultPage() {
     if (hash) toast("Transaction submitted", { description: "Waiting for confirmation…" });
   }, [hash]);
 
-  // Toast on write errors (rejected, reverted, etc.).
+  // Toast on write errors (user rejection, submission failure). Clear the in-flight step so a stale
+  // action can't be acted on later.
   useEffect(() => {
-    if (error) toast.error(error.message.split("\n")[0].slice(0, 120));
+    if (error) {
+      pending.current = null;
+      toast.error(error.message.split("\n")[0].slice(0, 120));
+    }
   }, [error]);
 
   const amountWei = useMemo(() => {
@@ -173,6 +205,7 @@ export default function VaultPage() {
       return;
     }
     if (!address || amountWei <= 0n) return;
+    cancelReset(); // don't let a prior deposit's deferred reset() wipe this new write
     if (tab === "deposit") {
       if (needsApproval) {
         // Approve exactly what's being deposited (not an unlimited allowance): the wallet then shows
