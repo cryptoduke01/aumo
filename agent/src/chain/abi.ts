@@ -15,6 +15,8 @@ export const vaultAbi = parseAbi([
   "function venueBalance(address) view returns (uint256)",
   "function paused() view returns (bool)",
   "function balanceOf(address) view returns (uint256)",
+  "function totalSupply() view returns (uint256)",
+  "function maxWithdraw(address) view returns (uint256)",
   "function riskAppetiteOf(address) view returns (uint8)",
   "event RiskAppetiteSet(address indexed depositor, uint8 tier)",
   "function deposit(uint256 amount)",

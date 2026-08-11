@@ -159,7 +159,7 @@ export default function Dashboard() {
           <>
             <Metric label="Your position" value={myPosition} currency sub="Redeemable USDT0" accent />
             <Metric label="Your share" value={mySharePct} suffix="%" frac={2} sub="Of the pool" />
-            <Metric label="Est. annual yield" value={myYield} currency frac={2} sub="At the live rate" />
+            <Metric label="Est. annual yield" value={myYield} currency frac={2} sub={identity.chainId === 196 ? "At the live rate" : "Simulated on testnet"} />
           </>
         ) : (
           <>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useAccount } from "wagmi";
 import { AnimatePresence, motion } from "motion/react";
 import { ask } from "@/lib/agent";
 import { AumoMark } from "./mark";
@@ -50,6 +51,7 @@ export function AskAumo({ className = "" }: { className?: string }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const { address } = useAccount();
   const threadRef = useRef<HTMLDivElement | null>(null);
 
   const send = async (q: string) => {
@@ -59,7 +61,7 @@ export function AskAumo({ className = "" }: { className?: string }) {
     setMessages((m) => [...m, { role: "user", text: question }]);
     setBusy(true);
     try {
-      const answer = await ask(question);
+      const answer = await ask(question, address);
       setMessages((m) => [...m, { role: "agent", text: answer || "I don't have an answer for that from my current state." }]);
     } catch {
       setMessages((m) => [...m, { role: "agent", text: "My reasoning layer is offline right now. Try again in a moment." }]);
@@ -103,7 +105,7 @@ export function AskAumo({ className = "" }: { className?: string }) {
                 or what would change my mind.
               </p>
               <div className="flex flex-wrap gap-2">
-                {SUGGESTIONS.map((s) => (
+                {(address ? ["What's my position?", ...SUGGESTIONS] : SUGGESTIONS).map((s) => (
                   <button
                     key={s}
                     onClick={() => send(s)}

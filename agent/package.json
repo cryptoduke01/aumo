@@ -12,7 +12,8 @@
     "serve": "tsx src/index.ts serve",
     "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "backtest": "tsx scripts/backtest.ts"
+    "backtest": "tsx scripts/backtest.ts",
+    "simulate-yield": "tsx scripts/simulate-yield.ts"
   },
   "engines": {
     "node": ">=20"

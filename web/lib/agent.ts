@@ -126,12 +126,13 @@ export const getStatus = (signal?: AbortSignal) => getJson<Status>("/", signal);
 export const getReceipts = (limit = 20, signal?: AbortSignal) =>
   getJson<DecisionRecord[]>(`/receipts?limit=${limit}`, signal);
 
-// Conversational Q&A: ask the agent about its decisions, grounded in its live state.
-export async function ask(question: string, signal?: AbortSignal): Promise<string> {
+// Conversational Q&A: ask the agent about its decisions, grounded in its live state. When a
+// connected wallet is passed, the agent can also answer the depositor's own position (read on-chain).
+export async function ask(question: string, address?: string, signal?: AbortSignal): Promise<string> {
   const res = await fetch(`${AGENT_URL}/ask`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify(address ? { question, address } : { question }),
     signal,
     cache: "no-store",
   });

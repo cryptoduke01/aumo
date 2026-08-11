@@ -2,8 +2,11 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { createPublicClient, http, isAddress, type Address } from "viem";
 import type { Config } from "./config.js";
 import { buildIdentity } from "./identity.js";
+import { makeChain } from "./chain/client.js";
+import { readDepositorPosition } from "./chain/vault.js";
 import { RECEIPTS_FILE } from "./act/receipts.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -116,11 +119,12 @@ const STRATEGY = {
 
 const ASK_SYSTEM = `You are Aumo, an autonomous treasury agent for stablecoins on X Layer. You put idle USDT0 to work in on-chain yield within strict, on-chain guardrails, and you prove every move. Speak in the first person as the agent.
 
-Two kinds of question, two sources of truth:
+Three kinds of question, three sources of truth:
 - Product / strategy / "how do you work" / "where does yield come from" / "what would you use on mainnet": answer from the STRATEGY block. You DO know your strategy — explain it confidently. When on testnet, be honest that the current venues are mock stand-ins, but still explain what the real mainnet venues (Aave v3, USDG) are.
-- Live specifics — current holdings, per-venue allocations, the latest decision: ground these in the "latest" state. If a specific number genuinely is not in the state, say so plainly rather than inventing it.
+- Live specifics — pool holdings, per-venue allocations, the latest decision: ground these in the "latest" state. If a specific number genuinely is not in the state, say so plainly rather than inventing it.
+- The person's OWN position — "what's mine?", "my share", "what am I earning": if a "you" block is present, it is the connected wallet read live on-chain. Answer directly from it — "redeemable" is their position in USDT0 (including accrued yield), "sharePct" is their percent of the pool, and "yourVenues" is their pro-rata slice of each venue. If "you.isDepositor" is false, tell them this wallet hasn't deposited yet. If there is NO "you" block at all, say you can't see their wallet from here and to connect a wallet / open the "My position" view — do not guess.
 
-Rules: be concise (2 to 4 sentences), plain language, no hype. Do not leak internal field names or JSON keys (say "not yet approved for allocation", never "allowedOnChain: false"). Never give financial or investment advice, never predict prices, never claim to act outside your on-chain guardrails. If asked to do something you cannot (move funds off-chain, exceed a cap, read an individual user's wallet), explain plainly that you cannot and why.`;
+Rules: be concise (2 to 4 sentences), plain language, no hype. Do not leak internal field names or JSON keys (say "not yet approved for allocation", never "allowedOnChain: false"). Never give financial or investment advice, never predict prices, never claim to act outside your on-chain guardrails. If asked to do something you cannot (move funds off-chain, exceed a cap), explain plainly that you cannot and why.`;
 
 /**
  * Resolve the client IP for rate-limiting. `X-Forwarded-For` is a client-writable header of the form
@@ -169,9 +173,39 @@ function readBody(req: IncomingMessage, cap = 4_000): Promise<string> {
   });
 }
 
-async function askAgent(cfg: Config, question: string): Promise<string> {
+/**
+ * The connected wallet's own stake, read live on-chain — so "what's my position?" gets a real answer
+ * grounded in the same maxWithdraw the dashboard shows, with each venue sliced pro-rata by share.
+ * Pool share balances are public on-chain, so this leaks nothing the explorer doesn't already.
+ */
+async function readYou(cfg: Config, address: Address, context: ReturnType<typeof buildContext>) {
+  try {
+    const pc = createPublicClient({ chain: makeChain(cfg), transport: http(cfg.rpcUrl) });
+    const pos = await readDepositorPosition(pc, cfg.vaultAddress as Address, address);
+    const toN = (v: bigint) => Number(v) / 1e6; // pool asset is 6dp (USDT0)
+    if (pos.shares === 0n) {
+      return { address, isDepositor: false, note: "This wallet holds no pool shares — it has not deposited." };
+    }
+    const venues = (context.latest?.venues ?? [])
+      .filter((v) => (v.currentValue ?? 0) > 0)
+      .map((v) => ({ name: v.name, yourValue: Number(((v.currentValue ?? 0) * pos.sharePct).toFixed(2)) }));
+    return {
+      address,
+      isDepositor: true,
+      redeemable: Number(toN(pos.redeemable).toFixed(2)),
+      sharePct: Number((pos.sharePct * 100).toFixed(2)),
+      yourVenues: venues,
+    };
+  } catch {
+    return null; // read failed — omit the block rather than block the answer
+  }
+}
+
+async function askAgent(cfg: Config, question: string, address?: string): Promise<string> {
   if (!cfg.anthropicKey) return "My reasoning layer is offline right now, so I can only answer through the dashboard. Try again shortly.";
   const context = buildContext(cfg);
+  const you = address && isAddress(address) ? await readYou(cfg, address as Address, context) : null;
+  const grounding = you ? { ...context, you } : context;
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   const client = new Anthropic({ apiKey: cfg.anthropicKey });
   const msg = await client.messages.create({
@@ -181,7 +215,7 @@ async function askAgent(cfg: Config, question: string): Promise<string> {
     messages: [
       {
         role: "user",
-        content: `My current state:\n\n${JSON.stringify(context, null, 2)}\n\nQuestion: ${question}`,
+        content: `My current state:\n\n${JSON.stringify(grounding, null, 2)}\n\nQuestion: ${question}`,
       },
     ],
   });
@@ -228,13 +262,17 @@ export function startServer(cfg: Config) {
       }
       try {
         const body = await readBody(req);
-        const question = String(JSON.parse(body || "{}").question ?? "").trim().slice(0, 500);
+        const parsed = JSON.parse(body || "{}");
+        const question = String(parsed.question ?? "").trim().slice(0, 500);
+        // Optional: the connected wallet, so the agent can answer "what's my position?" from live
+        // on-chain shares. Public data; ignored if malformed.
+        const address = typeof parsed.address === "string" ? parsed.address.trim() : undefined;
         if (!question) {
           res.statusCode = 400;
           res.end(JSON.stringify({ error: "Ask me something." }));
           return;
         }
-        const answer = await askAgent(cfg, question);
+        const answer = await askAgent(cfg, question, address);
         res.end(JSON.stringify({ answer }));
       } catch (err) {
         res.statusCode = 500;

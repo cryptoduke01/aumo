@@ -51,6 +51,33 @@ export async function readVaultState(
   };
 }
 
+/** A single depositor's stake in the pool, read on-chain the same way the dApp shows it. */
+export interface DepositorPosition {
+  shares: bigint; // pool shares held
+  sharePct: number; // shares / totalSupply, 0..1
+  redeemable: bigint; // maxWithdraw: assets they could pull now, incl. accrued yield
+}
+
+/**
+ * Read one depositor's position from the pool. `redeemable` is maxWithdraw (the same number the
+ * "Your position" card shows), and `sharePct` is their fraction of all shares — enough to slice
+ * each venue's live balance pro-rata. Returns null shares=0 for a non-depositor.
+ */
+export async function readDepositorPosition(
+  pc: PublicClient,
+  vault: Address,
+  who: Address,
+): Promise<DepositorPosition> {
+  const c = { address: vault, abi: vaultAbi } as const;
+  const [shares, supply, redeemable] = await Promise.all([
+    pc.readContract({ ...c, functionName: "balanceOf", args: [who] }),
+    pc.readContract({ ...c, functionName: "totalSupply" }),
+    pc.readContract({ ...c, functionName: "maxWithdraw", args: [who] }),
+  ]);
+  const sharePct = supply > 0n ? Number(shares) / Number(supply) : 0;
+  return { shares, sharePct, redeemable };
+}
+
 export async function readVenueState(
   pc: PublicClient,
   vault: Address,
