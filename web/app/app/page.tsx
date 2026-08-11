@@ -359,6 +359,28 @@ function Decision({ rec, dec }: { rec: DecisionRecord; dec: number }) {
           {plan.reflection && plan.reflection.flagged > 0 ? (
             <Badge tone="neutral">Reflection {plan.reflection.calibration.toFixed(2)}×</Badge>
           ) : null}
+          {plan.panel ? <Badge tone="accent">Panel of {plan.panel.verdicts.length}</Badge> : null}
+        </div>
+      ) : null}
+      {plan.panel ? (
+        <div className="mt-4 rounded-lg border border-border bg-card-2 p-4">
+          <span className="text-[11px] uppercase tracking-[0.12em] text-faint">Reasoning panel</span>
+          <ul className="mt-3 flex flex-col gap-2.5">
+            {plan.panel.verdicts.map((v) => (
+              <li key={v.role} className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
+                <span className="flex shrink-0 items-center gap-2 sm:w-32">
+                  <span className="size-1.5 shrink-0 rounded-full" style={{ background: v.ok ? "var(--accent)" : "var(--faint)" }} />
+                  <span className="text-sm font-medium capitalize text-foreground">{v.role}</span>
+                  <span className="tnum text-[11px] text-faint">{v.ok ? `${Math.round(v.concern * 100)}%` : "—"}</span>
+                </span>
+                <span className="text-xs leading-relaxed text-muted-foreground">
+                  {v.ok ? v.note : "abstained"}
+                  {v.vetoes.length > 0 ? <span className="text-negative"> · vetoed {v.vetoes.length}</span> : null}
+                  {v.regime ? <span className="text-faint"> · regime {v.regime}</span> : null}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
       <div className="mt-5 flex flex-col gap-3">

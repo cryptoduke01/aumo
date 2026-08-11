@@ -100,6 +100,11 @@ export interface DecisionRecord {
     stress?: { fragility: number; recommendedRegime: string; fragileNames: string[] };
     reflection?: { flagged: number; hitRate: number; calibration: number };
     critic?: { approved: boolean; vetoes: string[]; doubt: boolean; concerns: string[] };
+    panel?: {
+      regime: string;
+      vetoes: string[];
+      verdicts: { role: string; ok: boolean; concern: number; vetoes: string[]; regime?: string; note: string }[];
+    };
   };
   execution: Execution[] | null;
 }
