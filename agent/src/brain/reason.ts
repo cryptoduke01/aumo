@@ -68,6 +68,20 @@ function modelView(snap: MarketSnapshot, base: Plan) {
         band: m.band,
       })),
     },
+    // Scenario simulation: how the plan's portfolio holds up under plausible adverse shocks. Venues
+    // listed fragile are already blocked from new deploys; treat high fragility as a reason to tighten.
+    stress: base.stress
+      ? {
+          fragility: Number(base.stress.fragility.toFixed(2)),
+          regimeCeiling: base.stress.recommendedRegime,
+          fragileVenues: base.stress.fragileNames,
+          scenarios: base.stress.scenarios.map((s) => ({
+            scenario: s.name,
+            worstBand: s.worstBand,
+            fragile: s.breaches,
+          })),
+        }
+      : null,
     venues: snap.venues.map((v) => {
       const r = base.risks.find((x) => x.address.toLowerCase() === v.address.toLowerCase());
       const trend = computeMomentum(
@@ -136,7 +150,12 @@ function stateKey(snap: MarketSnapshot, base: Plan): string {
   });
 }
 
-export async function reason(snap: MarketSnapshot, base: Plan, cfg: Config): Promise<Plan> {
+export async function reason(
+  snap: MarketSnapshot,
+  base: Plan,
+  cfg: Config,
+  baseDeny: Set<string> = new Set(),
+): Promise<Plan> {
   if (!cfg.anthropicKey) {
     return { ...base, summary: `${base.summary} (deterministic risk engine; no LLM key set)` };
   }
@@ -187,18 +206,21 @@ export async function reason(snap: MarketSnapshot, base: Plan, cfg: Config): Pro
     }
   }
 
-  // Enforce tighten-only: pick the more conservative of engine vs model.
+  // Enforce tighten-only: pick the more conservative of engine vs model, and keep the deterministic
+  // stress-test's denials (the model can add vetoes, never drop the stress-fragile venues).
   const { regime, appetite, deny } = resolveTighten(base, reply);
+  const allDeny = new Set<string>([...baseDeny, ...deny]);
 
   const tightened = buildPlan(snap, {
     appetite,
     regime,
     maxConcentration: cfg.maxConcentration,
-    deny,
+    deny: allDeny,
   });
 
   return {
     ...tightened,
+    stress: base.stress,
     source: "risk-engine+llm",
     summary: reply.narrative.trim(),
   };

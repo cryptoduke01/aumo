@@ -1,5 +1,6 @@
 import type { Address, MarketSnapshot, Regime, RiskBand } from "../types.js";
 import { BAND_RANK, scorePortfolio, type VenueRisk } from "../risk/engine.js";
+import type { StressReport } from "../risk/stress.js";
 
 export interface Move {
   venue: Address;
@@ -23,6 +24,7 @@ export interface Plan {
   risks: VenueRisk[];
   summary: string;
   source: "risk-engine" | "risk-engine+llm";
+  stress?: StressReport; // scenario-simulation result attached in the tick, carried into the receipt
 }
 
 // A defensive regime deploys less of the idle balance; a calm one deploys it all.

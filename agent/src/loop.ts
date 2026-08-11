@@ -3,6 +3,7 @@ import { makeClients } from "./chain/client.js";
 import { sense } from "./sense/sense.js";
 import { buildPlan, type Plan } from "./brain/plan.js";
 import { reason } from "./brain/reason.js";
+import { stressTest } from "./risk/stress.js";
 import { execute, type MoveResult } from "./act/execute.js";
 import { record, loadHistory } from "./act/receipts.js";
 import { buildIdentity, policyFingerprint, renderBanner } from "./identity.js";
@@ -40,6 +41,15 @@ function printReport(
         .padStart(2)}/100 (${r.band})  → risk-adj ${(r.riskAdjustedApyBps / 100).toFixed(2)}%${
         r.notes.length ? "  [" + r.notes.join("; ") + "]" : ""
       }`,
+    );
+  }
+
+  if (plan.stress) {
+    const st = plan.stress;
+    console.log(
+      `\n Stress test: fragility ${(st.fragility * 100).toFixed(0)}% · regime ceiling ${
+        st.recommendedRegime
+      }${st.fragileNames.length ? ` · fragile: ${st.fragileNames.join(", ")}` : " · none fragile"}`,
     );
   }
 
@@ -83,12 +93,24 @@ export async function tick(cfg: Config, opts: { dryRun?: boolean } = {}): Promis
   snap.history = loadHistory(6);
   const fingerprint = policyFingerprint(snap, cfg);
 
-  const base = buildPlan(snap, {
+  // Provisional plan (what we'd do with no stress constraints), then stress-test the portfolio it
+  // would create. Fragile venues are denied new deploys and broad fragility pulls the regime down;
+  // the base plan is rebuilt under those constraints before the LLM adds any further caution.
+  const provisional = buildPlan(snap, {
     appetite: cfg.appetite,
     regime: "calm",
     maxConcentration: cfg.maxConcentration,
   });
-  const plan = await reason(snap, base, cfg);
+  const stress = stressTest(snap, provisional, cfg.appetite);
+  const stressDeny = new Set(stress.fragile);
+  const base = buildPlan(snap, {
+    appetite: cfg.appetite,
+    regime: stress.recommendedRegime,
+    maxConcentration: cfg.maxConcentration,
+    deny: stressDeny,
+  });
+  base.stress = stress;
+  const plan = await reason(snap, base, cfg, stressDeny);
 
   const willExecute = cfg.execute && !opts.dryRun;
   let exec: MoveResult[] | null = null;
