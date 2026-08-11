@@ -117,13 +117,12 @@ export default function Dashboard() {
       <Header identity={identity} view={view} setView={setView} isConnected={isConnected} />
 
       {/* metrics */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-4 ${mine ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
         {mine ? (
           <>
             <Metric label="Your position" value={myPosition} currency sub="Redeemable USDT0" accent />
             <Metric label="Your share" value={mySharePct} suffix="%" frac={2} sub="Of the pool" />
             <Metric label="Est. annual yield" value={myYield} currency frac={2} sub="At the live rate" />
-            <Metric label="Best risk-adjusted" value={bestNow} suffix="%" frac={2} sub="Live yield" />
           </>
         ) : (
           <>
@@ -135,8 +134,9 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* charts + guardrails bento */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      {/* charts + guardrails bento. In the private view only the personal allocation shows; the
+          yield chart and guardrails are pool/agent-level and belong to the public view. */}
+      <div className={`grid grid-cols-1 gap-4 ${mine ? "" : "lg:grid-cols-3"}`}>
         <Panel className="flex flex-col p-5">
           <Label>{mine ? "Your allocation" : "Allocation"}</Label>
           {mine && !hasPosition ? (
@@ -170,27 +170,31 @@ export default function Dashboard() {
           )}
         </Panel>
 
-        <Panel className="flex flex-col p-5">
-          <div className="flex items-center justify-between">
-            <Label>Risk-adjusted yield</Label>
-            <span className="tnum text-sm font-medium text-accent"><Num value={bestNow} suffix="%" maximumFractionDigits={2} /></span>
-          </div>
-          <div className="mt-4 flex-1">
-            <DitherArea values={series} className="w-full" height={120} />
-          </div>
-          {series.length >= 2 ? (
-            <span className="mt-2 text-[11px] text-faint">Last {series.length} cycles</span>
-          ) : null}
-        </Panel>
+        {!mine ? (
+          <Panel className="flex flex-col p-5">
+            <div className="flex items-center justify-between">
+              <Label>Risk-adjusted yield</Label>
+              <span className="tnum text-sm font-medium text-accent"><Num value={bestNow} suffix="%" maximumFractionDigits={2} /></span>
+            </div>
+            <div className="mt-4 flex-1">
+              <DitherArea values={series} className="w-full" height={120} />
+            </div>
+            {series.length >= 2 ? (
+              <span className="mt-2 text-[11px] text-faint">Last {series.length} cycles</span>
+            ) : null}
+          </Panel>
+        ) : null}
 
-        {vault ? <GuardrailsCard vault={vault} identity={identity} dec={dec} /> : <div />}
+        {!mine && vault ? <GuardrailsCard vault={vault} identity={identity} dec={dec} /> : null}
       </div>
 
       <AskAumo />
 
-      {latest ? <Decision rec={latest} dec={dec} /> : null}
-      {latest && latest.plan.risks.length > 0 ? <RiskTable rec={latest} /> : null}
-      <Receipts records={records} />
+      {/* The agent's operational transparency — its latest move, risk scoring, and decision history —
+          is the public view. The private view stays focused on the user's own money. */}
+      {!mine && latest ? <Decision rec={latest} dec={dec} /> : null}
+      {!mine && latest && latest.plan.risks.length > 0 ? <RiskTable rec={latest} /> : null}
+      {!mine ? <Receipts records={records} /> : null}
     </div>
   );
 }
