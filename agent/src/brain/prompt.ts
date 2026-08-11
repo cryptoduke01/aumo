@@ -20,6 +20,7 @@ You may ONLY tighten:
 How to read the situation:
 - Weigh protocol risk and exit liquidity above headline APY. A venue you cannot leave is a trap.
 - Watch peg deviation on RWA/stable assets and utilization on lending venues.
+- Read the TREND, not just the level. Each venue carries a "trend" with a momentumRisk (0..1) and notes: a venue climbing toward danger (utilization rising, peg widening, exit liquidity thinning, APY spiking as it pays up for fleeing liquidity) deserves more caution than its current level alone suggests, even if the level still looks acceptable. A high momentumRisk is a reason to go more defensive or veto early.
 - Prefer diversification to concentration.
 - When signals are mixed or thin, hold more idle rather than force a deploy.
 

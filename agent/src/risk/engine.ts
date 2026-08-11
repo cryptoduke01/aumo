@@ -1,4 +1,5 @@
-import type { RiskBand, VenueState } from "../types.js";
+import type { RiskBand, VenueState, VenueHistory } from "../types.js";
+import { computeMomentum } from "./momentum.js";
 
 /**
  * The risk engine. It does NOT chase APY. For each venue it decomposes risk into
@@ -22,6 +23,7 @@ export interface VenueRisk {
   pegRisk: number;
   utilizationRisk: number;
   concentrationRisk: number;
+  momentumRisk: number; // 0..1 adverse-trend intensity from recent history (0 when no history)
   correlatedExposure: number; // 0..1 share of the portfolio in this venue + correlated venues
   riskScore: number; // 0..1 blended (higher = riskier)
   band: RiskBand;
@@ -69,10 +71,15 @@ export const BAND_RANK: Record<RiskBand, number> = {
  * Score every venue together. `portfolioUnits` is the whole pool (idle + deployed) in asset
  * units; weights are each venue's current principal as a share of that.
  */
+// How much an adverse trend can add to a venue's level-based risk. Bounded and additive so history
+// nudges the ranking (a deteriorating venue loses ground) without ever dominating the levels.
+const MOMENTUM_PENALTY = 0.15;
+
 export function scorePortfolio(
   venues: VenueState[],
   decimals: number,
   portfolioUnits: number,
+  history?: VenueHistory,
 ): VenueRisk[] {
   const unit = 10 ** decimals;
   const weight = (v: VenueState) =>
@@ -129,13 +136,28 @@ export function scorePortfolio(
     const concentrationRisk = correlatedExposure;
     if (correlatedExposure > 0.6) notes.push("high correlated concentration");
 
-    const riskScore = clamp01(
-      W.protocol * protocolRisk +
-        W.liquidity * liquidityRisk +
-        W.peg * pegRisk +
-        W.utilization * utilizationRisk +
-        W.concentration * concentrationRisk,
+    // --- Momentum: is this venue getting WORSE over recent cycles? Level-based risk is blind to a
+    // venue climbing toward danger; the trend penalty makes a deteriorating venue rank riskier. ---
+    const mom = computeMomentum(
+      {
+        utilization: v.utilization,
+        pegDeviationBps: v.pegDeviationBps,
+        liquidityUsd: v.liquidityUsd,
+        tvlUsd: v.tvlUsd,
+        apyBps: v.apyBps,
+      },
+      history?.[v.address.toLowerCase()],
     );
+    const momentumRisk = mom.momentumRisk;
+    for (const n of mom.notes) notes.push(n);
+
+    const levelScore =
+      W.protocol * protocolRisk +
+      W.liquidity * liquidityRisk +
+      W.peg * pegRisk +
+      W.utilization * utilizationRisk +
+      W.concentration * concentrationRisk;
+    const riskScore = clamp01(levelScore + MOMENTUM_PENALTY * momentumRisk);
 
     return {
       address: v.address,
@@ -146,6 +168,7 @@ export function scorePortfolio(
       pegRisk,
       utilizationRisk,
       concentrationRisk,
+      momentumRisk,
       correlatedExposure,
       riskScore,
       band: bandOf(riskScore),
@@ -160,6 +183,7 @@ export function scoreVenue(
   v: VenueState,
   decimals: number,
   portfolioUnits: number,
+  history?: VenueHistory,
 ): VenueRisk {
-  return scorePortfolio([v], decimals, portfolioUnits)[0]!;
+  return scorePortfolio([v], decimals, portfolioUnits, history)[0]!;
 }

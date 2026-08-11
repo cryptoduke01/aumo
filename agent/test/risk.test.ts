@@ -92,6 +92,42 @@ test("RWA peg is scored conservatively when unverified (F-2)", () => {
   assert.equal(verified.pegRisk, 0);
 });
 
+test("momentum: a rising-utilization trend scores riskier than the same level flat", () => {
+  const addr = VENUE_A.toLowerCase();
+  const sample = (u: number) => ({
+    utilization: u,
+    pegDeviationBps: 0,
+    liquidityUsd: 500_000,
+    tvlUsd: 1_000_000,
+    apyBps: 800,
+  });
+  const rising = { [addr]: [sample(0.4), sample(0.5), sample(0.6)] };
+  const v = venue({ utilization: 0.75 }); // current is well above the ~0.5 history mean
+  const withHist = scoreVenue(v, 6, 1000, rising);
+  const noHist = scoreVenue(v, 6, 1000);
+  assert.equal(noHist.momentumRisk, 0, "no history => no momentum penalty");
+  assert.ok(withHist.momentumRisk > 0, "rising trend produces momentum risk");
+  assert.ok(withHist.riskScore > noHist.riskScore, "trend penalty raises the score");
+  assert.ok(withHist.notes.some((n) => n.includes("utilization rising")));
+});
+
+test("momentum is adverse-only: an improving trend does not lower risk below its level", () => {
+  const addr = VENUE_A.toLowerCase();
+  const sample = (u: number) => ({
+    utilization: u,
+    pegDeviationBps: 0,
+    liquidityUsd: 500_000,
+    tvlUsd: 1_000_000,
+    apyBps: 800,
+  });
+  const falling = { [addr]: [sample(0.9), sample(0.8), sample(0.7)] };
+  const v = venue({ utilization: 0.5 }); // current is below the history mean (improving)
+  const withHist = scoreVenue(v, 6, 1000, falling);
+  const noHist = scoreVenue(v, 6, 1000);
+  assert.equal(withHist.momentumRisk, 0, "favourable trend contributes no penalty");
+  assert.equal(withHist.riskScore, noHist.riskScore);
+});
+
 test("utilization only bites for lending venues", () => {
   const lending = scoreVenue(venue({ kind: "lending", utilization: 0.95 }), 6, 1000);
   const rwa = scoreVenue(venue({ kind: "rwa", utilization: 0.95 }), 6, 1000);

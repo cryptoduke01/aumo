@@ -50,8 +50,23 @@ export interface VenueState extends VenueMeta {
   liveBalance: bigint; // vault.venueBalance(venue) — principal + accrued
 }
 
+/** One historical observation of a venue's market metrics, used for temporal/trend awareness. */
+export interface VenueSample {
+  utilization: number; // 0..1
+  pegDeviationBps: number;
+  liquidityUsd: number;
+  tvlUsd: number;
+  apyBps: number;
+}
+
+/** Per-venue history keyed by lowercased address, oldest sample first. */
+export type VenueHistory = Record<string, VenueSample[]>;
+
 export interface MarketSnapshot {
   vault: VaultState;
   venues: VenueState[];
   takenAt: string; // ISO timestamp
+  // Recent history per venue (from prior receipts). When present, the risk engine adds a trend
+  // (momentum) penalty so a venue that is deteriorating is scored riskier than its level alone.
+  history?: VenueHistory;
 }

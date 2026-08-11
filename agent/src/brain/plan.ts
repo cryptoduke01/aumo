@@ -54,7 +54,7 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
   const unit = 10 ** vault.decimals;
   const portfolioUnits = (Number(vault.idle) + Number(vault.totalDeployed)) / unit;
 
-  const risks = scorePortfolio(snap.venues, vault.decimals, portfolioUnits);
+  const risks = scorePortfolio(snap.venues, vault.decimals, portfolioUnits, snap.history);
   const riskByAddr = new Map(risks.map((r) => [r.address.toLowerCase(), r]));
 
   const moves: Move[] = [];

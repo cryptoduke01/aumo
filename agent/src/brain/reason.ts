@@ -2,7 +2,8 @@ import { z } from "zod";
 import type { Config } from "../config.js";
 import type { MarketSnapshot, Regime, RiskBand } from "../types.js";
 import { buildPlan, type Plan } from "./plan.js";
-import { SYSTEM_PROMPT } from "./prompt.js";  
+import { computeMomentum } from "../risk/momentum.js";
+import { SYSTEM_PROMPT } from "./prompt.js";
 
 const REGIME_RANK: Record<Regime, number> = { defensive: 0, cautious: 1, calm: 2 };
 const BAND_RANK: Record<RiskBand, number> = { low: 0, moderate: 1, elevated: 2, high: 3 };
@@ -69,6 +70,16 @@ function modelView(snap: MarketSnapshot, base: Plan) {
     },
     venues: snap.venues.map((v) => {
       const r = base.risks.find((x) => x.address.toLowerCase() === v.address.toLowerCase());
+      const trend = computeMomentum(
+        {
+          utilization: v.utilization,
+          pegDeviationBps: v.pegDeviationBps,
+          liquidityUsd: v.liquidityUsd,
+          tvlUsd: v.tvlUsd,
+          apyBps: v.apyBps,
+        },
+        snap.history?.[v.address.toLowerCase()],
+      );
       return {
         address: v.address,
         name: v.name,
@@ -80,6 +91,12 @@ function modelView(snap: MarketSnapshot, base: Plan) {
         pegDeviationBps: v.pegDeviationBps,
         allowedOnChain: v.allowed,
         currentPrincipal: f(v.allocatedPrincipal),
+        // Trajectory over recent cycles so the model reacts to a venue getting worse, not just its
+        // current level. momentumRisk is 0..1 (higher = deteriorating faster).
+        trend: {
+          momentumRisk: Number(trend.momentumRisk.toFixed(3)),
+          notes: trend.notes,
+        },
         risk: r
           ? {
               score: Number(r.riskScore.toFixed(3)),

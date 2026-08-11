@@ -1,7 +1,7 @@
-import { appendFileSync, mkdirSync } from "node:fs";
+import { appendFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import type { MarketSnapshot } from "../types.js";
+import type { MarketSnapshot, VenueHistory, VenueSample } from "../types.js";
 import type { Plan } from "../brain/plan.js";
 import type { MoveResult } from "./execute.js";
 import type { AgentIdentity } from "../identity.js";
@@ -52,4 +52,43 @@ export function record(
   mkdirSync(RECEIPTS_DIR, { recursive: true });
   appendFileSync(RECEIPTS_FILE, JSON.stringify(rec) + "\n");
   return rec;
+}
+
+/**
+ * Rebuild per-venue market history from the last `limit` receipts (oldest first), for the risk
+ * engine's temporal awareness. Returns {} if there is no trail yet (a fresh deploy just scores on
+ * levels until history accumulates). Reads are best-effort: a malformed line is skipped, not fatal.
+ */
+export function loadHistory(limit = 6): VenueHistory {
+  if (!existsSync(RECEIPTS_FILE)) return {};
+  let lines: string[];
+  try {
+    lines = readFileSync(RECEIPTS_FILE, "utf8").trim().split("\n").filter(Boolean).slice(-limit);
+  } catch {
+    return {};
+  }
+  const hist: VenueHistory = {};
+  for (const line of lines) {
+    let rec: DecisionRecord;
+    try {
+      rec = JSON.parse(line) as DecisionRecord;
+    } catch {
+      continue;
+    }
+    const venues = (rec.snapshot as { venues?: Array<Record<string, unknown>> } | undefined)?.venues;
+    if (!Array.isArray(venues)) continue;
+    for (const v of venues) {
+      const addr = typeof v.address === "string" ? v.address.toLowerCase() : null;
+      if (!addr) continue;
+      const sample: VenueSample = {
+        utilization: Number(v.utilization) || 0,
+        pegDeviationBps: Number(v.pegDeviationBps) || 0,
+        liquidityUsd: Number(v.liquidityUsd) || 0,
+        tvlUsd: Number(v.tvlUsd) || 0,
+        apyBps: Number(v.apyBps) || 0,
+      };
+      (hist[addr] ??= []).push(sample);
+    }
+  }
+  return hist;
 }

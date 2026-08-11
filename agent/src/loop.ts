@@ -4,7 +4,7 @@ import { sense } from "./sense/sense.js";
 import { buildPlan, type Plan } from "./brain/plan.js";
 import { reason } from "./brain/reason.js";
 import { execute, type MoveResult } from "./act/execute.js";
-import { record } from "./act/receipts.js";
+import { record, loadHistory } from "./act/receipts.js";
 import { buildIdentity, policyFingerprint, renderBanner } from "./identity.js";
 import type { MarketSnapshot } from "./types.js";
 
@@ -78,6 +78,9 @@ export async function tick(cfg: Config, opts: { dryRun?: boolean } = {}): Promis
   const { publicClient, walletClient, agentAddress } = makeClients(cfg);
   const identity = buildIdentity(cfg);
   const snap = await sense(publicClient, cfg);
+  // Attach recent per-venue history so the risk engine can penalise deteriorating venues (temporal
+  // awareness). Prior receipts are the source; a fresh trail simply scores on levels.
+  snap.history = loadHistory(6);
   const fingerprint = policyFingerprint(snap, cfg);
 
   const base = buildPlan(snap, {
