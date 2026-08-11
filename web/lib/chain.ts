@@ -75,6 +75,8 @@ export const poolAbi = parseAbi([
   "function deposit(uint256 assets, address receiver) returns (uint256)",
   "function withdraw(uint256 assets, address receiver, address owner) returns (uint256)",
   "function redeem(uint256 shares, address receiver, address owner) returns (uint256)",
+  "function riskAppetiteOf(address) view returns (uint8)",
+  "function setRiskAppetite(uint8 tier)",
 ]);
 
 export const erc20Abi = parseAbi([

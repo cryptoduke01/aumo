@@ -4,6 +4,9 @@ import { sense } from "./sense/sense.js";
 import { buildPlan, type Plan } from "./brain/plan.js";
 import { reason } from "./brain/reason.js";
 import { stressTest } from "./risk/stress.js";
+import { readDepositorAppetite } from "./sense/appetite.js";
+import { BAND_RANK } from "./risk/engine.js";
+import type { Address } from "viem";
 import { execute, type MoveResult } from "./act/execute.js";
 import { record, loadHistory } from "./act/receipts.js";
 import { buildIdentity, policyFingerprint, renderBanner } from "./identity.js";
@@ -93,18 +96,26 @@ export async function tick(cfg: Config, opts: { dryRun?: boolean } = {}): Promis
   snap.history = loadHistory(6);
   const fingerprint = policyFingerprint(snap, cfg);
 
+  // Collective risk steering: depositors' share-weighted appetite, clamped to the owner's hard
+  // ceiling. Depositors can only steer the pool MORE conservative than the configured max.
+  const depositorAppetite = await readDepositorAppetite(publicClient, cfg.vaultAddress as Address);
+  const appetite =
+    depositorAppetite && BAND_RANK[depositorAppetite.band] < BAND_RANK[cfg.appetite]
+      ? depositorAppetite.band
+      : cfg.appetite;
+
   // Provisional plan (what we'd do with no stress constraints), then stress-test the portfolio it
   // would create. Fragile venues are denied new deploys and broad fragility pulls the regime down;
   // the base plan is rebuilt under those constraints before the LLM adds any further caution.
   const provisional = buildPlan(snap, {
-    appetite: cfg.appetite,
+    appetite,
     regime: "calm",
     maxConcentration: cfg.maxConcentration,
   });
-  const stress = stressTest(snap, provisional, cfg.appetite);
+  const stress = stressTest(snap, provisional, appetite);
   const stressDeny = new Set(stress.fragile);
   const base = buildPlan(snap, {
-    appetite: cfg.appetite,
+    appetite,
     regime: stress.recommendedRegime,
     maxConcentration: cfg.maxConcentration,
     deny: stressDeny,

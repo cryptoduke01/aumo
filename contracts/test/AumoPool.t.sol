@@ -353,6 +353,23 @@ contract AumoPoolTest is Test {
         assertApproxEqAbs(pool.totalAssets(), 100 * U, 2, "healthy remainder still priced");
     }
 
+    function test_SetRiskAppetite_AnyoneSetsOwnBounded() public {
+        // A depositor sets their own appetite; it's stored per-address.
+        vm.prank(alice);
+        pool.setRiskAppetite(3); // bold
+        assertEq(pool.riskAppetiteOf(alice), 3);
+        vm.prank(bob);
+        pool.setRiskAppetite(1); // conservative
+        assertEq(pool.riskAppetiteOf(bob), 1);
+        // Out-of-range tiers revert; it never affects funds or caps.
+        vm.prank(alice);
+        vm.expectRevert(AumoPool.InvalidAppetite.selector);
+        pool.setRiskAppetite(0);
+        vm.prank(alice);
+        vm.expectRevert(AumoPool.InvalidAppetite.selector);
+        pool.setRiskAppetite(4);
+    }
+
     function test_SetVenueImpaired_OnlyOwner() public {
         pool.setVenueAllowed(address(venue), true);
         // A stranger cannot impair.

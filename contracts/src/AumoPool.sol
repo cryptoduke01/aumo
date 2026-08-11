@@ -64,6 +64,14 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     // venue can't inflate NAV and let the first redeemers drain healthy liquidity.
     mapping(address => bool) public venueImpaired;
 
+    // Depositor-declared risk appetite (collective steering). 0 = unset, 1 = conservative,
+    // 2 = moderate, 3 = bold. This is a pure PREFERENCE SIGNAL — it never moves funds or relaxes a
+    // cap. The agent reads these, share-weights them off-chain, and uses the result as its appetite,
+    // always clamped to the owner's hard ceiling. So depositors can collectively steer the pool more
+    // conservative (or up to, never past) the hard bound the contract already enforces.
+    mapping(address => uint8) public riskAppetiteOf;
+    uint8 public constant MAX_APPETITE = 3;
+
     uint256 private constant DUST = 1e3; // ~0.001 USDT0 (6dp): residual dust tolerated on prune
     uint256 private constant MAX_VENUES = 12; // bound the totalAssets loop (gas / DoS)
     // Over-ask margin when pulling from a venue to cover a withdrawal: comfortably above any sane
@@ -83,7 +91,9 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     event PolicyUpdated(uint256 maxMoveSize, uint256 perVenueCap, uint256 maxTotalDeployed);
     event LossBudgetUpdated(uint256 maxEpochLoss, uint256 lossEpochLength);
     event DeployBudgetUpdated(uint256 maxEpochDeploy, uint256 deployEpochLength);
+    event RiskAppetiteSet(address indexed depositor, uint8 tier);
 
+    error InvalidAppetite();
     error NotAgent();
     error ZeroAgent();
     error VenueNotAllowed();
@@ -361,6 +371,16 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         perVenueCap = perVenueCap_;
         maxTotalDeployed = maxTotalDeployed_;
         emit PolicyUpdated(maxMoveSize_, perVenueCap_, maxTotalDeployed_);
+    }
+
+    /// @notice Declare your risk appetite (1 = conservative, 2 = moderate, 3 = bold). Anyone may set
+    ///         their own; it is a preference the agent share-weights off-chain and clamps to the
+    ///         owner's hard ceiling. It cannot move funds, relax a cap, or make the pool riskier than
+    ///         the on-chain limits already allow — only steer within them, or more conservative.
+    function setRiskAppetite(uint8 tier) external {
+        if (tier == 0 || tier > MAX_APPETITE) revert InvalidAppetite();
+        riskAppetiteOf[msg.sender] = tier;
+        emit RiskAppetiteSet(msg.sender, tier);
     }
 
     /// @notice Set the agent's per-epoch churn-loss budget. `maxEpochLoss_` is the most realized
