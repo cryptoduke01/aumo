@@ -15,6 +15,14 @@ export function proxy(req: NextRequest) {
   // Already targeting the app routes directly, or an asset/api path — leave it alone.
   if (pathname.startsWith("/app")) return NextResponse.next();
 
+  // Shared content pages (docs, whitepaper, legal) live at the TOP level, not under /app. On the app
+  // host they must be served as-is; rewriting them to /app/<page> hits a nonexistent route and 404s.
+  // Keep this in sync with app/(content)/*.
+  const CONTENT = ["/docs", "/whitepaper", "/privacy", "/terms"];
+  if (CONTENT.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    return NextResponse.next();
+  }
+
   const url = req.nextUrl.clone();
   url.pathname = pathname === "/" ? "/app" : `/app${pathname}`;
   return NextResponse.rewrite(url);
