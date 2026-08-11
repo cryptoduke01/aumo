@@ -1,6 +1,6 @@
 {
   "chainId": 1952,
-  "note": "X Layer testnet has no real DeFi, so these are mock adapters with illustrative metrics — two venues so the risk engine actually chooses between them. On mainnet these are the real Aave / Uniswap adapters with live reads.",
+  "note": "X Layer testnet has no real DeFi, so these are mock adapters with illustrative metrics — a lending-style pair plus a tokenized-RWA leg so the risk engine and the panel's peg specialist actually have an RWA venue to reason about. On mainnet these are the real Aave / Uniswap / USDG adapters with live reads.",
   "venues": [
     {
       "address": "0x923A9faAd9902CD7016D5E24615dc7af21AC9ad2",
@@ -23,6 +23,18 @@
       "utilization": 0.30,
       "protocolRisk": 0.12,
       "pegDeviationBps": 5
+    },
+    {
+      "address": "0x849E9e4AbbB0E25b34cA54f64B48aeEA8bdb3f95",
+      "name": "USDG T-Bill (RWA)",
+      "kind": "rwa",
+      "apyBps": 510,
+      "tvlUsd": 8000000,
+      "liquidityUsd": 3200000,
+      "utilization": 0.0,
+      "protocolRisk": 0.14,
+      "pegDeviationBps": 8,
+      "pegVerified": true
     }
   ]
 }
