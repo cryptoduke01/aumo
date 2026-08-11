@@ -156,6 +156,31 @@ function rateLimited(ip: string, now: number): boolean {
   return false;
 }
 
+// --- /ask cost controls ---------------------------------------------------------------------------
+// Under a traffic spike (a teaser, a viral post) the same handful of questions repeat, and the agent's
+// answer only changes when its state changes — once per tick. So we cache identical GENERIC questions
+// per state-version and serve most requests without touching the model; we cap total model calls per
+// day as a hard circuit-breaker; and we let /ask run a cheaper model than the money-path reasoning.
+const ASK_MODEL = process.env.ASK_MODEL || undefined; // e.g. claude-haiku-4-5-20251001; else cfg.model
+const ASK_CACHE_TTL = Number(process.env.ASK_CACHE_TTL_MS ?? 5 * 60_000);
+const ASK_DAILY_CAP = Number(process.env.ASK_DAILY_CAP ?? 3000); // model calls per day
+const ASK_CACHE_MAX = 1000;
+const askCache = new Map<string, { answer: string; at: number }>();
+let askCalls = { day: -1, count: 0 };
+
+function askOverBudget(now: number): boolean {
+  const day = Math.floor(now / 86_400_000);
+  if (day !== askCalls.day) askCalls = { day, count: 0 };
+  return askCalls.count >= ASK_DAILY_CAP;
+}
+// The agent's state version — its latest receipt timestamp. When a new tick lands, the version
+// changes and every cached answer is naturally invalidated.
+function stateVersion(): string {
+  const latest = readRecent(1)[0] as Decision | undefined;
+  return latest?.takenAt ?? "none";
+}
+const normQ = (q: string): string => q.toLowerCase().replace(/\s+/g, " ").trim();
+
 function readBody(req: IncomingMessage, cap = 4_000): Promise<string> {
   return new Promise((resolve, reject) => {
     let size = 0;
@@ -204,13 +229,28 @@ async function readYou(cfg: Config, address: Address, context: ReturnType<typeof
 
 async function askAgent(cfg: Config, question: string, address?: string): Promise<string> {
   if (!cfg.anthropicKey) return "My reasoning layer is offline right now, so I can only answer through the dashboard. Try again shortly.";
+  const now = Date.now();
+
+  // Cache only GENERIC (no-wallet) questions. A depositor's own position can change between ticks
+  // (they just deposited), so wallet-scoped answers must never be served stale.
+  const cacheable = !(address && isAddress(address));
+  const key = cacheable ? `${stateVersion()}|${normQ(question)}` : "";
+  if (cacheable) {
+    const hit = askCache.get(key);
+    if (hit && now - hit.at < ASK_CACHE_TTL) return hit.answer; // free: no model call
+  }
+  if (askOverBudget(now)) {
+    return "I'm fielding a lot of questions right now. Give me a minute and ask again, or explore the dashboard in the meantime.";
+  }
+
   const context = buildContext(cfg);
   const you = address && isAddress(address) ? await readYou(cfg, address as Address, context) : null;
   const grounding = you ? { ...context, you } : context;
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   const client = new Anthropic({ apiKey: cfg.anthropicKey });
+  askCalls.count++;
   const msg = await client.messages.create({
-    model: cfg.model,
+    model: ASK_MODEL ?? cfg.model, // /ask can run a cheaper model than the money-path reasoning
     max_tokens: 400,
     system: ASK_SYSTEM,
     messages: [
@@ -220,7 +260,12 @@ async function askAgent(cfg: Config, question: string, address?: string): Promis
       },
     ],
   });
-  return msg.content.map((b) => (b.type === "text" ? b.text : "")).join("\n").trim();
+  const answer = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("\n").trim();
+  if (cacheable && answer) {
+    if (askCache.size >= ASK_CACHE_MAX) askCache.delete(askCache.keys().next().value!); // evict oldest
+    askCache.set(key, { answer, at: now });
+  }
+  return answer;
 }
 
 /**
