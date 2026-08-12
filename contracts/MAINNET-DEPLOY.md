@@ -88,9 +88,11 @@ code bugs, and belong in the live runbook:
   valuation discount and assumes USDG holds its peg; there is no on-chain peg oracle by design (an
   oracle would add its own risk). If USDG depegs beyond that discount, early redeemers are made whole
   against slightly stale NAV and the gap socializes onto remaining holders (bounded per exit by the
-  2% swap floor). **Mitigation:** the owner watches the USDG peg; on a depeg, promptly
-  `setVenueImpaired(usdg, true)` (writes the venue down in NAV, agent cannot do this) and/or
-  `pause()`. Keep this monitor + response ready before funding.
+  2% swap floor). **Mitigation:** the agent now measures the USDG peg live each cycle from the
+  USDT0/USDG v3 pool (`pegSource`, F-2) and down-weights or vetoes the venue as it drifts, so new
+  allocations stop automatically on a depeg. The owner still holds the on-chain circuit breaker: on a
+  material depeg, promptly `setVenueImpaired(usdg, true)` (writes the venue down in NAV — the agent
+  cannot do this) and/or `pause()`. Keep this monitor + response ready before funding.
 - **After an adapter `emergencyWithdraw`.** It returns value to the pool as idle but cannot clear the
   pool's `allocated[venue]` / `totalDeployed`, so that venue keeps consuming cap headroom and a later
   `deallocate` reverts (`EmptyWithdraw`). NAV stays correct (it reads live balances). **Recovery:**
