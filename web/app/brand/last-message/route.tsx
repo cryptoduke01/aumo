@@ -57,7 +57,7 @@ export async function GET() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 48 }}>
           <div style={{ width: 10, height: 10, borderRadius: 9999, background: "#ffbc3e", display: "flex" }} />
-          <span style={{ fontSize: 26, color: "#c8c8c8" }}>@aumofinance · aumo.finance</span>
+          <span style={{ fontSize: 26, color: "#c8c8c8" }}>aumo.finance</span>
         </div>
       </div>
     ),
