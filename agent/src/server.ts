@@ -94,7 +94,7 @@ function buildContext(cfg: Config) {
         }
       : null,
     recentDecisions: recent.slice(1).map((r) => ({ takenAt: r.takenAt, summary: r.plan?.summary })),
-    strategy: STRATEGY,
+    strategy: strategyFor(cfg.chainId),
   };
 }
 
@@ -117,6 +117,14 @@ const STRATEGY = {
   howItScores:
     "Each venue's APY is haircut by protocol, liquidity, peg, utilization, and concentration risk into one risk-adjusted score. Aumo does not chase raw APY; it can only ever tighten toward safety.",
 };
+
+// On mainnet the venues are the real adapters, so the testnet "these are mocks" note must NOT reach
+// the model — it would otherwise tell a live depositor the pool holds MockYield/StableVault. Strip it.
+function strategyFor(chainId: number) {
+  if (chainId !== 196) return STRATEGY; // testnet: keep the mock-venues note
+  const { whatItIs, whereYieldComesFrom, mainnetVenues, howItScores } = STRATEGY;
+  return { whatItIs, whereYieldComesFrom, mainnetVenues, howItScores };
+}
 
 const ASK_SYSTEM = `You are Aumo, an autonomous treasury agent for stablecoins on X Layer. You put idle USDT0 to work in on-chain yield within strict, on-chain guardrails, and you prove every move. Speak in the first person as the agent.
 
