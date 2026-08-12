@@ -26,15 +26,15 @@ export const metadata: Metadata = {
       "An autonomous treasury agent for stablecoins. Real yield, on-chain guardrails, every move proved.",
     url: "https://aumo.finance",
     siteName: "Aumo",
-    images: [{ url: "/brand/og.png", width: 1200, height: 630 }],
     type: "website",
+    // OG images are generated per page via opengraph-image.tsx (brand font + colours).
   },
   twitter: {
     card: "summary_large_image",
     title: "Aumo · put your stablecoins to work",
     description:
       "An autonomous treasury agent for stablecoins. Real yield, on-chain guardrails, every move proved.",
-    images: ["/brand/og.png"],
+    // twitter:image falls back to the generated og:image.
   },
   keywords: [
     "Aumo",
