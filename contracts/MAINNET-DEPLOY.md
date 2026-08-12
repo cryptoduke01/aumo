@@ -11,8 +11,20 @@ mechanical when we decide to go. X Layer mainnet, chainId 196, RPC `https://rpc.
 | **Agent signer** | `0x2647904345d00Ef30d831935b913E5df1D58af67` | Turnkey-held key (org `b072be8b-…`, wallet `57537868-…`). Restricted by the signing policy to allocate/deallocate on the pool. Live-proven on testnet. |
 | Asset (USDT0) | `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` | canonical X Layer USDT0 |
 
-Venue adapter targets (Aave v3, USDG, Uniswap SwapRouter02) are hardcoded and fork-verified in
-`script/DeployPoolMainnet.s.sol` / the adapters.
+Venue adapter targets (Aave v3, USDG, Pendle PT-USDG, Uniswap SwapRouter02) are hardcoded and
+fork-verified in `script/DeployPoolMainnet.s.sol` / the adapters. Three venues deploy: AaveV3Adapter,
+RwaUsdgAdapter, PendlePtAdapter.
+
+### Pendle launch precondition (important)
+The Pendle PT-USDG market is new, and its price TWAP oracle needs bootstrapping before the agent can
+value or allocate there. Before the agent touches Pendle on mainnet:
+1. Call `PENDLE_MARKET.increaseObservationsCardinalityNext(cardinalityRequired)` once (permissionless),
+   where `cardinalityRequired` comes from `PendlePtOracle.getOracleState(market, 900)`.
+2. Wait until `getOracleState(market, 900)` returns `oldestObservationSatisfied = true`.
+Until then, `getPtToAssetRate` reverts (`OracleTargetTooOld`) and any allocate/NAV read on Pendle
+fails. **Recommended launch order:** allowlist Aave + USDG first, run a few clean cycles, then
+allowlist Pendle once its oracle is satisfied (or verify the oracle is already satisfied at deploy —
+the market has been live since 2026-08-11, so by launch it likely is; check, don't assume).
 
 ## Pre-deploy checklist
 
