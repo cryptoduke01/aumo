@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
+import { CookieNotice } from "@/components/cookie-notice";
 
 // PP Neue Montreal - the brand's primary typeface, self-hosted.
 const neueMontreal = localFont({
@@ -106,6 +107,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
         />
         <Providers>{children}</Providers>
+        <CookieNotice />
       </body>
     </html>
   );

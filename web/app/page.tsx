@@ -6,6 +6,7 @@ import { Orb } from "@/components/orb";
 import { AumoMark } from "@/components/mark";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { Faq } from "@/components/faq";
 
 function ArrowOut({ className = "" }: { className?: string }) {
   return (
@@ -287,6 +288,8 @@ export default function Landing() {
           </p>
         </div>
       </section>
+
+      <Faq />
 
       {/* ── closing ─────────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden border-t border-border/70">

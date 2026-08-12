@@ -33,6 +33,7 @@ const learn: [string, string][] = [
   ["/whitepaper", "Whitepaper"],
   ["/research", "Research"],
   ["/ecosystem", "Ecosystem"],
+  ["/brand", "Brand"],
   ["/privacy", "Privacy"],
   ["/terms", "Terms"],
 ];

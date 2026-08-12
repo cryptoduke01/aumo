@@ -29,7 +29,7 @@ export function proxy(req: NextRequest) {
   // Shared content pages (docs, whitepaper, legal) live at the TOP level, not under /app. On the app
   // host they must be served as-is; rewriting them to /app/<page> hits a nonexistent route and 404s.
   // Keep this in sync with app/(content)/*.
-  const CONTENT = ["/docs", "/whitepaper", "/research", "/ecosystem", "/pitch", "/privacy", "/terms"];
+  const CONTENT = ["/docs", "/whitepaper", "/research", "/ecosystem", "/brand", "/pitch", "/privacy", "/terms"];
   if (CONTENT.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return NextResponse.next();
   }
