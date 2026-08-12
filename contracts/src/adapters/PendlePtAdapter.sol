@@ -328,9 +328,15 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
         pt.forceApprove(address(router), 0); // never leave a standing allowance
     }
 
-    /// @dev PT amount -> USDG value at the TWAP oracle rate (both 6dp; rate is 1e18-scaled).
+    /// @dev PT amount -> USDG value at the TWAP oracle rate (both 6dp; rate is 1e18-scaled). The rate
+    ///      is clamped to par (1e18): a Principal Token redeems exactly 1:1 for the asset at maturity
+    ///      and trades at a discount before it, so it can never be worth MORE than par. Clamping caps
+    ///      any oracle overvaluation (a thin-market TWAP push, or a bad oracle return) at the true
+    ///      ceiling, so NAV — and therefore share price — cannot be inflated above face value.
     function _valueUsdg(uint256 ptAmount) internal view returns (uint256) {
-        return (ptAmount * ptOracle.getPtToAssetRate(market, twapDuration)) / 1e18;
+        uint256 rate = ptOracle.getPtToAssetRate(market, twapDuration);
+        if (rate > 1e18) rate = 1e18;
+        return (ptAmount * rate) / 1e18;
     }
 
     function _uniSwap(IERC20 tokenIn, address tokenOut, uint256 amountIn, uint256 minOut)
