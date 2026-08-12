@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import { parseAbi } from "viem";
 import { POOL, poolAbi, activeChain } from "@/lib/chain";
-import { getReceipts, addrUrl, amount, pct, type DecisionRecord } from "@/lib/agent";
+import { getReceipts, addrUrl, amount, pct, short, type DecisionRecord } from "@/lib/agent";
 import { Panel, Label } from "@/components/ui";
 import { Num } from "@/components/num";
 import { Loader } from "@/components/loader";
@@ -81,8 +81,21 @@ export default function InsightsPage() {
 
   if (!isOwner) {
     return wrap(
-      <Panel className="p-10 text-center">
+      <Panel className="flex flex-col items-center gap-4 p-10 text-center">
         <p className="text-sm text-muted-foreground">Restricted. This wallet is not the pool owner.</p>
+        <dl className="flex flex-col gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <dt className="w-24 text-right text-faint">Connected</dt>
+            <dd className="font-mono text-foreground">{short(address!)}</dd>
+          </div>
+          <div className="flex items-center gap-2">
+            <dt className="w-24 text-right text-faint">Pool owner</dt>
+            <dd className="font-mono text-foreground">{owner.data ? short(owner.data as string) : "—"}</dd>
+          </div>
+        </dl>
+        <p className="max-w-sm text-xs text-faint">
+          Connect the wallet that owns this pool to view traction. On mainnet, that is the owner wallet set at deploy.
+        </p>
       </Panel>,
     );
   }
