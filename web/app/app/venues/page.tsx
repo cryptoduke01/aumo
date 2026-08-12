@@ -52,7 +52,8 @@ export default function VenuesPage() {
       <header className="flex flex-col gap-1 border-b border-border pb-6">
         <h1 className="text-xl font-medium tracking-tight">Venues</h1>
         <span className="text-xs text-muted-foreground">
-          Every allowlisted venue and how the risk engine scores it. The agent can allocate to these and nowhere else.
+          Real-world-asset and lending yield, allowlisted and scored. Treasury-backed USDG and Pendle fixed
+          yield sit alongside on-chain lending; the agent can allocate to these and nowhere else.
         </span>
       </header>
 
@@ -86,15 +87,16 @@ function VenueCard({ venue, risk }: { venue: VenueSnapshot; risk?: VenueRisk }) 
     ["Peg deviation", `${venue.pegDeviationBps} bps`],
     ["TVL", usd(venue.tvlUsd)],
     ["Liquidity", usd(venue.liquidityUsd)],
-    ["Kind", venue.kind],
+    ["Kind", venue.kind === "rwa" ? "Real-world asset" : venue.kind === "lending" ? "Lending" : venue.kind],
   ];
   return (
     <Panel className="flex flex-col p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <span className="flex items-center gap-2 font-medium text-foreground">
+          <span className="flex flex-wrap items-center gap-2 font-medium text-foreground">
             <VenueIcon name={venue.name} className="size-4 text-muted-foreground" />
             {venue.name}
+            {venue.kind === "rwa" ? <Badge tone="accent">RWA · Treasury-backed</Badge> : null}
           </span>
           <a className="font-mono text-[11px] text-faint underline decoration-border underline-offset-2 hover:text-accent" href={addrUrl(venue.address)} target="_blank" rel="noreferrer">
             {short(venue.address)} ↗

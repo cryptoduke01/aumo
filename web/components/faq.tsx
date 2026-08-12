@@ -15,6 +15,10 @@ const FAQ: { q: string; a: string }[] = [
     a: "Real income, not speculation. USDT0 keeps its dollar peg, so the return is the interest the venues pay: on-chain lending yield on Aave, the yield on USDG (a Treasury-backed dollar), and Pendle fixed yield.",
   },
   {
+    q: "Is this real-world-asset (RWA) yield?",
+    a: "Yes. USDG is a regulated dollar backed by cash and short-term US Treasuries, so allocating into it is real-world-asset exposure, and Aumo also buys Pendle PT-USDG for a fixed, defined yield on that Treasury-backed dollar. Aumo is an AI agent whose core job is routing idle stablecoins into tokenized real-world-asset yield, on X Layer, preservation first.",
+  },
+  {
     q: "What do I deposit, and is there a minimum?",
     a: "USDT0 on X Layer, plus a little OKB for gas. No minimum and no lock-up. You receive pool shares and can redeem any time for your share of the pool plus any yield it earned.",
   },
