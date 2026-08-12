@@ -158,4 +158,32 @@ contract PendlePtAdapterForkTest is Test {
         // Only the two Uniswap legs cost anything now (no PT market impact), so recovery is tighter.
         assertGt(pool.idleBalance(), (amount * 95) / 100, "near-par redemption at maturity");
     }
+
+    /// @notice Availability hardening: if the PT oracle reverts, balanceOf must NOT revert (which would
+    ///         brick the pool's pool-wide totalAssets). It falls open to the last good rate instead.
+    function test_pendle_balanceOf_fails_open_when_oracle_reverts() public {
+        if (!active) {
+            vm.skip(true);
+            return;
+        }
+        uint256 amount = 500e6;
+        _fund(amount);
+        vm.prank(agent);
+        pool.allocate(address(adapter), amount, "pendle-pt-usdg"); // caches lastGoodRate
+        uint256 navBefore = pool.venueBalance(address(adapter));
+        assertGt(navBefore, 0, "nav established");
+
+        // Force the oracle to revert: demand a TWAP window far longer than the market's history.
+        vm.prank(owner);
+        adapter.setTwapDuration(3_000_000);
+
+        // The live read now reverts, but balanceOf must still return (using lastGoodRate), so the
+        // pool's totalAssets is never bricked by a single venue's oracle hiccup.
+        uint256 navAfter = pool.venueBalance(address(adapter));
+        assertApproxEqRel(navAfter, navBefore, 0.005e18, "NAV falls open to last good rate, not a revert");
+        // And a live deposit/withdraw path that needs the live oracle fails safely (does not corrupt).
+        vm.prank(agent);
+        vm.expectRevert();
+        pool.deallocate(address(adapter), type(uint256).max);
+    }
 }

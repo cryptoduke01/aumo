@@ -151,6 +151,10 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
     uint256 public pendleSlippageBps; // floor on each USDG<->PT Pendle leg
     uint256 public valuationDiscountBps; // NAV haircut in balanceOf (marginal round-trip cost)
     uint32 public twapDuration; // PT oracle TWAP window (seconds)
+    // Last clamped PT->asset rate from a successful oracle read on the money path. balanceOf falls
+    // back to it if the live oracle reverts, so a Pendle oracle hiccup can never brick the pool's
+    // pool-wide totalAssets. It is a real, recent, par-clamped TWAP value, not attacker-set.
+    uint256 public lastGoodRate;
 
     event SlippageUpdated(uint256 uniBps, uint256 pendleBps);
     event ValuationDiscountUpdated(uint256 bps);
@@ -251,7 +255,7 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
     ///      above the oracle-implied amount; guessMin stays 0 so the search always converges, and
     ///      minPtOut is the hard safety floor.
     function _buyPt(uint256 usdgIn) internal returns (uint256 netPtOut) {
-        uint256 rate = ptOracle.getPtToAssetRate(market, twapDuration); // 1e18: USDG per PT
+        uint256 rate = _rateLive(); // 1e18: USDG per PT (par-clamped; caches the NAV fallback)
         uint256 expectedPt = (usdgIn * 1e18) / rate; // PT is cheaper than par, so more PT than USDG
         uint256 minPtOut = (expectedPt * (10_000 - pendleSlippageBps)) / 10_000;
 
@@ -273,7 +277,7 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
         if (ptBal == 0) return 0;
         // `amount` is in USDT0 (~USDG) terms. Sell just enough PT to cover it, or all on the max
         // sentinel / an over-ask. Sizing uses the same TWAP value the pool sees.
-        uint256 curVal = _valueUsdg(ptBal);
+        uint256 curVal = _valueUsdgLive(ptBal);
         uint256 ptToSell =
             (amount == type(uint256).max || amount >= curVal || curVal == 0) ? ptBal : (ptBal * amount) / curVal;
         if (ptToSell == 0) return 0;
@@ -302,7 +306,7 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
     function balanceOf(address) external view returns (uint256) {
         uint256 ptBal = pt.balanceOf(address(this));
         if (ptBal == 0) return 0;
-        uint256 usdgVal = _valueUsdg(ptBal); // USDG ~ USDT0 (both dollar-pegged, equal decimals)
+        uint256 usdgVal = (ptBal * _rateView()) / 1e18; // fail-open NAV; USDG ~ USDT0 (both 6dp)
         return (usdgVal * (10_000 - valuationDiscountBps)) / 10_000;
     }
 
@@ -311,7 +315,7 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
     /// @dev Sell `ptAmount` PT for USDG, flooring output at the TWAP value minus `slippageBps`. Uses
     ///      the market before maturity and the 1:1 redeem after.
     function _ptToUsdg(uint256 ptAmount, uint256 slippageBps) internal returns (uint256 gotUsdg) {
-        uint256 minUsdg = slippageBps == 0 ? 0 : (_valueUsdg(ptAmount) * (10_000 - slippageBps)) / 10_000;
+        uint256 minUsdg = slippageBps == 0 ? 0 : (_valueUsdgLive(ptAmount) * (10_000 - slippageBps)) / 10_000;
         pt.forceApprove(address(router), ptAmount);
         TokenOutput memory out = TokenOutput({
             tokenOut: address(usdg),
@@ -328,15 +332,35 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
         pt.forceApprove(address(router), 0); // never leave a standing allowance
     }
 
-    /// @dev PT amount -> USDG value at the TWAP oracle rate (both 6dp; rate is 1e18-scaled). The rate
-    ///      is clamped to par (1e18): a Principal Token redeems exactly 1:1 for the asset at maturity
-    ///      and trades at a discount before it, so it can never be worth MORE than par. Clamping caps
-    ///      any oracle overvaluation (a thin-market TWAP push, or a bad oracle return) at the true
-    ///      ceiling, so NAV — and therefore share price — cannot be inflated above face value.
-    function _valueUsdg(uint256 ptAmount) internal view returns (uint256) {
-        uint256 rate = ptOracle.getPtToAssetRate(market, twapDuration);
-        if (rate > 1e18) rate = 1e18;
-        return (ptAmount * rate) / 1e18;
+    /// @dev PT is clamped to par (1e18): a Principal Token redeems exactly 1:1 for the asset at
+    ///      maturity and trades at a discount before it, so it can never be worth MORE than par.
+    ///      Clamping caps any oracle overvaluation (a thin-market TWAP push, or a bad return) at the
+    ///      true ceiling, so NAV — and therefore share price — cannot be inflated above face value.
+    function _clampRate(uint256 r) internal pure returns (uint256) {
+        return r > 1e18 ? 1e18 : r;
+    }
+
+    /// @dev Live rate for the money path. Caches it as the NAV fallback. May revert if the oracle is
+    ///      not ready — that fails the deposit/withdraw safely; the pool is unaffected.
+    function _rateLive() internal returns (uint256 r) {
+        r = _clampRate(ptOracle.getPtToAssetRate(market, twapDuration));
+        lastGoodRate = r;
+    }
+
+    /// @dev Rate for NAV reads. Falls back to the last good rate if the oracle reverts, so a Pendle
+    ///      oracle hiccup can never brick the pool's pool-wide totalAssets: it just uses the most
+    ///      recent real, par-clamped rate.
+    function _rateView() internal view returns (uint256 r) {
+        try ptOracle.getPtToAssetRate(market, twapDuration) returns (uint256 live) {
+            r = _clampRate(live);
+        } catch {
+            r = lastGoodRate;
+        }
+    }
+
+    /// @dev PT amount -> USDG value at the live rate (both 6dp; rate is 1e18-scaled). Money-path only.
+    function _valueUsdgLive(uint256 ptAmount) internal returns (uint256) {
+        return (ptAmount * _rateLive()) / 1e18;
     }
 
     function _uniSwap(IERC20 tokenIn, address tokenOut, uint256 amountIn, uint256 minOut)
