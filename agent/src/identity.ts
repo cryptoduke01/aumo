@@ -91,15 +91,17 @@ export function buildIdentity(cfg: Config): AgentIdentity {
  */
 export function policyFingerprint(snap: MarketSnapshot, cfg: Config): string {
   const vault = snap.vault;
-  // Fold the sorted venue allowlist into the stamp: the guardrails that matter most (which venues
-  // the agent may touch) must change the fingerprint when they change, or the non-repudiation claim
-  // ("a decision is bound to the exact policy in force") is false for exactly the part F-1/F-2 make
-  // most sensitive. (F-4) The loss-budget params fold in here too once the pool exposes them on-chain
-  // (post-redeploy from the fixed source — the current live pool has no maxEpochLoss selector).
+  // Fold the sorted venue allowlist AND the per-epoch loss/deploy budgets into the stamp: the
+  // guardrails that matter most (which venues the agent may touch, and how much churn-loss it may
+  // realize per epoch) must change the fingerprint when they change, or the non-repudiation claim
+  // ("a decision is bound to the exact policy in force") is false for exactly the parts F-1/F-2 make
+  // most sensitive. (F-4) Budgets are null on a pool that doesn't expose the getters (an older
+  // redeploy) and stamp their value on one that does — deterministic per pool either way.
   const allowlist = snap.venues
     .filter((v) => v.allowed)
     .map((v) => v.address.toLowerCase())
     .sort();
+  const b = (x: bigint | null | undefined) => (x != null ? x.toString() : null);
   const canonical = JSON.stringify({
     chainId: cfg.chainId,
     vault: vault.address.toLowerCase(),
@@ -110,6 +112,8 @@ export function policyFingerprint(snap: MarketSnapshot, cfg: Config): string {
     appetite: cfg.appetite,
     maxConcentration: cfg.maxConcentration,
     allowlist,
+    lossBudget: { max: b(vault.maxEpochLoss), epoch: b(vault.lossEpochLength) },
+    deployBudget: { max: b(vault.maxEpochDeploy), epoch: b(vault.deployEpochLength) },
   });
   return keccak256(toHex(canonical));
 }

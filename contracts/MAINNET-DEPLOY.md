@@ -26,6 +26,17 @@ fails. **Recommended launch order:** allowlist Aave + USDG first, run a few clea
 allowlist Pendle once its oracle is satisfied (or verify the oracle is already satisfied at deploy —
 the market has been live since 2026-08-11, so by launch it likely is; check, don't assume).
 
+### USDG peg source (agent-side, F-2) — optional robustness bump
+The agent measures USDG's deviation from $1 live from the USDT0/USDG Uniswap v3 pool
+`0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA` (fee 100), preferring a 300s TWAP (`pegSource` in
+`agent/config/venues.mainnet.json`). The reader is fail-conservative: if the TWAP can't be served it
+falls back to spot and reports the peg **unverified**, which makes the risk engine floor peg risk
+(the agent stays cautious) rather than trust a value. Verified live today
+(`{pegDeviationBps:10, verified:true, source:"twap"}`). The pool's observation cardinality is 1, so
+for a rock-solid TWAP you may optionally call `increaseObservationsCardinalityNext(60)` on that pool
+once (permissionless, ~one cheap tx) and let it fill — not required, purely to keep the reading
+`verified` under heavy pool activity instead of degrading to the conservative floor.
+
 ## Pre-deploy checklist
 
 - [ ] **Rotate the Turnkey API key** (delete "Aumo", create fresh); delete the downloaded creds JSON.

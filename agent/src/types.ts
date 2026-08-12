@@ -17,6 +17,13 @@ export interface VaultState {
   perVenueCap: bigint; // hard cap of principal per venue
   maxTotalDeployed: bigint; // hard global cap
   paused: boolean;
+  // Per-epoch churn budgets. Present only on pools that expose the getters; null when a pool
+  // (e.g. an older redeploy) lacks them. Folded into the policy fingerprint so a decision is bound
+  // to the loss/deploy limits that were in force when it was made. (F-4)
+  maxEpochLoss?: bigint | null;
+  lossEpochLength?: bigint | null;
+  maxEpochDeploy?: bigint | null;
+  deployEpochLength?: bigint | null;
 }
 
 /** Optional live-market source. When present, its reads override the static metrics. */
@@ -24,6 +31,18 @@ export interface VenueFeed {
   source: "aave";
   pool: Address; // Aave v3 Pool
   underlying: Address; // the reserve asset (USDT0)
+}
+
+/**
+ * Optional live peg source (F-2): the Uniswap v3 pool that quotes an RWA/stable yield asset against
+ * the numeraire (USDT0). When present, `readVenueState` measures the asset's deviation from $1 each
+ * cycle and only marks it verified when a manipulation-resistant TWAP is available.
+ */
+export interface PegSource {
+  kind: "univ3Twap";
+  pool: Address; // the yield-asset / numeraire Uniswap v3 pool
+  yieldToken: Address; // the asset whose $1 peg we measure (e.g. USDG)
+  twapWindowSec: number; // TWAP window in seconds; falls back to spot (unverified) if unavailable
 }
 
 /** Market metadata for a venue (from the feed). */
@@ -41,6 +60,7 @@ export interface VenueMeta {
   // when false/absent for an RWA venue, the risk engine floors peg risk conservatively (F-2) rather
   // than trusting a static/zero value as a perfect peg
   feed?: VenueFeed; // when set, live reads replace the static market metrics
+  pegSource?: PegSource; // when set, the live peg is measured on-chain each cycle (F-2)
 }
 
 /** Venue metadata joined with its live on-chain position. */

@@ -2,6 +2,7 @@ import type { PublicClient } from "viem";
 import { vaultAbi, erc20Abi } from "./abi.js";
 import type { Address, VaultState, VenueMeta, VenueState } from "../types.js";
 import { readAaveMarket } from "../sense/aaveFeed.js";
+import { readPeg } from "../sense/pegFeed.js";
 
 export async function readVaultState(
   pc: PublicClient,
@@ -35,6 +36,24 @@ export async function readVaultState(
     pc.readContract({ address: asset, abi: erc20Abi, functionName: "symbol" }),
   ]);
 
+  // Per-epoch churn budgets, read defensively: a pool that predates these getters simply reports
+  // null and the fingerprint omits them (F-4). One missing selector must not fail the whole read.
+  const readOpt = async (
+    functionName: "maxEpochLoss" | "lossEpochLength" | "maxEpochDeploy" | "deployEpochLength",
+  ): Promise<bigint | null> => {
+    try {
+      return (await pc.readContract({ ...c, functionName })) as bigint;
+    } catch {
+      return null;
+    }
+  };
+  const [maxEpochLoss, lossEpochLength, maxEpochDeploy, deployEpochLength] = await Promise.all([
+    readOpt("maxEpochLoss"),
+    readOpt("lossEpochLength"),
+    readOpt("maxEpochDeploy"),
+    readOpt("deployEpochLength"),
+  ]);
+
   return {
     address: vault,
     asset,
@@ -48,6 +67,10 @@ export async function readVaultState(
     perVenueCap,
     maxTotalDeployed,
     paused,
+    maxEpochLoss,
+    lossEpochLength,
+    maxEpochDeploy,
+    deployEpochLength,
   };
 }
 
@@ -106,5 +129,21 @@ export async function readVenueState(
     }
   }
 
-  return { ...meta, ...market, allowed, allocatedPrincipal, liveBalance };
+  // Live peg (F-2): measure the yield asset's deviation from $1 on-chain. Keep the higher of the
+  // curated static floor and the live reading so a benign spot can't mask a curated concern, and
+  // only trust `pegVerified` when a TWAP produced it. Any failure leaves the venue unverified, which
+  // makes the risk engine floor its peg risk — fail conservative, never silently perfect-pegged.
+  let pegDeviationBps = meta.pegDeviationBps;
+  let pegVerified = meta.pegVerified ?? false;
+  if (meta.pegSource) {
+    try {
+      const p = await readPeg(pc, meta.pegSource);
+      pegDeviationBps = Math.max(meta.pegDeviationBps, p.pegDeviationBps);
+      pegVerified = p.verified;
+    } catch {
+      pegVerified = false;
+    }
+  }
+
+  return { ...meta, ...market, pegDeviationBps, pegVerified, allowed, allocatedPrincipal, liveBalance };
 }
