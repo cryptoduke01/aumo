@@ -188,12 +188,12 @@ export default function EcosystemPage() {
 
         <h2 id="s7">7. Where it stands</h2>
         <p>
-          Aumo is live on X Layer testnet with the full stack running: the pooled vault, the reasoning
-          agent, three venues, per-depositor positions, provable receipts, and an agent whose signing
-          key is held in a secure enclave rather than a hot environment. The contracts are covered by
-          74 tests plus an invariant suite, and all three mainnet venues are fork-proven against live X
-          Layer. The mainnet launch, the one remaining eligibility step, is imminent and deliberate:
-          the pool deploys paused, ownership moves to a multisig, and go-live is a verified unpause.
+          Aumo runs the full stack on X Layer: the pooled vault, the reasoning agent, three venues
+          (Aave lending, a Treasury-backed dollar, and Pendle fixed yield), per-depositor positions,
+          provable receipts, and an agent whose signing key is held in a secure enclave rather than a
+          hot environment. Every venue is fork-proven against live X Layer contracts, and the pool is
+          covered by 74 tests plus an invariant suite. Launch is deliberate by design: the pool
+          deploys paused with conservative caps, and go-live is a verified unpause.
         </p>
 
         <h2 id="s8">8. The compounding thesis</h2>
