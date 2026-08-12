@@ -9,6 +9,17 @@ export function proxy(req: NextRequest) {
   const host = (req.headers.get("host") ?? "").split(":")[0];
   const { pathname } = req.nextUrl;
 
+  // docs.aumo.finance serves the docs page at its own root (docs.aumo.finance/ -> /docs). Other
+  // paths (assets, a future /docs/*) resolve directly.
+  if (host === "docs.aumo.finance" || host.startsWith("docs.")) {
+    if (pathname === "/") {
+      const docsUrl = req.nextUrl.clone();
+      docsUrl.pathname = "/docs";
+      return NextResponse.rewrite(docsUrl);
+    }
+    return NextResponse.next();
+  }
+
   const onAppHost = host === "app.aumo.finance" || host.startsWith("app.");
   if (!onAppHost) return NextResponse.next();
 

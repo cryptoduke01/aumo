@@ -17,6 +17,8 @@ import { ConnectButton } from "@/components/wallet";
 import { BridgeIn } from "@/components/bridge-in";
 import { Num } from "@/components/num";
 import { Orb } from "@/components/orb";
+import { DepositModal } from "@/components/deposit-modal";
+import { useRouter } from "next/navigation";
 import { txUrl, getReceipts, pct } from "@/lib/agent";
 
 const DEC = 6;
@@ -55,6 +57,8 @@ export default function VaultPage() {
 
   const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
+  const [depositDone, setDepositDone] = useState<string | null>(null); // amount, when a deposit lands
+  const router = useRouter();
 
   // Pool TVL is public, always read it, even before a wallet connects.
   const tvlRead = useReadContract({
@@ -161,11 +165,18 @@ export default function VaultPage() {
     }
     // deposit or withdraw settled
     tvlRead.refetch();
+    const wasDeposit = p?.action === "deposit";
+    const settledAmount = amount; // capture before clearing the input
     setAmount("");
     pending.current = null;
-    toast.success("Transaction confirmed", {
-      action: hash ? { label: "View", onClick: () => window.open(txUrl(hash), "_blank") } : undefined,
-    });
+    if (wasDeposit) {
+      // A deposit is the handoff moment — celebrate it with the modal instead of a terse toast.
+      setDepositDone(settledAmount);
+    } else {
+      toast.success("Transaction confirmed", {
+        action: hash ? { label: "View", onClick: () => window.open(txUrl(hash), "_blank") } : undefined,
+      });
+    }
     cancelReset();
     resetTimer.current = setTimeout(() => reset(), 4000);
     return () => cancelReset();
@@ -242,6 +253,16 @@ export default function VaultPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
+      <DepositModal
+        open={depositDone !== null}
+        amount={depositDone ?? ""}
+        symbol="USDT0"
+        onClose={() => setDepositDone(null)}
+        onView={() => {
+          setDepositDone(null);
+          router.push("/app");
+        }}
+      />
       <header className="flex flex-col gap-1 border-b border-border pb-6">
         <h1 className="text-xl font-medium tracking-tight">Deposit</h1>
         <span className="text-xs text-muted-foreground">
