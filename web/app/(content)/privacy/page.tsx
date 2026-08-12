@@ -61,8 +61,9 @@ export default function PrivacyPage() {
 
         <h2>Analytics</h2>
         <p>
-          The app does not run third-party analytics or behavioural tracking. We do
-          not build advertising profiles and we do not sell data. There is nothing
+          We use privacy-friendly, cookieless analytics (Vercel Web Analytics and Speed Insights) to
+          understand aggregate traffic and performance. It does not use tracking cookies, does not
+          build advertising profiles, and does not identify you. We do not sell data. There is nothing
           to sell.
         </p>
 

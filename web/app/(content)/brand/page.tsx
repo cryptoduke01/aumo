@@ -44,12 +44,27 @@ export default function BrandPage() {
       </header>
 
       <article className="prose py-14">
-        <h2 id="mark">The mark</h2>
+        <h2 id="story">The story</h2>
         <p>
-          A chamfered square holding a smaller square: a vault, and the value kept safe inside it. It is
-          the whole logo. Give it room, and never redraw, rotate, stretch, or recolour it outside the
-          palette below.
+          Aumo is an autonomous treasury agent for stablecoins on X Layer. Someone deposits stablecoins,
+          and an AI agent puts them to work in tokenized real-world-asset yield, on its own, within
+          strict limits, proving every move on-chain. In three words: <em>giving a stablecoin a job.</em>
         </p>
+        <p>
+          The name is a tell. <strong>Au</strong> is the chemical symbol for gold, so Aumo reads as
+          <em> [Au]mo</em> — value, built in before a word of explanation. Gold is old and simple, and it
+          already signals worth and trust.
+        </p>
+
+        <h2 id="mark">The mark</h2>
+        <p>One small shape that reads four ways at once:</p>
+        <ul>
+          <li><strong>The letter “a.”</strong> The wordmark, compressed to a single glyph.</li>
+          <li><strong>A safe.</strong> Closed, holding something valuable inside it.</li>
+          <li><strong>An agent.</strong> The slight cut on the corner says it moves and works on its own, not money sitting still. Always ready to do something.</li>
+          <li><strong>Gold.</strong> Au, the chemical symbol, because value and trust should be legible before anyone explains them.</li>
+        </ul>
+        <p>It is the whole logo. Give it room, and never redraw, rotate, stretch, or recolour it outside the palette below.</p>
         <div className="not-prose my-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <MarkTile bg="#EDEAE1" label="Ink on cream (avatar)">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -76,13 +91,22 @@ export default function BrandPage() {
 
         <h2 id="type">Typeface</h2>
         <p>
-          PP Neue Montreal, everywhere. A grotesque with just enough character: neutral for data, warm
-          for a headline. Use Medium for titles, Regular for body. Nothing else.
+          PP Neue Montreal by Pangram Pangram, everywhere. It was made for screens, not adapted to them:
+          clean without being cute, confident without shouting. That matters when the product’s whole
+          job is holding people’s money. It works everywhere Aumo shows up, so it never gets in the way
+          of the numbers. Medium for titles, Regular for body. Nothing else.
         </p>
         <div className="not-prose my-8 rounded-xl border border-border bg-surface/50 p-8">
           <div className="text-5xl font-medium tracking-tight text-foreground">Aa Gg 0123</div>
           <div className="mt-3 text-lg text-muted-foreground">The autonomous treasury for stablecoins.</div>
         </div>
+
+        <h2 id="usage">Using the mark</h2>
+        <ul>
+          <li>Keep clear space around the mark. No other logo, text, or edge inside it.</li>
+          <li>Below 24px, drop the outer ring. The inner solid square still reads.</li>
+          <li>Never recolour outside the palette. Never rotate or tilt it. Never stretch, squash, or distort its proportions.</li>
+        </ul>
 
         <h2 id="voice">Voice</h2>
         <ul>

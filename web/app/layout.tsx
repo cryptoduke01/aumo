@@ -4,6 +4,8 @@ import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 import { CookieNotice } from "@/components/cookie-notice";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // PP Neue Montreal - the brand's primary typeface, self-hosted.
 const neueMontreal = localFont({
@@ -108,6 +110,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
         <Providers>{children}</Providers>
         <CookieNotice />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
