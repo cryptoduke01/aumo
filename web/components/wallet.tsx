@@ -13,6 +13,7 @@ import {
   type Connector,
 } from "wagmi";
 import { AnimatePresence, motion } from "motion/react";
+import { track } from "@vercel/analytics/react";
 import { toast } from "sonner";
 import { activeChain } from "@/lib/chain";
 import { short, addrUrl } from "@/lib/agent";
@@ -41,6 +42,22 @@ export function ConnectButton() {
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
   const [open, setOpen] = useState(false);
+
+  // Funnel signal: count each wallet that connects (privacy-safe — the event carries NO address, so
+  // it stays consistent with the cookieless "does not identify you" analytics promise). Fires once
+  // per newly-connected wallet. Cross-referenced with on-chain depositors on /app/insights to see
+  // how many connections became deposits.
+  const tracked = useRef<string | null>(null);
+  useEffect(() => {
+    if (isConnected && address) {
+      if (tracked.current !== address) {
+        tracked.current = address;
+        track("wallet_connected");
+      }
+    } else {
+      tracked.current = null;
+    }
+  }, [isConnected, address]);
 
   if (isConnected && chainId !== activeChain.id) {
     return (
