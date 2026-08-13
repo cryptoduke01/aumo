@@ -18,8 +18,8 @@ export interface CriticVerdict {
 }
 
 // Thresholds are intentionally stricter than the engine's — the critic is the second opinion.
-const MOMENTUM_VETO = 0.5; // don't ADD to a venue this far into deterioration
-const LIQUIDITY_SHARE_CAP = 0.25; // a position may not exceed this share of a venue's exit liquidity
+export const MOMENTUM_VETO = 0.5; // don't ADD to a venue this far into deterioration
+export const LIQUIDITY_SHARE_CAP = 0.25; // a position may not exceed this share of a venue's exit liquidity
 export const IDLE_FLOOR = 0.05; // keep at least this share of the pool as dry powder
 
 export function critique(snap: MarketSnapshot, plan: Plan): Plan {

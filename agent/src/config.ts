@@ -55,6 +55,14 @@ export interface Config {
   venuesNote?: string;
 }
 
+// A finite number from an env var, within [min, max], else the default. Prevents a non-numeric env
+// (e.g. MAX_CONCENTRATION="high") from becoming NaN and later throwing BigInt(NaN) in the planner —
+// which would make every tick throw and the agent silently do nothing forever.
+function numEnv(raw: string | undefined, def: number, min: number, max: number): number {
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= min && n <= max ? n : def;
+}
+
 export function loadConfig(): Config {
   const venuesFile = process.env.VENUES_FILE ?? "testnet";
   const feedPath = join(ROOT, "config", `venues.${venuesFile}.json`);
@@ -86,8 +94,8 @@ export function loadConfig(): Config {
     anthropicKey: process.env.ANTHROPIC_API_KEY?.trim() || undefined,
     model: process.env.AUMO_MODEL ?? "claude-sonnet-4-5",
     appetite: bandFrom(process.env.RISK_APPETITE),
-    maxConcentration: Number(process.env.MAX_CONCENTRATION ?? "0.6"),
-    loopIntervalMs: Number(process.env.LOOP_INTERVAL_SECONDS ?? "900") * 1000,
+    maxConcentration: numEnv(process.env.MAX_CONCENTRATION, 0.6, 0.01, 1),
+    loopIntervalMs: numEnv(process.env.LOOP_INTERVAL_SECONDS, 900, 30, 86_400) * 1000,
     execute: (process.env.EXECUTE ?? "0") === "1",
     venues: feed.venues,
     venuesNote: feed.note,

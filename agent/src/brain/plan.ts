@@ -3,7 +3,7 @@ import { BAND_RANK, scorePortfolio, type VenueRisk } from "../risk/engine.js";
 import type { StressReport } from "../risk/stress.js";
 import type { Reflection } from "./reflect.js";
 import type { CriticVerdict } from "./critic.js";
-import { IDLE_FLOOR } from "./critic.js";
+import { IDLE_FLOOR, MOMENTUM_VETO, LIQUIDITY_SHARE_CAP } from "./critic.js";
 import type { PanelResult } from "./panel.js";
 
 export interface Move {
@@ -124,7 +124,9 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
   const eligible = snap.venues
     .filter((v) => v.allowed && !deny.has(v.address.toLowerCase()))
     .map((v) => ({ v, r: riskByAddr.get(v.address.toLowerCase())! }))
-    .filter(({ r }) => r && BAND_RANK[r.band] <= BAND_RANK[appetite])
+    // Exclude venues the critic would veto anyway (deteriorating momentum), so budget flows to the
+    // next-best venue instead of being spent on a move that gets removed and stranded.
+    .filter(({ r }) => r && BAND_RANK[r.band] <= BAND_RANK[appetite] && r.momentumRisk <= MOMENTUM_VETO)
     .sort((a, b) => b.r.riskAdjustedApyBps - a.r.riskAdjustedApyBps);
 
   for (const { v, r } of eligible) {
@@ -132,11 +134,18 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
     const already = v.allocatedPrincipal;
     const perVenueHeadroom = vault.perVenueCap > already ? vault.perVenueCap - already : 0n;
     const concHeadroom = concCap > already ? concCap - already : 0n;
+    // Cap the position at the critic's exit-liquidity share (LIQUIDITY_SHARE_CAP of the venue's
+    // withdrawable depth), so the planner proposes the largest size the critic will ACCEPT instead
+    // of an over-sized one it vetoes wholesale — which would leave a thin-liquidity venue (e.g.
+    // Pendle) unfunded at any real pool size. Uncapped when liquidity is unknown, matching the critic.
+    const liqCapUnits = v.liquidityUsd > 0 ? BigInt(Math.floor(LIQUIDITY_SHARE_CAP * v.liquidityUsd * unit)) : 0n;
+    const liqHeadroom = liqCapUnits > already ? liqCapUnits - already : 0n;
 
     let size = budget;
     if (size > vault.maxMoveSize) size = vault.maxMoveSize;
     if (size > perVenueHeadroom) size = perVenueHeadroom;
     if (size > concHeadroom) size = concHeadroom;
+    if (v.liquidityUsd > 0 && size > liqHeadroom) size = liqHeadroom;
     if (size <= 0n) continue;
 
     budget -= size;

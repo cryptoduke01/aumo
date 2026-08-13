@@ -30,12 +30,9 @@ export async function execute(
   const chain = wallet.chain;
   const results: MoveResult[] = [];
 
-  // Retreats first, then deploys — always reduce risk before adding it.
-  const ordered = [...plan.moves].sort((a, b) =>
-    a.action === b.action ? 0 : a.action === "deallocate" ? -1 : 1,
-  );
-
-  for (const move of ordered) {
+  // Send one move on-chain. The contract re-checks every guardrail, so the worst a bug here can do
+  // is get a transaction reverted — never move funds out of policy.
+  const runMove = async (move: Move): Promise<MoveResult> => {
     try {
       const hash =
         move.action === "allocate"
@@ -55,21 +52,29 @@ export async function execute(
               functionName: "deallocate",
               args: [move.venue, move.amount],
             });
-
       const receipt = await pc.waitForTransactionReceipt({ hash });
-      results.push({
-        move,
-        hash,
-        status: receipt.status === "success" ? "confirmed" : "reverted",
-      });
+      return { move, hash, status: receipt.status === "success" ? "confirmed" : "reverted" };
     } catch (err) {
-      results.push({
-        move,
-        status: "error",
-        error: err instanceof Error ? err.message : String(err),
-      });
+      return { move, status: "error", error: err instanceof Error ? err.message : String(err) };
     }
+  };
+
+  // Retreats first — always reduce risk before adding it.
+  const retreats = plan.moves.filter((m) => m.action === "deallocate");
+  const deploys = plan.moves.filter((m) => m.action === "allocate");
+
+  for (const move of retreats) results.push(await runMove(move));
+
+  // Enforce the de-risk-first invariant: if any retreat did not confirm, do NOT add new exposure
+  // this cycle. Adding elsewhere while still stuck in a venue we tried to exit is exactly the wrong
+  // move under the stressed conditions that trigger a retreat. Defer the deploys, recorded honestly.
+  if (results.some((r) => r.status !== "confirmed")) {
+    for (const move of deploys) {
+      results.push({ move, status: "skipped", error: "retreat did not confirm; new allocations deferred this cycle" });
+    }
+    return results;
   }
 
+  for (const move of deploys) results.push(await runMove(move));
   return results;
 }

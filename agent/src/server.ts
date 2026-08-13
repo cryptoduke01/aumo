@@ -17,11 +17,17 @@ function readRecent(limit: number): unknown[] {
   if (!existsSync(RECEIPTS)) return [];
   const raw = readFileSync(RECEIPTS, "utf8").trim();
   if (!raw) return [];
-  return raw
-    .split("\n")
-    .slice(-limit)
-    .map((l) => JSON.parse(l))
-    .reverse();
+  const out: unknown[] = [];
+  for (const line of raw.split("\n").slice(-limit)) {
+    // Skip a malformed/truncated line (e.g. a crash mid-append) rather than throwing and taking the
+    // whole status + /receipts API down. Mirrors loadHistory's defensive parse in act/receipts.ts.
+    try {
+      out.push(JSON.parse(line));
+    } catch {
+      /* skip a bad line */
+    }
+  }
+  return out.reverse();
 }
 
 interface Decision {
@@ -161,6 +167,11 @@ function rateLimited(ip: string, now: number): boolean {
   if (hits.length >= 12) return true; // 12 questions / minute / ip
   hits.push(now);
   rate.set(ip, hits);
+  // Bound memory: under many distinct source IPs the map would otherwise grow forever. Drop entries
+  // with no hits in the last minute once it gets large.
+  if (rate.size > 5000) {
+    for (const [k, ts] of rate) if (!ts.some((t) => now - t < 60_000)) rate.delete(k);
+  }
   return false;
 }
 
@@ -170,8 +181,11 @@ function rateLimited(ip: string, now: number): boolean {
 // per state-version and serve most requests without touching the model; we cap total model calls per
 // day as a hard circuit-breaker; and we let /ask run a cheaper model than the money-path reasoning.
 const ASK_MODEL = process.env.ASK_MODEL || undefined; // e.g. claude-haiku-4-5-20251001; else cfg.model
-const ASK_CACHE_TTL = Number(process.env.ASK_CACHE_TTL_MS ?? 5 * 60_000);
-const ASK_DAILY_CAP = Number(process.env.ASK_DAILY_CAP ?? 3000); // model calls per day
+// Finite-or-default: a non-numeric env must not become NaN and silently disable the cache TTL or,
+// worse, the daily cost circuit-breaker (`count >= NaN` is always false).
+const envNum = (raw: string | undefined, def: number) => (Number.isFinite(Number(raw)) ? Number(raw) : def);
+const ASK_CACHE_TTL = envNum(process.env.ASK_CACHE_TTL_MS, 5 * 60_000);
+const ASK_DAILY_CAP = envNum(process.env.ASK_DAILY_CAP, 3000); // model calls per day
 const ASK_CACHE_MAX = 1000;
 const askCache = new Map<string, { answer: string; at: number }>();
 let askCalls = { day: -1, count: 0 };
