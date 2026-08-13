@@ -40,18 +40,26 @@ function Metric({
   currency,
   sub,
   pending,
+  href,
 }: {
   label: string;
   value: number;
   currency?: boolean;
   sub?: string;
   pending?: boolean;
+  href?: string; // shown instead of a dash when the value can't be read client-side (RPC log cap)
 }) {
   return (
     <Panel className="flex flex-col gap-1 p-5">
       <Label>{label}</Label>
       {pending ? (
-        <span className="text-2xl font-medium text-faint">—</span>
+        href ? (
+          <a href={href} target="_blank" rel="noreferrer" className="text-lg font-medium text-accent hover:underline">
+            On explorer ↗
+          </a>
+        ) : (
+          <span className="text-2xl font-medium text-faint">—</span>
+        )
       ) : (
         <Num value={value} currency={currency} maximumFractionDigits={0} className="text-2xl font-medium" />
       )}
@@ -267,7 +275,7 @@ export default function InsightsPage() {
         <Metric label="TVL" value={tvl} currency sub="Under management" />
         <Metric label="Deployed" value={deployedN} currency sub="Working in venues" />
         <Metric label="Idle" value={idleN} currency sub="Ready to deploy" />
-        <Metric label="Depositors" value={flow?.depositors ?? 0} sub="Unique wallets deposited" pending={flowPending} />
+        <Metric label="Depositors" value={flow?.depositors ?? 0} sub="Unique wallets deposited" pending={flowPending} href={addrUrl(POOL)} />
       </div>
 
       <ChartPanel
@@ -279,9 +287,9 @@ export default function InsightsPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Metric label="Volume in" value={flow?.volIn ?? 0} currency sub="Total deposited" pending={flowPending} />
-        <Metric label="Volume out" value={flow?.volOut ?? 0} currency sub="Total withdrawn" pending={flowPending} />
-        <Metric label="Net flow" value={netFlow} currency sub="In minus out" pending={flowPending} />
+        <Metric label="Volume in" value={flow?.volIn ?? 0} currency sub="Total deposited" pending={flowPending} href={addrUrl(POOL)} />
+        <Metric label="Volume out" value={flow?.volOut ?? 0} currency sub="Total withdrawn" pending={flowPending} href={addrUrl(POOL)} />
+        <Metric label="Net flow" value={netFlow} currency sub="In minus out" pending={flowPending} href={addrUrl(POOL)} />
         <Metric label="Best risk-adjusted" value={bestApy / 100} sub="Live yield %" />
       </div>
 
@@ -290,7 +298,11 @@ export default function InsightsPage() {
         sub="Every deposit + withdrawal"
         points={flow?.series ?? []}
         format={fmtUsd}
-        empty={flow && !flow.ok ? "Couldn't read flow events from this RPC." : "No deposits or withdrawals yet."}
+        empty={
+          flow && !flow.ok
+            ? "Deposit history is indexed on the block explorer — this network's RPC caps log queries, so it's linked below rather than charted here."
+            : "No deposits or withdrawals yet."
+        }
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -323,8 +335,9 @@ export default function InsightsPage() {
       </Panel>
 
       <p className="text-xs text-faint">
-        TVL, depositors, and volume are live from the pool. Wallet connections are counted in Vercel Analytics
-        (address-free) and become depositors when they deposit on-chain — the gap between the two is your funnel.
+        TVL and agent activity are live from the pool. Depositor count and volume are indexed on the block explorer
+        (this network&apos;s RPC caps on-chain log queries) — a live on-page index is coming. Wallet connections are
+        counted in Vercel Analytics (address-free) and become depositors when they deposit on-chain — the gap is your funnel.
       </p>
     </>,
   );
