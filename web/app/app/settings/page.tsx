@@ -119,7 +119,7 @@ export default function SettingsPage() {
                     <span className="tnum text-base font-medium text-foreground">{fmt(walletBal)}</span>
                   </div>
                 </div>
-                <Field label="Your position" value={`$${fmt(position)}`} />
+                <Field label="Your position" value={position === undefined ? "—" : `$${fmt(position)}`} />
               </div>
             )}
 

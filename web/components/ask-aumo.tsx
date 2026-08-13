@@ -51,6 +51,7 @@ export function AskAumo({ className = "" }: { className?: string }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [offline, setOffline] = useState(false);
   const { address } = useAccount();
   const threadRef = useRef<HTMLDivElement | null>(null);
 
@@ -62,8 +63,10 @@ export function AskAumo({ className = "" }: { className?: string }) {
     setBusy(true);
     try {
       const answer = await ask(question, address);
+      setOffline(false);
       setMessages((m) => [...m, { role: "agent", text: answer || "I don't have an answer for that from my current state." }]);
     } catch {
+      setOffline(true);
       setMessages((m) => [...m, { role: "agent", text: "My reasoning layer is offline right now. Try again in a moment." }]);
     } finally {
       setBusy(false);
@@ -83,7 +86,8 @@ export function AskAumo({ className = "" }: { className?: string }) {
           <div className="flex flex-col">
             <span className="text-sm font-medium leading-none">Ask Aumo</span>
             <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-primary" /> Agent online
+              <span className={`size-1.5 rounded-full ${offline ? "bg-faint" : "bg-primary"}`} />{" "}
+              {offline ? "Agent offline" : "Agent online"}
             </span>
           </div>
           <button

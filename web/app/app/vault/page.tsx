@@ -174,7 +174,9 @@ export default function VaultPage() {
     // deposit or withdraw settled
     tvlRead.refetch();
     const wasDeposit = p?.action === "deposit";
-    const settledAmount = amount; // capture before clearing the input
+    // The amount actually deposited (from the pending record), not the live input — the user may
+    // have edited the field during the approve->deposit window.
+    const settledAmount = p ? formatUnits(p.amountWei, DEC) : amount;
     setAmount("");
     pending.current = null;
     if (wasDeposit) {
@@ -418,7 +420,7 @@ export default function VaultPage() {
             {!isConnected ? (
               <ConnectButton />
             ) : (
-              <button className={primaryBtn} disabled={busy || wrongChain || amountWei <= 0n || overMax} onClick={submit}>
+              <button className={primaryBtn} disabled={wrongChain ? switching : busy || amountWei <= 0n || overMax} onClick={submit}>
                 {label}
               </button>
             )}

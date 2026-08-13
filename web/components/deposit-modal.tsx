@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Orb } from "./orb";
 
@@ -21,6 +22,27 @@ export function DepositModal({
   onClose: () => void;
   onView: () => void;
 }) {
+  // Keyboard accessibility for the core flow's climactic screen: move focus into the dialog, close on
+  // Escape, lock background scroll, and restore focus to the trigger on close.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const trigger = document.activeElement as HTMLElement | null;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const t = setTimeout(() => dialogRef.current?.focus(), 0);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+      clearTimeout(t);
+      trigger?.focus?.();
+    };
+  }, [open, onClose]);
+
   return (
     <AnimatePresence initial={false}>
       {open ? (
@@ -32,6 +54,7 @@ export function DepositModal({
           onClick={onClose}
           role="dialog"
           aria-modal="true"
+          aria-labelledby="deposit-modal-title"
         >
           <motion.div
             className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card p-8 text-center"
@@ -40,6 +63,8 @@ export function DepositModal({
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ type: "spring", stiffness: 260, damping: 22 }}
             onClick={(e) => e.stopPropagation()}
+            ref={dialogRef}
+            tabIndex={-1}
           >
             {/* ambient glow behind the orb */}
             <div
@@ -50,7 +75,7 @@ export function DepositModal({
               <Orb className="size-12 text-accent" />
 
               <div className="flex flex-col gap-2">
-                <h2 className="text-2xl font-medium tracking-tight text-foreground">Your capital is at work</h2>
+                <h2 id="deposit-modal-title" className="text-2xl font-medium tracking-tight text-foreground">Your capital is at work</h2>
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   Aumo is scoring every venue and putting your{" "}
                   <span className="tnum text-foreground">

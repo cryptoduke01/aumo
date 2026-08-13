@@ -30,7 +30,7 @@ const KNOWN_OWNER = (
 const DEC = 6;
 const u = (v: bigint | undefined) => (v ? Number(v) / 10 ** DEC : 0);
 const day = (iso: string | number) =>
-  new Date(typeof iso === "number" ? iso : iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 const fmtUsd = (n: number) =>
   `$${n.toLocaleString("en-US", { maximumFractionDigits: n >= 1000 ? 0 : 2 })}`;
 
@@ -124,10 +124,13 @@ interface Flow {
 export default function InsightsPage() {
   const { address, isConnected } = useAccount();
 
-  const owner = useReadContract({ address: POOL, abi: ownerAbi, functionName: "owner", chainId: activeChain.id });
-  const totalAssets = useReadContract({ address: POOL, abi: poolAbi, functionName: "totalAssets", chainId: activeChain.id });
-  const idle = useReadContract({ address: POOL, abi: poolAbi, functionName: "idleBalance", chainId: activeChain.id });
-  const deployed = useReadContract({ address: POOL, abi: poolAbi, functionName: "totalDeployed", chainId: activeChain.id });
+  // Only fetch once a wallet is connected — this is an owner-gated page, so a disconnected visitor
+  // never needs these reads (they'd see the connect prompt regardless).
+  const q = { query: { enabled: isConnected } } as const;
+  const owner = useReadContract({ address: POOL, abi: ownerAbi, functionName: "owner", chainId: activeChain.id, ...q });
+  const totalAssets = useReadContract({ address: POOL, abi: poolAbi, functionName: "totalAssets", chainId: activeChain.id, ...q });
+  const idle = useReadContract({ address: POOL, abi: poolAbi, functionName: "idleBalance", chainId: activeChain.id, ...q });
+  const deployed = useReadContract({ address: POOL, abi: poolAbi, functionName: "totalDeployed", chainId: activeChain.id, ...q });
 
   const isOwner =
     !!address &&

@@ -122,8 +122,9 @@ export function BridgeIn() {
       )}
 
       <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-        Move USDT0 from another chain straight into Aumo. We show the real route and network fee
-        before you send. Nothing moves until you confirm in your wallet.
+        Planning to fund from another chain? This quotes the real route and network fee for bringing
+        USDT0 to X Layer over LayerZero. It is a preview, not a send: complete the bridge in your
+        wallet, then deposit the USDT0 that lands on X Layer here.
       </p>
     </Panel>
   );
