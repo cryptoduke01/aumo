@@ -97,6 +97,13 @@ code bugs, and belong in the live runbook:
   pool's `allocated[venue]` / `totalDeployed`, so that venue keeps consuming cap headroom and a later
   `deallocate` reverts (`EmptyWithdraw`). NAV stays correct (it reads live balances). **Recovery:**
   `setVenueAllowed(venue, false)` then `removeVenue(venue)` to zero the stale principal ledger.
+- **Prolonged Pendle oracle outage (G-3).** `PendlePtAdapter.balanceOf` falls open to the last good
+  rate so a brief oracle hiccup never bricks `totalAssets`, but only for `maxRateStaleness` (default
+  1h); past that the venue reads 0 and drops out of NAV until the oracle recovers. That auto-exclusion
+  is a step change, so on an outage lasting near the bound the owner should `pause()` (blocks new
+  deposits, exits still clear) to remove any deposit-then-recover arbitrage window, and
+  `setVenueImpaired(pendle, true)` / `removeVenue` if the oracle is durably dead. Tune the window with
+  `setMaxRateStaleness`.
 
 ## Rollback / safety
 

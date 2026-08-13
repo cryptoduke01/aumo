@@ -185,5 +185,14 @@ contract PendlePtAdapterForkTest is Test {
         vm.prank(agent);
         vm.expectRevert();
         pool.deallocate(address(adapter), type(uint256).max);
+
+        // G-3: the fail-open fallback is time-bounded. Within maxRateStaleness the venue still reads
+        // its last good NAV (asserted above). Warp PAST maxRateStaleness while the oracle is still
+        // down: balanceOf must now read 0 — the venue drops out of NAV, exactly like an impaired one —
+        // so a persistently dead oracle can never keep feeding a stale rate a depositor/redeemer could
+        // arbitrage. It recovers automatically once the oracle answers again.
+        assertGt(adapter.maxRateStaleness(), 0, "staleness bound set");
+        vm.warp(block.timestamp + adapter.maxRateStaleness() + 1);
+        assertEq(pool.venueBalance(address(adapter)), 0, "stale-beyond-bound venue excluded from NAV");
     }
 }

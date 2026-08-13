@@ -155,10 +155,16 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
     // back to it if the live oracle reverts, so a Pendle oracle hiccup can never brick the pool's
     // pool-wide totalAssets. It is a real, recent, par-clamped TWAP value, not attacker-set.
     uint256 public lastGoodRate;
+    // When lastGoodRate was set (on the money path). balanceOf trusts the fallback only while it is
+    // fresher than `maxRateStaleness`; past that, a persistently dead oracle stops feeding a stale
+    // NAV that could be arbitraged, and the venue simply drops out of NAV until the oracle recovers.
+    uint256 public lastGoodRateAt;
+    uint256 public maxRateStaleness; // max age of the balanceOf fallback before the venue reads 0 (G-3)
 
     event SlippageUpdated(uint256 uniBps, uint256 pendleBps);
     event ValuationDiscountUpdated(uint256 bps);
     event TwapDurationUpdated(uint32 seconds_);
+    event MaxRateStalenessUpdated(uint256 seconds_);
 
     error OnlyVault();
     error BadParam();
@@ -206,6 +212,7 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
         pendleSlippageBps = pendleSlippageBps_;
         valuationDiscountBps = valuationDiscountBps_;
         twapDuration = twapDuration_;
+        maxRateStaleness = 1 hours; // balanceOf trusts a fallback rate at most this long past a dead oracle (G-3)
     }
 
     // --- owner controls ---
@@ -233,6 +240,16 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
         if (seconds_ == 0) revert BadParam();
         twapDuration = seconds_;
         emit TwapDurationUpdated(seconds_);
+    }
+
+    /// @notice Retune how long balanceOf will keep trusting the last good rate after the oracle stops
+    ///         responding (owner / Safe). Shorter is safer against a stale-NAV arbitrage during a
+    ///         prolonged oracle outage (G-3); longer tolerates more downtime before the venue drops
+    ///         out of NAV. Money-path reads (_rateLive) are unaffected — they still revert on a dead
+    ///         oracle, so no one can enter or exit this venue at a stale price regardless of this.
+    function setMaxRateStaleness(uint256 seconds_) external onlyOwner {
+        maxRateStaleness = seconds_;
+        emit MaxRateStalenessUpdated(seconds_);
     }
 
     function asset() external view returns (address) {
@@ -345,15 +362,22 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
     function _rateLive() internal returns (uint256 r) {
         r = _clampRate(ptOracle.getPtToAssetRate(market, twapDuration));
         lastGoodRate = r;
+        lastGoodRateAt = block.timestamp;
     }
 
-    /// @dev Rate for NAV reads. Falls back to the last good rate if the oracle reverts, so a Pendle
-    ///      oracle hiccup can never brick the pool's pool-wide totalAssets: it just uses the most
-    ///      recent real, par-clamped rate.
+    /// @dev Rate for NAV reads. If the oracle reverts, fall back to the last good (par-clamped) rate
+    ///      so a Pendle oracle hiccup can never brick pool-wide totalAssets (F-1/F-5) — but ONLY while
+    ///      that fallback is fresher than `maxRateStaleness`. Past that, a persistently dead oracle
+    ///      must not keep feeding a stale NAV a depositor/redeemer could arbitrage (G-3): return 0 so
+    ///      the venue drops out of NAV entirely (exactly as an impaired venue does) until the oracle
+    ///      recovers or the owner prunes it. Zero is the conservative, continuous choice at the bound;
+    ///      the money path (_rateLive) still reverts on a dead oracle, so no one can enter or exit
+    ///      THIS venue at a stale price — only the read-only NAV is affected.
     function _rateView() internal view returns (uint256 r) {
         try ptOracle.getPtToAssetRate(market, twapDuration) returns (uint256 live) {
             r = _clampRate(live);
         } catch {
+            if (lastGoodRateAt == 0 || block.timestamp - lastGoodRateAt > maxRateStaleness) return 0;
             r = lastGoodRate;
         }
     }

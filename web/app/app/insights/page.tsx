@@ -12,6 +12,14 @@ import { ConnectButton } from "@/components/wallet";
 
 const ownerAbi = parseAbi(["function owner() view returns (address)"]);
 
+// The owner wallet that always unlocks insights, in addition to the pool's live on-chain owner().
+// On mainnet this IS the pool owner (set at deploy); naming it here also unlocks the dashboard on
+// testnet — whose pool owner is a different deployer EOA — using the production owner wallet we hold.
+// Override per-env with NEXT_PUBLIC_INSIGHTS_OWNER if the owner wallet ever changes.
+const KNOWN_OWNER = (
+  process.env.NEXT_PUBLIC_INSIGHTS_OWNER ?? "0x9471A4ea01f51d01749D9E9696b973faf27a96AE"
+).toLowerCase();
+
 function Metric({ label, value, currency, sub }: { label: string; value: number; currency?: boolean; sub?: string }) {
   return (
     <Panel className="flex flex-col gap-1 p-5">
@@ -56,7 +64,9 @@ export default function InsightsPage() {
   }, []);
 
   const isOwner =
-    !!address && !!owner.data && address.toLowerCase() === (owner.data as string).toLowerCase();
+    !!address &&
+    (address.toLowerCase() === KNOWN_OWNER ||
+      (!!owner.data && address.toLowerCase() === (owner.data as string).toLowerCase()));
 
   const wrap = (children: React.ReactNode) => (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">

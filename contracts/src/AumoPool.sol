@@ -454,6 +454,16 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         uint256 supplied = IVenueAdapter(venue).deposit(amount);
         IERC20(asset()).forceApprove(venue, 0); // never leave a standing allowance to a venue
 
+        // Meter the ENTRY-swap loss into the SAME rolling per-epoch loss budget as the exit leg (G-1).
+        // Principal is booked net (`supplied`), so without this the value destroyed on entry — swap
+        // fees, slippage, or a sandwich pushing the entry swap all the way to the adapter's floor —
+        // would be invisible to the loss budget and bounded only by the (looser) deploy budget. A
+        // compromised or MEV-sandwiched agent could then bleed far more per epoch than maxEpochLoss.
+        // USDG:USDT0 is treated 1:1, the same basis the net booking already uses: slightly
+        // conservative when the yield asset trades rich (the safe direction), and a manipulated entry
+        // (supplied near the floor) trips the budget fast. Lending (supplied == amount) meters nothing.
+        if (supplied < amount) _meterLoss(amount - supplied);
+
         // Book the NET value actually placed in the venue (`supplied`), not the gross input. This
         // keeps the principal ledger on the same basis as NAV (the adapter's live balance), so the
         // loss budget doesn't re-charge the entry swap on exit, and caps track real exposure. Caps
@@ -498,19 +508,27 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         // this is caught by _ensureIdle's try/catch, so a single bad venue is skipped, not fatal.
         if (pulledPrincipal > 0 && returned == 0) revert EmptyWithdraw();
 
-        // Meter agent-driven value destruction. A round trip through the lossy RWA swap returns
-        // less than its principal; charge that loss to a rolling per-epoch budget so a compromised
-        // agent can churn only until the budget is spent, not until the treasury is empty.
-        if (enforce && returned < pulledPrincipal) {
-            uint256 loss = pulledPrincipal - returned;
-            if (block.timestamp >= epochLossStart + lossEpochLength) {
-                epochLossStart = block.timestamp;
-                epochLoss = 0;
-            }
-            epochLoss += loss;
-            if (epochLoss > maxEpochLoss) revert LossBudgetExceeded();
-        }
+        // Meter agent-driven value destruction on the EXIT leg. A round trip through the lossy RWA
+        // swap returns less than its principal; charge that loss to the rolling per-epoch budget so a
+        // compromised agent can churn only until the budget is spent, not until the treasury is empty.
+        // The ENTRY leg is metered symmetrically in allocate() (G-1), through the same budget.
+        if (enforce && returned < pulledPrincipal) _meterLoss(pulledPrincipal - returned);
 
         emit Deallocated(venue, pulledPrincipal, returned, block.timestamp);
+    }
+
+    /// @dev Charge realized value destruction to the rolling per-epoch loss budget, opening a fresh
+    ///      window when the current one has elapsed and reverting once the budget is spent. Shared by
+    ///      both legs — the entry swap (allocate) and the exit round trip (deallocate) — so the budget
+    ///      bounds TOTAL agent-caused loss per epoch. With maxEpochLoss == 0 (the fail-closed default
+    ///      until the owner sets a budget) any realized loss reverts, by design.
+    function _meterLoss(uint256 loss) internal {
+        if (loss == 0) return;
+        if (block.timestamp >= epochLossStart + lossEpochLength) {
+            epochLossStart = block.timestamp;
+            epochLoss = 0;
+        }
+        epochLoss += loss;
+        if (epochLoss > maxEpochLoss) revert LossBudgetExceeded();
     }
 }

@@ -396,19 +396,52 @@ contract AumoPoolTest is Test {
 
     /// H-2/L2/L4: allocate books the NET supplied, so the loss budget doesn't re-charge the entry
     /// swap on exit — a normal RWA round trip can retreat under an exit-sized budget.
-    function test_LossBudget_DoesNotDoubleCountEntryFill() public {
+    // G-1: the ENTRY-swap loss is metered into the loss budget, not just the exit leg. A budget sized
+    // for the exit cost alone must now REJECT an allocate whose 2% entry loss exceeds it — closing the
+    // hole where entry-side value destruction (fees / slippage / a sandwich to the floor) escaped the
+    // budget entirely and was bounded only by the looser deploy budget.
+    function test_LossBudget_MetersEntryLeg() public {
         pool.setPolicy(2_000 * U, 2_000 * U, 2_000 * U);
         EntryExitVenue v = new EntryExitVenue(address(usdt0), 200, 100); // 2% entry, 1% exit
         pool.setVenueAllowed(address(v), true);
-        pool.setLossBudget(15 * U, 1 days); // sized for exit cost, not entry+exit
+        pool.setLossBudget(15 * U, 1 days); // entry loss alone (2% of 1000 = 20) exceeds this
+
+        _deposit(alice, 1_000 * U);
+        vm.prank(agent);
+        vm.expectRevert(AumoPool.LossBudgetExceeded.selector);
+        pool.allocate(address(v), 1_000 * U, "in");
+    }
+
+    // Both legs are charged, each ONCE (no double count). Entry (~20) + exit (~9.8) = ~29.8 fits under
+    // 35; a doubled entry (~40) would blow past it. Proves the metering is symmetric and single.
+    function test_LossBudget_MetersEntryAndExitOnce() public {
+        pool.setPolicy(2_000 * U, 2_000 * U, 2_000 * U);
+        EntryExitVenue v = new EntryExitVenue(address(usdt0), 200, 100); // 2% entry, 1% exit
+        pool.setVenueAllowed(address(v), true);
+        pool.setLossBudget(35 * U, 1 days); // covers entry (~20) + exit (~9.8) = ~29.8, not a doubled entry
 
         _deposit(alice, 1_000 * U);
         vm.startPrank(agent);
-        pool.allocate(address(v), 1_000 * U, "in");
-        // principal booked NET (~980), not gross 1000
+        pool.allocate(address(v), 1_000 * U, "in"); // charges entry ~20 (< 35)
         assertApproxEqAbs(pool.allocated(address(v)), 980 * U, 1, "booked net supplied");
-        // full retreat succeeds: loss ~= exit only (~10) < budget 15
-        pool.deallocate(address(v), 1_000 * U);
+        pool.deallocate(address(v), 1_000 * U); // adds exit ~9.8 -> ~29.8 cumulative < 35: succeeds
+        vm.stopPrank();
+        assertEq(pool.allocated(address(v)), 0, "retreated cleanly");
+    }
+
+    // A lossless entry (supplied == amount, e.g. lending with no swap) must meter NOTHING on entry —
+    // the `supplied < amount` guard keeps the entry meter from firing where there is no entry loss.
+    function test_LossBudget_LosslessEntryMetersNothingOnEntry() public {
+        pool.setPolicy(2_000 * U, 2_000 * U, 2_000 * U);
+        EntryExitVenue v = new EntryExitVenue(address(usdt0), 0, 100); // 0% entry, 1% exit
+        pool.setVenueAllowed(address(v), true);
+        pool.setLossBudget(15 * U, 1 days); // only the ~10 exit is charged; no entry loss to meter
+
+        _deposit(alice, 1_000 * U);
+        vm.startPrank(agent);
+        pool.allocate(address(v), 1_000 * U, "in"); // entry loss 0 -> no meter, no revert
+        assertEq(pool.allocated(address(v)), 1_000 * U, "full principal booked, no entry burn");
+        pool.deallocate(address(v), 1_000 * U); // exit ~10 < 15: succeeds
         vm.stopPrank();
         assertEq(pool.allocated(address(v)), 0, "retreated cleanly");
     }
