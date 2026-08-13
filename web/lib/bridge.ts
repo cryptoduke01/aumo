@@ -9,7 +9,7 @@ import { xlayerMainnet } from "./chain";
 //
 // The receiving side on X Layer (for reference / reverse direction):
 export const XLAYER_EID = 30274;
-export const XLAYER_OFT = "0x94bCCa6bDFd6a61817ab0e960BFEDe4984505554" as const; // token()=USDT0
+export const XLAYER_OFT = "0x94BCCa6bdfd6A61817Ab0E960bFedE4984505554" as const; // token()=USDT0
 export const XLAYER_USDT0 = "0x779Ded0c9e1022225f8E0630b35a9b54bE713736" as const;
 
 export interface BridgeChain {
