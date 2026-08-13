@@ -3,6 +3,7 @@ import { BAND_RANK, scorePortfolio, type VenueRisk } from "../risk/engine.js";
 import type { StressReport } from "../risk/stress.js";
 import type { Reflection } from "./reflect.js";
 import type { CriticVerdict } from "./critic.js";
+import { IDLE_FLOOR } from "./critic.js";
 import type { PanelResult } from "./panel.js";
 
 export interface Move {
@@ -108,6 +109,14 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
       ? vault.maxTotalDeployed - vault.totalDeployed
       : 0n;
   if (budget > globalHeadroom) budget = globalHeadroom;
+  // Reserve the same idle buffer the critic enforces (IDLE_FLOOR of the whole pool), so the plan
+  // never proposes deploying so much that the critic must veto the entire cycle. Without this, a
+  // calm regime deploys 100% of idle, the critic then rejects it for a 0% buffer, and the agent
+  // never allocates at any size. Rounded up so idleAfter clears the floor with room to spare.
+  const idlePlusDeployed = vault.idle + vault.totalDeployed;
+  const bufferReserve = (idlePlusDeployed * BigInt(Math.round(IDLE_FLOOR * 10000)) + 9999n) / 10000n;
+  const deployableIdle = vault.idle > bufferReserve ? vault.idle - bufferReserve : 0n;
+  if (budget > deployableIdle) budget = deployableIdle;
 
   const portfolioBig = vault.idle + vault.totalDeployed;
   const concCap = (portfolioBig * BigInt(Math.round(maxConc * 10000))) / 10000n;
