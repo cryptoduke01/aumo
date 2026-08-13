@@ -2,8 +2,10 @@ import { defineChain, parseAbi } from "viem";
 
 // Flip the whole app to mainnet with NEXT_PUBLIC_CHAIN=mainnet plus the deployed
 // pool address (NEXT_PUBLIC_POOL). Everything below keys off the active network.
+// Mainnet is the default now that Aumo is live on X Layer. Local dev stays on testnet via
+// NEXT_PUBLIC_CHAIN=testnet in web/.env.local; set it in any env that should point at testnet.
 const NET: "mainnet" | "testnet" =
-  process.env.NEXT_PUBLIC_CHAIN === "mainnet" ? "mainnet" : "testnet";
+  process.env.NEXT_PUBLIC_CHAIN === "testnet" ? "testnet" : "mainnet";
 
 export const xlayerTestnet = defineChain({
   id: 1952,
@@ -39,8 +41,8 @@ const ADDR = {
     usdt0: "0xFc440733d882f28012B190b11Bbec56b44508448",
   },
   mainnet: {
-    // Fill NEXT_PUBLIC_POOL after DeployPoolMainnet; USDT0 is the canonical X Layer address.
-    pool: "0x0000000000000000000000000000000000000000",
+    // Deployed 2026-08-13 (DeployPoolMainnet, chain 196). USDT0 is the canonical X Layer address.
+    pool: "0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F",
     usdt0: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
   },
 } as const;

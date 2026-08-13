@@ -3,7 +3,7 @@
   "note": "X Layer MAINNET venues. Each `address` is the deployed Aumo adapter (fill from the DeployPoolMainnet output: AaveV3Adapter, RwaUsdgAdapter, PendlePtAdapter). Aave/USDG feeds read live Aave rates; the Pendle leg is fixed-yield (implied APY at entry). All three legs are fork-proven against live X Layer (Aave + Uniswap + Pendle).",
   "venues": [
     {
-      "address": "0x0000000000000000000000000000000000000000",
+      "address": "0x9c7Bb0972D0480335Ba1A9041D57d883d96BED1A",
       "name": "Aave v3 (USDT0)",
       "kind": "lending",
       "apyBps": 0,
@@ -19,7 +19,7 @@
       }
     },
     {
-      "address": "0x0000000000000000000000000000000000000000",
+      "address": "0x468c8106deDe0853E8746D488C999c2940725B3d",
       "name": "USDG (RWA-backed)",
       "kind": "rwa",
       "apyBps": 0,
@@ -41,7 +41,7 @@
       }
     },
     {
-      "address": "0x0000000000000000000000000000000000000000",
+      "address": "0x127644F456Fc63C7226E7f4F2Ce4F169A1165C65",
       "name": "Pendle PT-USDG (fixed, Oct 2026)",
       "kind": "rwa",
       "apyBps": 466,
