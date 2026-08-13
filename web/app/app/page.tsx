@@ -176,6 +176,13 @@ export default function Dashboard() {
         )}
       </div>
 
+      {mine ? (
+        <p className="-mt-1 max-w-2xl text-xs leading-relaxed text-faint">
+          Estimated at today&apos;s blended rate. Yield grows as the pool scales and X Layer rates rise: a
+          bigger pool lets the agent safely use higher-yield venues it holds back from at small size.
+        </p>
+      ) : null}
+
       {/* charts + guardrails bento. In the private view only the personal allocation shows; the
           yield chart and guardrails are pool/agent-level and belong to the public view. */}
       <div className={`grid grid-cols-1 gap-4 ${mine ? "" : "lg:grid-cols-3"}`}>
