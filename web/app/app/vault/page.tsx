@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import { POOL, USDT0, poolAbi, erc20Abi, activeChain, poolConfigured, isMainnet } from "@/lib/chain";
 import { Panel, Label, Badge } from "@/components/ui";
 import { ConnectButton } from "@/components/wallet";
-import { BridgeIn } from "@/components/bridge-in";
 import { Num } from "@/components/num";
 import { Orb } from "@/components/orb";
 import { DepositModal } from "@/components/deposit-modal";
@@ -450,10 +449,6 @@ export default function VaultPage() {
             </p>
           ) : null}
         </Panel>
-      </div>
-
-      <div className="max-w-md">
-        <BridgeIn />
       </div>
     </div>
   );
