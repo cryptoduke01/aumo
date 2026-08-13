@@ -23,6 +23,14 @@ import {
   lzScanUrl,
   oftAbi,
 } from "@/lib/bridge";
+import {
+  addBridge,
+  fetchBridgeStatus,
+  getBridges,
+  removeBridge,
+  type BridgeStatus,
+  type PendingBridge,
+} from "@/lib/bridge-history";
 
 const btn =
   "chamfer inline-flex w-full items-center justify-center bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-[transform,opacity] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40";
@@ -35,8 +43,9 @@ type Direction = "in" | "out";
  *  - "out": X Layer -> another chain (take withdrawn yield off X Layer)
  * The flow is symmetric: be on the origin chain, approve only when the origin OFT reports
  * approvalRequired (Ethereum inbound; never for X Layer), and send to the user's own address on the
- * destination. Every address is verified on-chain in lib/bridge.ts, and every route carries enforced
- * executor options, so the send uses empty extraOptions.
+ * destination. Delivery is asynchronous, so every send is recorded and shown as "in flight" with a
+ * live LayerZero status until it lands (see PendingBridges) — the balance on the destination stays 0
+ * until then, and this stops that from reading as lost funds.
  */
 export function BridgeIn() {
   const { address, chainId: walletChainId } = useAccount();
@@ -45,7 +54,8 @@ export function BridgeIn() {
   const [inKey, setInKey] = useState("arbitrum"); // source when bringing in
   const [outKey, setOutKey] = useState("arbitrum"); // destination when sending out
   const [amount, setAmount] = useState("");
-  const [sentHash, setSentHash] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingBridge[]>([]);
+  useEffect(() => setPending(getBridges()), []);
 
   // The chain we transact ON (origin) and the destination endpoint.
   const src = direction === "in" ? BRIDGE_CHAINS[inKey] : XLAYER_CHAIN;
@@ -53,11 +63,6 @@ export function BridgeIn() {
   const destName = direction === "in" ? "X Layer" : BRIDGE_CHAINS[outKey].name;
   const pickedKey = direction === "in" ? inKey : outKey;
   const onSrcChain = walletChainId === src.chainId;
-
-  const resetForm = () => {
-    setAmount("");
-    setSentHash(null);
-  };
 
   const reads = useReadContracts({
     contracts: [
@@ -104,14 +109,14 @@ export function BridgeIn() {
 
   const { writeContract, data: hash, isPending, reset, error } = useWriteContract();
   const receipt = useWaitForTransactionReceipt({ hash, chainId: src.chainId });
-  // Approve and send are two txs; this carries the amount across so the send fires automatically
-  // once the approval confirms (mirrors the deposit flow).
-  const pending = useRef<{ action: "approve" | "send"; amountLD: bigint } | null>(null);
+  // Approve and send are two txs; this carries the amount (and the labels to record) across so the
+  // send fires automatically once the approval confirms (mirrors the deposit flow).
+  const pendingTx = useRef<{ action: "approve" | "send"; amountLD: bigint; srcName: string; destName: string; symbol: string; decimals: number } | null>(null);
   const busy = isPending || receipt.isLoading;
 
   function doSend(amt: bigint) {
     if (!address || nativeFee === undefined) return;
-    pending.current = { action: "send", amountLD: amt };
+    pendingTx.current = { action: "send", amountLD: amt, srcName: src.name, destName, symbol, decimals };
     writeContract({
       chainId: src.chainId,
       address: src.oft,
@@ -128,13 +133,13 @@ export function BridgeIn() {
     // never auto-fires a send.
     if (receipt.data?.status !== "success") {
       if (receipt.data?.status === "reverted") {
-        pending.current = null;
+        pendingTx.current = null;
         toast.error("Transaction reverted on-chain. No funds moved.");
         reset();
       }
       return;
     }
-    const p = pending.current;
+    const p = pendingTx.current;
     reads.refetch();
     if (p?.action === "approve") {
       toast.success("Approved — confirming the bridge…");
@@ -143,10 +148,21 @@ export function BridgeIn() {
       setTimeout(() => doSend(amt), 0);
       return;
     }
-    if (hash) setSentHash(hash);
+    // send settled — record it so it shows as in-flight until LayerZero delivers
+    if (hash && p) {
+      addBridge({
+        hash,
+        srcName: p.srcName,
+        destName: p.destName,
+        amount: formatUnits(p.amountLD, p.decimals),
+        symbol: p.symbol,
+        at: Date.now(),
+      });
+      setPending(getBridges());
+    }
     setAmount("");
-    pending.current = null;
-    toast.success(`Bridge sent — funds arrive on ${destName} shortly`, {
+    pendingTx.current = null;
+    toast.success(`Bridge sent — tracking delivery to ${p?.destName ?? destName}`, {
       action: hash ? { label: "Track", onClick: () => window.open(lzScanUrl(hash), "_blank") } : undefined,
     });
     reset();
@@ -154,7 +170,7 @@ export function BridgeIn() {
 
   useEffect(() => {
     if (error) {
-      pending.current = null;
+      pendingTx.current = null;
       toast.error(error.message.split("\n")[0].slice(0, 120));
     }
   }, [error]);
@@ -165,9 +181,8 @@ export function BridgeIn() {
       return;
     }
     if (!address || amountLD <= 0n || overBalance) return;
-    setSentHash(null);
     if (needsApproval) {
-      pending.current = { action: "approve", amountLD };
+      pendingTx.current = { action: "approve", amountLD, srcName: src.name, destName, symbol, decimals };
       writeContract({
         chainId: src.chainId,
         address: src.token,
@@ -179,6 +194,11 @@ export function BridgeIn() {
       doSend(amountLD);
     }
   }
+
+  const dismiss = (h: string) => {
+    removeBridge(h);
+    setPending(getBridges());
+  };
 
   const label =
     amountLD <= 0n
@@ -208,8 +228,10 @@ export function BridgeIn() {
         <span className="text-[11px] text-faint">via LayerZero</span>
       </div>
 
+      {pending.length > 0 ? <PendingBridges items={pending} onDismiss={dismiss} /> : null}
+
       {/* direction */}
-      <div className="mt-3 flex rounded-lg border border-border p-1">
+      <div className="mt-4 flex rounded-lg border border-border p-1">
         {(
           [
             ["in", "Bring in"],
@@ -220,7 +242,7 @@ export function BridgeIn() {
             key={d}
             onClick={() => {
               setDirection(d);
-              resetForm();
+              setAmount("");
               reset();
             }}
             className={`flex-1 rounded-md px-3 py-1.5 text-xs transition-colors ${
@@ -246,7 +268,7 @@ export function BridgeIn() {
               onClick={() => {
                 if (direction === "in") setInKey(c.key);
                 else setOutKey(c.key);
-                resetForm();
+                setAmount("");
                 reset();
               }}
               className={`rounded-lg border px-3 py-1.5 text-xs transition-colors ${
@@ -308,24 +330,89 @@ export function BridgeIn() {
         {direction === "in" ? (
           <>
             Sends to your own address on X Layer. You&apos;ll pay a LayerZero fee in {src.nativeSymbol} plus gas
-            on {src.name}. Funds usually arrive in one to three minutes, then you can deposit.
+            on {src.name}. Delivery takes a few minutes and shows above as in flight until it lands.
           </>
         ) : (
           <>
             Bridges USDT0 from your wallet (withdraw from the vault first). Sends to your own address on {destName},
-            with a LayerZero fee in OKB plus gas on X Layer. Arrives in one to three minutes.
+            with a LayerZero fee in OKB plus gas on X Layer. Delivery takes a few minutes and shows above until it lands.
           </>
         )}
       </p>
-
-      {sentHash ? (
-        <div className="mt-3 flex items-center justify-between rounded-lg border border-accent/30 bg-accent/5 px-3 py-2 text-xs">
-          <span className="text-muted-foreground">Bridge in flight → {destName}</span>
-          <a className="text-accent hover:underline" href={lzScanUrl(sentHash)} target="_blank" rel="noreferrer">
-            track ↗
-          </a>
-        </div>
-      ) : null}
     </Panel>
+  );
+}
+
+/** Persistent list of recent bridge sends with live LayerZero delivery status. */
+function PendingBridges({ items, onDismiss }: { items: PendingBridge[]; onDismiss: (hash: string) => void }) {
+  return (
+    <div className="mt-3 flex flex-col gap-2">
+      <Label>Transfers</Label>
+      {items.map((b) => (
+        <PendingRow key={b.hash} b={b} onDismiss={onDismiss} />
+      ))}
+    </div>
+  );
+}
+
+function PendingRow({ b, onDismiss }: { b: PendingBridge; onDismiss: (hash: string) => void }) {
+  const [status, setStatus] = useState<BridgeStatus>("pending");
+  const [, force] = useState(0); // ticks the elapsed-time display
+
+  // Poll LayerZero until the message reaches a terminal state.
+  useEffect(() => {
+    if (status === "delivered" || status === "failed") return;
+    const ctrl = new AbortController();
+    const poll = () => fetchBridgeStatus(b.hash, ctrl.signal).then(setStatus).catch(() => {});
+    poll();
+    const t = setInterval(poll, 20_000);
+    return () => {
+      ctrl.abort();
+      clearInterval(t);
+    };
+  }, [b.hash, status]);
+
+  useEffect(() => {
+    const t = setInterval(() => force((x) => x + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const mins = Math.max(0, Math.floor((Date.now() - b.at) / 60000));
+  const tone =
+    status === "delivered"
+      ? "border-accent/40 bg-accent/5"
+      : status === "failed"
+        ? "border-negative/40 bg-negative/5"
+        : "border-border bg-card-2";
+  const statusText =
+    status === "delivered" ? "Delivered" : status === "failed" ? "Failed" : `In flight · ${mins}m`;
+  const statusColor =
+    status === "delivered" ? "text-accent" : status === "failed" ? "text-negative" : "text-muted-foreground";
+
+  return (
+    <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${tone}`}>
+      {status === "pending" ? <Orb className="size-3.5 shrink-0 text-accent" /> : null}
+      <span className="min-w-0 truncate text-foreground">
+        {b.amount} {b.symbol} → {b.destName}
+      </span>
+      <span className={`ml-auto shrink-0 ${statusColor}`}>{statusText}</span>
+      <a
+        className="shrink-0 text-accent hover:underline"
+        href={lzScanUrl(b.hash)}
+        target="_blank"
+        rel="noreferrer"
+      >
+        {status === "failed" ? "retry ↗" : "track ↗"}
+      </a>
+      {status !== "pending" ? (
+        <button
+          onClick={() => onDismiss(b.hash)}
+          className="shrink-0 text-faint hover:text-foreground"
+          aria-label="Dismiss"
+        >
+          ✕
+        </button>
+      ) : null}
+    </div>
   );
 }
