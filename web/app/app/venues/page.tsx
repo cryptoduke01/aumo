@@ -87,7 +87,7 @@ function VenueCard({ venue, risk }: { venue: VenueSnapshot; risk?: VenueRisk }) 
     ["Peg deviation", `${venue.pegDeviationBps} bps`],
     ["TVL", usd(venue.tvlUsd)],
     ["Liquidity", usd(venue.liquidityUsd)],
-    ["Kind", venue.kind === "rwa" ? "Real-world asset" : venue.kind === "lending" ? "Lending" : venue.kind],
+    ["Kind", venue.kind === "rwa" ? "Real-world asset" : venue.kind === "lending" ? "Lending" : "Test venue"],
   ];
   return (
     <Panel className="flex flex-col p-5">

@@ -82,14 +82,22 @@ export default function VaultPage() {
   const allowance = reads.data?.[1]?.result as bigint | undefined;
   const position = reads.data?.[2]?.result as bigint | undefined; // your redeemable USDT0
 
-  // Tie the engine's live yield to the position: estimated annual earnings.
-  const [bestApyBps, setBestApyBps] = useState<number | null>(null);
+  // The pool's blended live yield, tied to the position for an honest annual estimate: each held
+  // venue's APY weighted by its live balance, over total assets (idle drags it down). Matches the
+  // Overview's "Live yield" — not the single best venue available, which overstates the real return.
+  const [poolApyBps, setPoolApyBps] = useState<number | null>(null);
   useEffect(() => {
     const ctrl = new AbortController();
     getReceipts(1, ctrl.signal)
       .then((r) => {
-        const risks = r[0]?.plan.risks ?? [];
-        if (risks.length) setBestApyBps(Math.max(...risks.map((x) => x.riskAdjustedApyBps)));
+        const snap = r[0]?.snapshot;
+        if (!snap) return;
+        const totalBase = Number(snap.vault.idle) + Number(snap.vault.totalDeployed);
+        const blended =
+          totalBase > 0
+            ? snap.venues.reduce((a, v) => a + Number(v.liveBalance) * v.apyBps, 0) / totalBase
+            : 0;
+        setPoolApyBps(Math.round(blended));
       })
       .catch(() => {});
     return () => ctrl.abort();
@@ -301,9 +309,9 @@ export default function VaultPage() {
               <div className="flex flex-col gap-1">
                 <Label>Est. annual yield</Label>
                 <span className="text-sm font-medium text-accent">
-                  {bestApyBps !== null ? (
+                  {poolApyBps !== null ? (
                     <>
-                      <Num value={(num(position) * bestApyBps) / 10000} currency /> · {pct(bestApyBps)}
+                      <Num value={(num(position) * poolApyBps) / 10000} currency /> · {pct(poolApyBps)}
                     </>
                   ) : (
                     "-"

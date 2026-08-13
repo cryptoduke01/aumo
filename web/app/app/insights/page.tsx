@@ -290,7 +290,7 @@ export default function InsightsPage() {
         <Metric label="Volume in" value={flow?.volIn ?? 0} currency sub="Total deposited" pending={flowPending} href={addrUrl(POOL)} />
         <Metric label="Volume out" value={flow?.volOut ?? 0} currency sub="Total withdrawn" pending={flowPending} href={addrUrl(POOL)} />
         <Metric label="Net flow" value={netFlow} currency sub="In minus out" pending={flowPending} href={addrUrl(POOL)} />
-        <Metric label="Best risk-adjusted" value={bestApy / 100} sub="Live yield %" />
+        <Metric label="Best risk-adjusted" value={bestApy / 100} sub="Best available %" />
       </div>
 
       <ChartPanel
@@ -309,7 +309,7 @@ export default function InsightsPage() {
         <Metric label="Agent cycles" value={cycles} sub="Decisions recorded" />
         <Metric label="Rebalances" value={moves} sub="On-chain moves" />
         <Metric label="Venues" value={venues} sub="Allowlisted" />
-        <Metric label="Latest APY" value={bestApy / 100} sub="Live %" />
+        <Metric label="Latest APY" value={bestApy / 100} sub="Best available" />
       </div>
 
       <Panel className="p-5">

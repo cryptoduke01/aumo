@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAccount, useChainId, useDisconnect, useReadContracts, useSwitchChain, useWalletClient } from "wagmi";
+import { useAccount, useDisconnect, useReadContracts, useSwitchChain, useWalletClient } from "wagmi";
 import { toast } from "sonner";
 import { POOL, USDT0, poolAbi, erc20Abi, activeChain, isMainnet } from "@/lib/chain";
 import { addrUrl, short } from "@/lib/agent";
@@ -23,8 +23,7 @@ const resources: [string, string][] = [
 ];
 
 export default function SettingsPage() {
-  const { address, isConnected } = useAccount();
-  const chainId = useChainId();
+  const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
   const { data: walletClient } = useWalletClient();

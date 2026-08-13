@@ -148,11 +148,12 @@ export default function DocsPage() {
             </ul>
             <p>
               Everything settles on X Layer. The base asset is USDT0 throughout, and
-              the agent allocates across two real venues: <strong>Aave v3</strong>{" "}
-              lending, and <strong>USDG</strong>, a regulated dollar backed by cash and
-              short-term U.S. Treasuries (routed via Uniswap and supplied to Aave) for
-              real-world-asset-backed yield. Both are proven end-to-end against live X
-              Layer mainnet.
+              the agent allocates across three real venues: <strong>Aave v3</strong>{" "}
+              lending; <strong>USDG</strong>, a regulated dollar backed by cash and
+              short-term U.S. Treasuries (USDT0 is swapped to USDG on Uniswap, then
+              supplied to Aave) for real-world-asset yield; and <strong>Pendle
+              PT-USDG</strong>, fixed yield to maturity on that same Treasury-backed
+              dollar. Each is proven end-to-end against live X Layer mainnet contracts.
             </p>
           </section>
 

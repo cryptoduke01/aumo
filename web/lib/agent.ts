@@ -1,13 +1,15 @@
 // Client for the hosted Aumo agent's read-only status API.
 
+import { activeChain } from "./chain";
+
 export const AGENT_URL =
   process.env.NEXT_PUBLIC_AGENT_URL ?? "https://aumo-production.up.railway.app";
 
-// Explorer follows the active network (mainnet 196 / testnet 1952).
-const EXPLORER =
-  process.env.NEXT_PUBLIC_CHAIN === "mainnet"
-    ? "https://www.oklink.com/xlayer"
-    : "https://www.oklink.com/xlayer-test";
+// Explorer follows the active network from the single source of truth (lib/chain.ts), so it can
+// never diverge from where the app actually reads and writes. This previously defaulted to the
+// testnet explorer on an unset env while chain.ts defaulted to mainnet, sending every "view on
+// explorer" link to a 404 on a correct mainnet build.
+const EXPLORER = activeChain.blockExplorers?.default.url ?? "https://www.oklink.com/xlayer";
 export const txUrl = (hash: string) => `${EXPLORER}/tx/${hash}`;
 export const addrUrl = (addr: string) => `${EXPLORER}/address/${addr}`;
 

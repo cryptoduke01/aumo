@@ -8,7 +8,6 @@ import {
   useAccount,
   useConnect,
   useDisconnect,
-  useChainId,
   useSwitchChain,
   type Connector,
 } from "wagmi";
@@ -31,8 +30,9 @@ function pickWallets(connectors: readonly Connector[]): Connector[] {
 }
 
 export function ConnectButton() {
-  const { address, isConnected } = useAccount();
-  const chainId = useChainId();
+  // chainId from useAccount (the connected wallet's actual chain). useChainId() reports the wagmi
+  // config's chain even when the wallet sits elsewhere, so it never catches a wrong-network wallet.
+  const { address, isConnected, chainId } = useAccount();
   const { connect, connectors, isPending } = useConnect({
     mutation: {
       onError: (e) => toast.error(e.message.split("\n")[0].slice(0, 120) || "Connection failed"),
