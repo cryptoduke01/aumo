@@ -54,6 +54,7 @@ export function BridgeIn() {
   const [inKey, setInKey] = useState("arbitrum"); // source when bringing in
   const [outKey, setOutKey] = useState("arbitrum"); // destination when sending out
   const [amount, setAmount] = useState("");
+  const [trackInput, setTrackInput] = useState("");
   const [pending, setPending] = useState<PendingBridge[]>([]);
   useEffect(() => setPending(getBridges()), []);
 
@@ -200,6 +201,17 @@ export function BridgeIn() {
     setPending(getBridges());
   };
 
+  const addTracked = () => {
+    const h = trackInput.trim();
+    if (!/^0x[0-9a-fA-F]{64}$/.test(h)) {
+      toast.error("Paste a valid transaction hash");
+      return;
+    }
+    addBridge({ hash: h, srcName: "", destName: "", amount: "", symbol: "", at: Date.now() });
+    setPending(getBridges());
+    setTrackInput("");
+  };
+
   const label =
     amountLD <= 0n
       ? "Enter an amount"
@@ -330,15 +342,37 @@ export function BridgeIn() {
         {direction === "in" ? (
           <>
             Sends to your own address on X Layer. You&apos;ll pay a LayerZero fee in {src.nativeSymbol} plus gas
-            on {src.name}. Delivery takes a few minutes and shows above as in flight until it lands.
+            on {src.name}. Delivery is handled by LayerZero, usually a few minutes but sometimes longer; your
+            funds are safe and shown above until they land.
           </>
         ) : (
           <>
-            Bridges USDT0 from your wallet (withdraw from the vault first). Sends to your own address on {destName},
-            with a LayerZero fee in OKB plus gas on X Layer. Delivery takes a few minutes and shows above until it lands.
+            Bridges USDT0 from your wallet (withdraw from the vault first) to your own address on {destName},
+            with a LayerZero fee in OKB plus gas on X Layer. Leaving X Layer can take longer to settle; your funds
+            are safe and shown above until they land.
           </>
         )}
       </p>
+
+      <div className="mt-4 border-t border-border pt-3">
+        <Label>Track a transfer</Label>
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            value={trackInput}
+            onChange={(e) => setTrackInput(e.target.value)}
+            placeholder="Paste a bridge tx hash…"
+            className="field-input min-w-0 flex-1 rounded-lg border border-border bg-card-2 px-3 py-2 text-xs outline-none focus:border-primary/50"
+            aria-label="Bridge transaction hash to track"
+          />
+          <button
+            onClick={addTracked}
+            className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs transition-colors hover:border-foreground/40"
+          >
+            Track
+          </button>
+        </div>
+        <p className="mt-1.5 text-[11px] text-faint">Watch any USDT0 bridge, even one sent earlier, until it lands.</p>
+      </div>
     </Panel>
   );
 }
@@ -393,7 +427,7 @@ function PendingRow({ b, onDismiss }: { b: PendingBridge; onDismiss: (hash: stri
     <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${tone}`}>
       {status === "pending" ? <Orb className="size-3.5 shrink-0 text-accent" /> : null}
       <span className="min-w-0 truncate text-foreground">
-        {b.amount} {b.symbol} → {b.destName}
+        {b.amount ? `${b.amount} ${b.symbol} → ${b.destName}` : `Transfer ${b.hash.slice(0, 6)}…${b.hash.slice(-4)}`}
       </span>
       <span className={`ml-auto shrink-0 ${statusColor}`}>{statusText}</span>
       <a
