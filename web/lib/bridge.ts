@@ -122,9 +122,10 @@ export function buildSendParam(recipient: Address, amountLD: bigint, dstEid: num
   } as const;
 }
 
-// Kept off until a tiny live test bridge confirms delivery end-to-end. Set NEXT_PUBLIC_BRIDGE_ENABLED=1
-// to surface the widget; the code path is complete and verified regardless.
-export const BRIDGE_ENABLED = process.env.NEXT_PUBLIC_BRIDGE_ENABLED === "1";
+// On by default now that every route is verified on-chain both directions (peers + enforced executor
+// options). NEXT_PUBLIC_BRIDGE_ENABLED=0 is a kill switch to hide the widget instantly if a real
+// send ever misbehaves, without a code change.
+export const BRIDGE_ENABLED = process.env.NEXT_PUBLIC_BRIDGE_ENABLED !== "0";
 
 // LayerZero scan tracks a cross-chain message by its source-chain tx hash.
 export const lzScanUrl = (txHash: string) => `https://layerzeroscan.com/tx/${txHash}`;
