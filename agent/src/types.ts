@@ -27,11 +27,20 @@ export interface VaultState {
 }
 
 /** Optional live-market source. When present, its reads override the static metrics. */
-export interface VenueFeed {
-  source: "aave";
-  pool: Address; // Aave v3 Pool
-  underlying: Address; // the reserve asset (USDT0)
-}
+export type VenueFeed =
+  | {
+      source: "aave";
+      pool: Address; // Aave v3 Pool
+      underlying: Address; // the reserve asset (USDT0)
+    }
+  | {
+      source: "pendle";
+      oracle: Address; // Pendle PT oracle (getPtToAssetRate)
+      market: Address; // Pendle market (LP)
+      sy: Address; // Standardized Yield token
+      pt: Address; // Principal Token
+      twapWindowSec: number; // oracle TWAP window used for the PT rate
+    };
 
 /**
  * Optional live peg source (F-2): the Uniswap v3 pool that quotes an RWA/stable yield asset against

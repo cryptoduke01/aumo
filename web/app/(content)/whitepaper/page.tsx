@@ -129,7 +129,7 @@ export default function WhitepaperPage() {
         <ul>
           <li>Deepen the reasoning layer with temporal awareness and scenario simulation.</li>
           <li>Expand the venue set toward genuinely composable tokenized real-world assets.</li>
-          <li>Formal third-party audit of the deployed contracts. Mainnet is already live on X Layer with conservative caps.</li>
+          <li>Formal third-party audit of the deployed contracts. Mainnet went live on X Layer on August 13, 2026, starting from a deliberately small pool under conservative caps that widen as the audit and on-chain track record mature.</li>
           <li>Depositor-configurable risk appetite within the contract&apos;s hard bounds.</li>
         </ul>
 

@@ -17,6 +17,8 @@ import { ConnectButton } from "@/components/wallet";
 import { Num } from "@/components/num";
 import { Orb } from "@/components/orb";
 import { DepositModal } from "@/components/deposit-modal";
+import { BridgeIn } from "@/components/bridge-in";
+import { BRIDGE_ENABLED } from "@/lib/bridge";
 import { useRouter } from "next/navigation";
 import { txUrl, getReceipts, pct } from "@/lib/agent";
 
@@ -370,6 +372,10 @@ export default function VaultPage() {
               </div>
             ) : null}
           </Panel>
+
+          {/* Cross-chain deposits: bring USDT0 onto X Layer from another chain. Gated until a live
+              test bridge confirms delivery; the send path is verified on-chain regardless. */}
+          {BRIDGE_ENABLED && isMainnet && isConnected ? <BridgeIn /> : null}
         </div>
 
         {/* Action */}

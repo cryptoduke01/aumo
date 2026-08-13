@@ -2,6 +2,7 @@ import type { PublicClient } from "viem";
 import { vaultAbi, erc20Abi } from "./abi.js";
 import type { Address, VaultState, VenueMeta, VenueState } from "../types.js";
 import { readAaveMarket } from "../sense/aaveFeed.js";
+import { readPendleMarket } from "../sense/pendleFeed.js";
 import { readPeg } from "../sense/pegFeed.js";
 
 export async function readVaultState(
@@ -123,6 +124,13 @@ export async function readVenueState(
   if (meta.feed?.source === "aave") {
     try {
       const m = await readAaveMarket(pc, meta.feed.pool, meta.feed.underlying);
+      market = { apyBps: m.apyBps, tvlUsd: m.tvlUsd, liquidityUsd: m.liquidityUsd, utilization: m.utilization };
+    } catch {
+      // fall back to static metrics if the live read fails
+    }
+  } else if (meta.feed?.source === "pendle") {
+    try {
+      const m = await readPendleMarket(pc, meta.feed.oracle, meta.feed.market, meta.feed.sy, meta.feed.pt, meta.feed.twapWindowSec);
       market = { apyBps: m.apyBps, tvlUsd: m.tvlUsd, liquidityUsd: m.liquidityUsd, utilization: m.utilization };
     } catch {
       // fall back to static metrics if the live read fails
