@@ -133,13 +133,18 @@ export default function Dashboard() {
   ];
   const deployedPct = total > 0 ? Math.round((deployed / total) * 100) : 0;
 
+  // The pool's ACTUAL live yield: each held venue's APY weighted by its balance, over total assets
+  // (idle earns nothing, so it drags this down). This is what a deposit is really earning right now —
+  // NOT `bestNow`, the best venue AVAILABLE, which overstates what the pool is currently capturing.
+  const liveYield = total > 0 ? venues.reduce((a, v) => a + v.bal * v.apyBps, 0) / total / 100 : 0;
+
   // Personal view: the connected wallet's own slice. `share` is clamped to [0,1] — position comes
   // from maxWithdraw (includes accrued yield) while total is principal-based, so a sole/large
   // depositor could otherwise read >100% and over-scale the per-venue slice.
   const myPosition = positionRead.data ? Number(positionRead.data as bigint) / 10 ** dec : 0;
   const share = total > 0 ? Math.min(1, myPosition / total) : 0;
   const mySharePct = share * 100;
-  const myYield = (myPosition * bestNow) / 100;
+  const myYield = (myPosition * liveYield) / 100;
   const mine = view === "mine" && isConnected;
   // Your slice of each venue is pro-rata: same proportions as the pool, scaled to your position.
   const mySegments: Segment[] = segments.map((s) => ({ ...s, value: s.value * share }));
@@ -166,7 +171,7 @@ export default function Dashboard() {
             <Metric label="Total assets" value={total} currency sub="Under management" />
             <Metric label="Idle" value={idle} currency sub="Ready to deploy" />
             <Metric label="Deployed" value={deployed} currency sub="Working in venues" />
-            <Metric label="Best risk-adjusted" value={bestNow} suffix="%" frac={2} accent sub="Live yield" />
+            <Metric label="Live yield" value={liveYield} suffix="%" frac={2} accent sub="Blended across venues held" />
           </>
         )}
       </div>
@@ -210,7 +215,7 @@ export default function Dashboard() {
         {!mine ? (
           <Panel className="flex flex-col p-5">
             <div className="flex items-center justify-between">
-              <Label>Risk-adjusted yield</Label>
+              <Label>Best available yield</Label>
               <span className="tnum text-sm font-medium text-accent"><Num value={bestNow} suffix="%" maximumFractionDigits={2} /></span>
             </div>
             <div className="mt-4 flex-1">
