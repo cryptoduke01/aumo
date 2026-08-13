@@ -69,20 +69,14 @@ export async function GET() {
 
         {/* headline */}
         <div style={{ display: "flex", flexDirection: "column", position: "relative" }}>
-          <span style={{ display: "flex", fontSize: 18, fontWeight: 500, letterSpacing: 4, color: "#FFBC3E", textTransform: "uppercase", marginBottom: 18 }}>
-            Live on X Layer mainnet
-          </span>
-          <span style={{ display: "flex", fontSize: 68, fontWeight: 500, letterSpacing: -2.4, lineHeight: 1.05, color: "#ffffff", maxWidth: 920 }}>
+          <span style={{ display: "flex", fontSize: 72, fontWeight: 500, letterSpacing: -2.6, lineHeight: 1.04, color: "#ffffff", maxWidth: 940 }}>
             A stablecoin treasury that manages itself.
           </span>
         </div>
 
-        {/* bottom: tagline + url */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", position: "relative" }}>
-          <span style={{ display: "flex", fontSize: 23, fontWeight: 400, color: "#c9c6bd", maxWidth: 720 }}>
-            Deposit USDT0. An AI agent puts it to work in real-world-asset and DeFi yield, provably.
-          </span>
-          <span style={{ display: "flex", fontSize: 23, fontWeight: 500, color: "#FFBC3E" }}>aumo.finance</span>
+        {/* bottom: url only */}
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-end", position: "relative" }}>
+          <span style={{ display: "flex", fontSize: 24, fontWeight: 500, color: "#FFBC3E" }}>aumo.finance</span>
         </div>
       </div>
     ),
