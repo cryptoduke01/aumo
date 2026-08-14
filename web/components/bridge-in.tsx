@@ -37,6 +37,12 @@ const btn =
 
 type Direction = "in" | "out";
 
+// Outbound (X Layer -> another chain) is disabled: LayerZero delivery leaving X Layer has stalled
+// at DVN verification for hours in testing, which is a bad withdrawal experience. Inbound (bringing
+// funds onto X Layer) reads mature source chains and is fast. Flip to true to restore the "Send out"
+// tab once X Layer outbound delivery is reliable.
+const OUTBOUND_ENABLED = false;
+
 /**
  * Move USDT0 across chains over its native LayerZero OFT, in either direction:
  *  - "in":  another chain -> X Layer (fund a deposit)
@@ -242,32 +248,34 @@ export function BridgeIn() {
 
       {pending.length > 0 ? <PendingBridges items={pending} onDismiss={dismiss} /> : null}
 
-      {/* direction */}
-      <div className="mt-4 flex rounded-lg border border-border p-1">
-        {(
-          [
-            ["in", "Bring in"],
-            ["out", "Send out"],
-          ] as const
-        ).map(([d, lbl]) => (
-          <button
-            key={d}
-            onClick={() => {
-              setDirection(d);
-              setAmount("");
-              reset();
-            }}
-            className={`flex-1 rounded-md px-3 py-1.5 text-xs transition-colors ${
-              direction === d ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {lbl}
-          </button>
-        ))}
-      </div>
+      {/* direction — hidden while outbound is disabled; inbound is the only mode */}
+      {OUTBOUND_ENABLED ? (
+        <div className="mt-4 flex rounded-lg border border-border p-1">
+          {(
+            [
+              ["in", "Bring in"],
+              ["out", "Send out"],
+            ] as const
+          ).map(([d, lbl]) => (
+            <button
+              key={d}
+              onClick={() => {
+                setDirection(d);
+                setAmount("");
+                reset();
+              }}
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs transition-colors ${
+                direction === d ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {lbl}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
-      <p className="mt-2 text-[11px] text-muted-foreground">
-        {direction === "in" ? "From another chain onto X Layer." : "From X Layer to another chain."}
+      <p className="mt-3 text-[11px] text-muted-foreground">
+        {direction === "in" ? "Bring USDT0 from another chain onto X Layer." : "From X Layer to another chain."}
       </p>
 
       {/* chain picker */}
