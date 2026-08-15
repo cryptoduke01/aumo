@@ -169,6 +169,29 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         return IVenueAdapter(venue).balanceOf(address(this));
     }
 
+    /// @dev Exposure used for cap enforcement: the GREATER of principal booked and live realizable
+    ///      value. Principal (`allocated`) can be reset to zero by a partial deallocation while
+    ///      accrued value stays in the venue, so gating caps on principal alone would let a malicious
+    ///      agent rebuild per-venue exposure past `perVenueCap` through that accounting seam. Taking
+    ///      the max closes it. Falls back to principal if the venue's balanceOf reverts, so an oracle
+    ///      hiccup can never UNDER-count exposure and quietly widen the cap.
+    function _venueExposure(address venue) internal view returns (uint256) {
+        uint256 p = allocated[venue];
+        try IVenueAdapter(venue).balanceOf(address(this)) returns (uint256 b) {
+            return b > p ? b : p;
+        } catch {
+            return p;
+        }
+    }
+
+    /// @dev Total exposure for the global cap: live value across all (non-impaired) venues, floored
+    ///      at the principal counter for the same seam-closing conservatism. `totalAssets() - idle`
+    ///      is the venue value (totalAssets = idle + venue sum), which never underflows.
+    function _totalExposure() internal view returns (uint256) {
+        uint256 venueVal = totalAssets() - idleBalance();
+        return venueVal > totalDeployed ? venueVal : totalDeployed;
+    }
+
     /// @dev Virtual-share offset for the ERC-4626 first-depositor inflation attack. At 6, the
     ///      pool holds ~1e6 virtual shares against a virtual asset, so a donation attack cannot
     ///      profit and a victim's rounding loss is negligible.
@@ -436,8 +459,11 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         if (venueImpaired[venue]) revert VenueIsImpaired();
         if (amount > maxMoveSize) revert MoveTooLarge();
         if (amount > idleBalance()) revert InsufficientIdle();
-        if (allocated[venue] + amount > perVenueCap) revert PerVenueCapExceeded();
-        if (totalDeployed + amount > maxTotalDeployed) revert TotalCapExceeded();
+        // Enforce caps against REAL exposure (max of principal and live value), not the principal
+        // counter alone — otherwise a partial deallocation that zeroes principal while accrued value
+        // remains would let the agent rebuild exposure past the cap through the accounting seam.
+        if (_venueExposure(venue) + amount > perVenueCap) revert PerVenueCapExceeded();
+        if (_totalExposure() + amount > maxTotalDeployed) revert TotalCapExceeded();
 
         // Rate-limit deploy throughput per epoch (its own window). This caps how fast the agent can
         // re-stage churn, bounding realized swap loss even via the unmetered redeem exit path.
