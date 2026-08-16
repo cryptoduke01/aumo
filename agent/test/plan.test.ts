@@ -152,6 +152,16 @@ test("rotates into a fixed-maturity venue when the horizon is long enough to rec
   assert.ok(plan.moves.some((m) => m.rebalance && m.action === "allocate"), "rotates when the horizon recoups the cost");
 });
 
+test("skips a dust deploy below the minimum move size", () => {
+  // Deployable idle is only ~$0.48 above the buffer — below the $1 floor, so it holds rather than
+  // proposing a dust allocate that reverts on the venue's swap floor.
+  const s = snap({ idle: 1_900_000n, totalDeployed: 26_600_000n }, [
+    venue({ allocatedPrincipal: 26_600_000n, liveBalance: 26_600_000n, liquidityUsd: 5_000_000 }),
+  ]);
+  const plan = buildPlan(s, { appetite: "moderate", maxConcentration: 1 });
+  assert.ok(!plan.moves.some((m) => m.action === "allocate"), "no dust deploy below the floor");
+});
+
 test("global invariant: every allocate satisfies all caps together", () => {
   const s = snap({ idle: 5000n * M, totalDeployed: 100n * M }, [
     venue({ address: VENUE_A, allocatedPrincipal: 100n * M, liveBalance: 100n * M }),

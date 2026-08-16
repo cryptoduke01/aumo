@@ -12,6 +12,11 @@ import {
 } from "./critic.js";
 
 const SECONDS_PER_YEAR = 31_536_000;
+// Floor on any proposed move, in whole asset units ($1 at 6 decimals). Venues that route through a
+// swap (Pendle's USDT0→USDG→PT, USDG's redemption) revert on sub-cent "dust" — the swap rounds the
+// output to zero or trips a minimum. The buffer arithmetic can leave a sliver of deployable idle, so
+// without this floor the planner would propose a dust allocate that reverts on-chain every cycle.
+const MIN_MOVE_USD = 1;
 import type { PanelResult } from "./panel.js";
 
 export interface Move {
@@ -70,6 +75,7 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
   const deny = opts.deny ?? new Set<string>();
   const maxConc = opts.maxConcentration ?? 0.6;
   const unit = 10 ** vault.decimals;
+  const minMove = BigInt(Math.round(MIN_MOVE_USD * unit)); // skip dust moves that revert on swap venues
   const portfolioUnits = (Number(vault.idle) + Number(vault.totalDeployed)) / unit;
 
   const risks = scorePortfolio(
@@ -155,7 +161,7 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
     if (size > perVenueHeadroom) size = perVenueHeadroom;
     if (size > concHeadroom) size = concHeadroom;
     if (v.liquidityUsd > 0 && size > liqHeadroom) size = liqHeadroom;
-    if (size <= 0n) continue;
+    if (size < minMove) continue; // don't propose a dust deploy that reverts on the venue's swap floor
 
     budget -= size;
     moves.push({
@@ -245,7 +251,7 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
         if (rot > concHeadroom) rot = concHeadroom;
         if (target.v.liquidityUsd > 0 && rot > liqHeadroom) rot = liqHeadroom;
 
-        if (rot > 0n) {
+        if (rot >= minMove) {
           const edgePct = (edge / 100).toFixed(2);
           moves.push({
             venue: source.v.address,
