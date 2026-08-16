@@ -28,6 +28,7 @@ export interface PendleMarket {
   tvlUsd: number; // SY + PT reserves valued in asset terms
   liquidityUsd: number; // SY reserve — conservative exit capacity for a PT seller
   utilization: number; // n/a for a PT market; 0
+  maturityTs: number; // unix seconds the PT redeems 1:1 — the planner's rotation horizon
 }
 
 export async function readPendleMarket(
@@ -69,5 +70,6 @@ export async function readPendleMarket(
     tvlUsd: syAsset + ptAsset,
     liquidityUsd: syAsset,
     utilization: 0,
+    maturityTs: Number(expiry),
   };
 }

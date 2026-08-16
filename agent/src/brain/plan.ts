@@ -3,7 +3,15 @@ import { BAND_RANK, scorePortfolio, type VenueRisk } from "../risk/engine.js";
 import type { StressReport } from "../risk/stress.js";
 import type { Reflection } from "./reflect.js";
 import type { CriticVerdict } from "./critic.js";
-import { IDLE_FLOOR, MOMENTUM_VETO, LIQUIDITY_SHARE_CAP, REBALANCE_MIN_EDGE_BPS } from "./critic.js";
+import {
+  IDLE_FLOOR,
+  MOMENTUM_VETO,
+  LIQUIDITY_SHARE_CAP,
+  REBALANCE_MIN_EDGE_BPS,
+  ROTATION_ROUNDTRIP_BPS,
+} from "./critic.js";
+
+const SECONDS_PER_YEAR = 31_536_000;
 import type { PanelResult } from "./panel.js";
 
 export interface Move {
@@ -174,6 +182,9 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
   //    first, so this only fires when idle alone couldn't reach the better venue. Bounded to one
   //    move-sized step per cycle and to the target's caps and exit-liquidity share, so it rotates
   //    gradually and the on-chain per-epoch loss budget hard-caps the realized round-trip cost.
+  let rotationNote: string | null = null; // sophisticated-hold reasoning, surfaced in the receipt
+  const nowSec = Math.floor(Date.parse(snap.takenAt) / 1000);
+  const nowValid = Number.isFinite(nowSec);
   const target = eligible[0]; // highest risk-adjusted, already band/momentum/deny-filtered
   if (target) {
     const targetKey = target.v.address.toLowerCase();
@@ -197,7 +208,24 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
 
     if (source && source.r) {
       const edge = target.r.riskAdjustedApyBps - source.r.riskAdjustedApyBps;
-      if (edge >= REBALANCE_MIN_EDGE_BPS) {
+      // Horizon gate for a FIXED-MATURITY target: the edge is annualized, but it can only be earned
+      // over the time left to maturity. If that pickup (edge × years-left) can't clear the round-trip
+      // cost, rotating in loses money before the position matures — decline and record why. A
+      // perpetual target (no maturityTs) has an unbounded horizon and skips this gate entirely.
+      let horizonOk = true;
+      if (edge >= REBALANCE_MIN_EDGE_BPS && target.v.maturityTs) {
+        const yearsLeft = nowValid ? Math.max(0, (target.v.maturityTs - nowSec) / SECONDS_PER_YEAR) : 0;
+        const pickupBps = edge * yearsLeft;
+        if (pickupBps < ROTATION_ROUNDTRIP_BPS) {
+          horizonOk = false;
+          rotationNote = `${target.v.name} shows a ${(edge / 100).toFixed(2)}% risk-adjusted edge over ${
+            source.v.name
+          }, but with ~${(yearsLeft * 12).toFixed(1)} months to maturity only ~${Math.round(
+            pickupBps,
+          )}bps is realizable before then — below the ~${ROTATION_ROUNDTRIP_BPS}bps round-trip cost. Holding rather than chasing yield that will not be captured in time.`;
+        }
+      }
+      if (edge >= REBALANCE_MIN_EDGE_BPS && horizonOk) {
         // Target headroom AFTER any step-2 idle deploy into it this cycle.
         const targetAdded = moves
           .filter((m) => m.action === "allocate" && m.venue === target.v.address)
@@ -283,10 +311,12 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
   if (nAlloc) parts.push(`${nAlloc} deploy${nAlloc === 1 ? "" : "s"}`);
   if (nRotate) parts.push(`${nRotate} rotation${nRotate === 1 ? "" : "s"}`);
   if (nRetreat) parts.push(`${nRetreat} retreat${nRetreat === 1 ? "" : "s"}`);
-  const summary =
+  const base =
     moves.length === 0
       ? `Hold. No move improves the risk-adjusted position within a ${regime} regime and ${appetite} appetite.`
       : `${regime} regime, ${appetite} appetite: ${parts.join(", ")}.`;
+  // Surface a declined-rotation rationale so the receipt shows the horizon reasoning, not a bare hold.
+  const summary = rotationNote ? `${base} ${rotationNote}` : base;
 
   return {
     regime,

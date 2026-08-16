@@ -123,6 +123,35 @@ test("a rotation is bounded by the target's per-venue cap", () => {
   assert.equal(into!.amount, 20n * M, "capped at 500 - 480 = 20 of per-venue headroom");
 });
 
+test("does not rotate into a fixed-maturity venue when the horizon can't recoup the round-trip cost", () => {
+  const nowIso = "2026-08-17T00:00:00Z";
+  const now = Math.floor(Date.parse(nowIso) / 1000);
+  const s = {
+    ...snap({ idle: 0n, totalDeployed: 100n * M, maxMoveSize: 100n * M, perVenueCap: 500n * M }, [
+      venue({ address: VENUE_A, name: "Aave", apyBps: 30, allocatedPrincipal: 100n * M, liveBalance: 100n * M, liquidityUsd: 500_000 }),
+      venue({ address: VENUE_B, name: "Pendle PT", apyBps: 400, allocatedPrincipal: 0n, liveBalance: 0n, liquidityUsd: 5_000_000, maturityTs: now + 30 * 86400 }),
+    ]),
+    takenAt: nowIso,
+  };
+  const plan = buildPlan(s, { appetite: "moderate", maxConcentration: 1 });
+  assert.ok(!plan.moves.some((m) => m.rebalance), "no rotation into a near-maturity venue");
+  assert.match(plan.summary, /maturity/, "the receipt explains the horizon decline");
+});
+
+test("rotates into a fixed-maturity venue when the horizon is long enough to recoup the cost", () => {
+  const nowIso = "2026-08-17T00:00:00Z";
+  const now = Math.floor(Date.parse(nowIso) / 1000);
+  const s = {
+    ...snap({ idle: 0n, totalDeployed: 100n * M, maxMoveSize: 100n * M, perVenueCap: 500n * M }, [
+      venue({ address: VENUE_A, name: "Aave", apyBps: 30, allocatedPrincipal: 100n * M, liveBalance: 100n * M, liquidityUsd: 500_000 }),
+      venue({ address: VENUE_B, name: "Pendle PT", apyBps: 400, allocatedPrincipal: 0n, liveBalance: 0n, liquidityUsd: 5_000_000, maturityTs: now + 800 * 86400 }),
+    ]),
+    takenAt: nowIso,
+  };
+  const plan = buildPlan(s, { appetite: "moderate", maxConcentration: 1 });
+  assert.ok(plan.moves.some((m) => m.rebalance && m.action === "allocate"), "rotates when the horizon recoups the cost");
+});
+
 test("global invariant: every allocate satisfies all caps together", () => {
   const s = snap({ idle: 5000n * M, totalDeployed: 100n * M }, [
     venue({ address: VENUE_A, allocatedPrincipal: 100n * M, liveBalance: 100n * M }),

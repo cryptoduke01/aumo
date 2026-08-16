@@ -70,6 +70,9 @@ export interface VenueMeta {
   // than trusting a static/zero value as a perfect peg
   feed?: VenueFeed; // when set, live reads replace the static market metrics
   pegSource?: PegSource; // when set, the live peg is measured on-chain each cycle (F-2)
+  maturityTs?: number; // unix seconds; set only for fixed-maturity venues (e.g. a Pendle PT). The
+  // planner uses the remaining horizon to decide whether a rotation's yield edge can recoup its
+  // round-trip cost before the position matures — a perpetual venue (no maturity) skips that gate.
 }
 
 /** Venue metadata joined with its live on-chain position. */

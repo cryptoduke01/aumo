@@ -121,6 +121,7 @@ export async function readVenueState(
     liquidityUsd: meta.liquidityUsd,
     utilization: meta.utilization,
   };
+  let maturityTs = meta.maturityTs; // fixed-maturity venues override this from the live feed
   if (meta.feed?.source === "aave") {
     try {
       const m = await readAaveMarket(pc, meta.feed.pool, meta.feed.underlying);
@@ -132,6 +133,7 @@ export async function readVenueState(
     try {
       const m = await readPendleMarket(pc, meta.feed.oracle, meta.feed.market, meta.feed.sy, meta.feed.pt, meta.feed.twapWindowSec);
       market = { apyBps: m.apyBps, tvlUsd: m.tvlUsd, liquidityUsd: m.liquidityUsd, utilization: m.utilization };
+      maturityTs = m.maturityTs;
     } catch {
       // fall back to static metrics if the live read fails
     }
@@ -153,5 +155,5 @@ export async function readVenueState(
     }
   }
 
-  return { ...meta, ...market, pegDeviationBps, pegVerified, allowed, allocatedPrincipal, liveBalance };
+  return { ...meta, ...market, maturityTs, pegDeviationBps, pegVerified, allowed, allocatedPrincipal, liveBalance };
 }

@@ -27,6 +27,12 @@ export const IDLE_FLOOR = 0.05; // keep at least this share of the pool as dry p
 // churn on trivial (sub-2%) differences. The on-chain per-epoch loss budget hard-caps the realized
 // cost regardless, so this is the "worth it" gate, not the safety bound.
 export const REBALANCE_MIN_EDGE_BPS = 200;
+// Conservative estimate of the round-trip cost (bps of the moved amount) to rotate into and later out
+// of a venue: entry swap + eventual exit. Used only to gate rotations into a FIXED-MATURITY venue,
+// where the annualized edge is earned over a shrinking horizon — the pickup (edge × years-to-maturity)
+// must clear this, or the position matures before the round-trip pays for itself. Deliberately high so
+// the agent never chases annualized yield it cannot actually realize before maturity.
+export const ROTATION_ROUNDTRIP_BPS = 100;
 
 export function critique(snap: MarketSnapshot, plan: Plan): Plan {
   const dec = snap.vault.decimals;
