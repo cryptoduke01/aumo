@@ -21,6 +21,12 @@ export interface CriticVerdict {
 export const MOMENTUM_VETO = 0.5; // don't ADD to a venue this far into deterioration
 export const LIQUIDITY_SHARE_CAP = 0.25; // a position may not exceed this share of a venue's exit liquidity
 export const IDLE_FLOOR = 0.05; // keep at least this share of the pool as dry powder
+// Minimum risk-adjusted yield edge (annualized bps) before the planner will ROTATE capital out of a
+// held venue into a better one. A one-time round-trip swap cost is paid on every rotation, so the
+// edge must be large enough that even over a modest horizon the pickup clears it — this filters
+// churn on trivial (sub-2%) differences. The on-chain per-epoch loss budget hard-caps the realized
+// cost regardless, so this is the "worth it" gate, not the safety bound.
+export const REBALANCE_MIN_EDGE_BPS = 200;
 
 export function critique(snap: MarketSnapshot, plan: Plan): Plan {
   const dec = snap.vault.decimals;
@@ -56,12 +62,15 @@ export function critique(snap: MarketSnapshot, plan: Plan): Plan {
     }
   }
 
-  // Recompute the plan keeping retreats and only the un-vetoed allocations.
+  // Recompute the plan keeping retreats and only the un-vetoed allocations. A rotation's deallocate
+  // is credited at its full amount (idle-neutral — it funds the paired deposit), so a rotation never
+  // looks like it draws down the buffer here.
   const kept = plan.moves.filter((m) => m.action !== "allocate" || !vetoes.has(m.venue.toLowerCase()));
   const allocSum = kept.filter((m) => m.action === "allocate").reduce((a, m) => a + m.amount, 0n);
   const deallocPrincipal = kept
     .filter((m) => m.action === "deallocate")
     .reduce((a, m) => {
+      if (m.rebalance) return a + m.amount;
       const v = snap.venues.find((x) => x.address === m.venue);
       const principal = v?.allocatedPrincipal ?? 0n;
       return a + (m.amount > principal ? principal : m.amount);
@@ -69,11 +78,15 @@ export function critique(snap: MarketSnapshot, plan: Plan): Plan {
   const idleAfter = snap.vault.idle - allocSum + deallocPrincipal;
   const totalDeployedAfter = snap.vault.totalDeployed + allocSum - deallocPrincipal;
 
-  // Dry-powder floor: would this plan leave the pool with too little idle to serve exits?
+  // Dry-powder floor: would this plan leave the pool with too little idle to serve exits? Only a
+  // plan that NET-REDUCES idle below the floor is doubted — a rotation (deallocate one venue, deposit
+  // the same asset straight into another) is idle-neutral, so it must not be blocked by a buffer it
+  // never touches. Real idle deployments still trip this.
   const pool = Number(snap.vault.idle + snap.vault.totalDeployed) / unit;
   const idleAfterPct = pool > 0 ? Number(idleAfter) / unit / pool : 1;
+  const reducesIdle = idleAfter < snap.vault.idle;
   let doubt = false;
-  if (pool > 0 && allocSum > 0n && idleAfterPct < IDLE_FLOOR) {
+  if (pool > 0 && reducesIdle && idleAfterPct < IDLE_FLOOR) {
     doubt = true;
     concerns.push(
       `Idle buffer would fall to ${(idleAfterPct * 100).toFixed(
@@ -83,10 +96,26 @@ export function critique(snap: MarketSnapshot, plan: Plan): Plan {
   }
 
   // On doubt, hold: drop all allocations (keep retreats — de-risking is never blocked).
-  const finalMoves = doubt ? kept.filter((m) => m.action !== "allocate") : kept;
+  let finalMoves = doubt ? kept.filter((m) => m.action !== "allocate") : kept;
+  // A rotation's two legs are atomic: the deallocate is only valid alongside its allocate. If that
+  // allocate was vetoed or dropped by doubt, drop the paired rebalance deallocate too — never pull
+  // capital out of the source venue without funding the target, which would strand it in idle.
+  const hasRebalAlloc = finalMoves.some((m) => m.rebalance && m.action === "allocate");
+  if (!hasRebalAlloc) {
+    finalMoves = finalMoves.filter((m) => !(m.rebalance && m.action === "deallocate"));
+  }
+
   const dAllocSum = finalMoves.filter((m) => m.action === "allocate").reduce((a, m) => a + m.amount, 0n);
-  const dIdleAfter = snap.vault.idle - dAllocSum + deallocPrincipal;
-  const dTotalDeployedAfter = snap.vault.totalDeployed + dAllocSum - deallocPrincipal;
+  const dDeallocPrincipal = finalMoves
+    .filter((m) => m.action === "deallocate")
+    .reduce((a, m) => {
+      if (m.rebalance) return a + m.amount;
+      const v = snap.venues.find((x) => x.address === m.venue);
+      const principal = v?.allocatedPrincipal ?? 0n;
+      return a + (m.amount > principal ? principal : m.amount);
+    }, 0n);
+  const dIdleAfter = snap.vault.idle - dAllocSum + dDeallocPrincipal;
+  const dTotalDeployedAfter = snap.vault.totalDeployed + dAllocSum - dDeallocPrincipal;
 
   const critic: CriticVerdict = { approved: !doubt, vetoes: [...vetoes], concerns, doubt };
   const changed = vetoes.size > 0 || doubt;

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildPlan } from "../src/brain/plan.js";
-import { snap, venue, M, VENUE_A } from "./helpers.js";
+import { snap, venue, M, VENUE_A, VENUE_B } from "./helpers.js";
 
 test("never proposes a single move above maxMoveSize", () => {
   const plan = buildPlan(snap({ idle: 1000n * M, maxMoveSize: 100n * M }), { appetite: "moderate" });
@@ -79,6 +79,48 @@ test("a vetoed venue is excluded from new deploys", () => {
   const s = snap();
   const withVeto = buildPlan(s, { appetite: "moderate", deny: new Set([VENUE_A.toLowerCase()]) });
   assert.ok(!withVeto.moves.some((m) => m.action === "allocate"));
+});
+
+test("rotates from the lowest-yield held venue into the best eligible venue when the edge clears the floor", () => {
+  // Fully deployed (idle 0), so idle-deploy is a no-op and only a rotation can improve the position.
+  const s = snap({ idle: 0n, totalDeployed: 100n * M, maxMoveSize: 100n * M, perVenueCap: 500n * M }, [
+    venue({ address: VENUE_A, name: "Low", apyBps: 30, allocatedPrincipal: 100n * M, liveBalance: 100n * M, liquidityUsd: 500_000 }),
+    venue({ address: VENUE_B, name: "High", apyBps: 800, allocatedPrincipal: 0n, liveBalance: 0n, liquidityUsd: 5_000_000 }),
+  ]);
+  const plan = buildPlan(s, { appetite: "moderate", maxConcentration: 1 });
+  const out = plan.moves.find((m) => m.rebalance && m.action === "deallocate");
+  const into = plan.moves.find((m) => m.rebalance && m.action === "allocate");
+  assert.ok(out && into, "expected a rotation pair");
+  assert.equal(out!.venue, VENUE_A, "rotate out of the low-yield venue");
+  assert.equal(into!.venue, VENUE_B, "rotate into the high-yield venue");
+  assert.equal(out!.amount, 100n * M);
+  assert.equal(into!.amount, 100n * M);
+  assert.match(plan.summary, /rotation/);
+});
+
+test("does not rotate when the yield edge is below the rotation floor", () => {
+  // 3.0% vs 3.8% — a real but sub-2% risk-adjusted edge; not worth the round-trip cost.
+  const s = snap({ idle: 0n, totalDeployed: 100n * M }, [
+    venue({ address: VENUE_A, name: "A", apyBps: 300, allocatedPrincipal: 100n * M, liveBalance: 100n * M, liquidityUsd: 500_000 }),
+    venue({ address: VENUE_B, name: "B", apyBps: 380, allocatedPrincipal: 0n, liveBalance: 0n, liquidityUsd: 5_000_000 }),
+  ]);
+  const plan = buildPlan(s, { appetite: "moderate", maxConcentration: 1 });
+  assert.ok(!plan.moves.some((m) => m.rebalance), "no rotation on a sub-floor edge");
+});
+
+test("a rotation is bounded by the target's per-venue cap", () => {
+  // Target already holds 480 of a 500 cap → only 20 of headroom, even though the source holds 100.
+  const s = snap(
+    { idle: 0n, totalDeployed: 580n * M, maxMoveSize: 100n * M, perVenueCap: 500n * M, maxTotalDeployed: 1000n * M },
+    [
+      venue({ address: VENUE_A, name: "Low", apyBps: 30, allocatedPrincipal: 100n * M, liveBalance: 100n * M, liquidityUsd: 500_000 }),
+      venue({ address: VENUE_B, name: "High", apyBps: 800, allocatedPrincipal: 480n * M, liveBalance: 480n * M, liquidityUsd: 5_000_000 }),
+    ],
+  );
+  const plan = buildPlan(s, { appetite: "moderate", maxConcentration: 1 });
+  const into = plan.moves.find((m) => m.rebalance && m.action === "allocate");
+  assert.ok(into, "expected a rotation into the target");
+  assert.equal(into!.amount, 20n * M, "capped at 500 - 480 = 20 of per-venue headroom");
 });
 
 test("global invariant: every allocate satisfies all caps together", () => {

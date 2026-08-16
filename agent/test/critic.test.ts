@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { critique } from "../src/brain/critic.js";
-import type { Plan } from "../src/brain/plan.js";
+import { buildPlan, type Plan } from "../src/brain/plan.js";
 import type { VenueRisk } from "../src/risk/engine.js";
-import { snap, venue, VENUE_A, M } from "./helpers.js";
+import { snap, venue, VENUE_A, VENUE_B, M } from "./helpers.js";
 
 function risk(over: Partial<VenueRisk> = {}): VenueRisk {
   return {
@@ -81,4 +81,18 @@ test("critic passes a clean, well-sized plan unchanged", () => {
   assert.equal(out.critic?.approved, true);
   assert.equal(out.critic?.vetoes.length, 0);
   assert.equal(out.moves.length, 1);
+});
+
+test("critic keeps both legs of a rotation and does not trip the dry-powder floor (idle-neutral)", () => {
+  // Fully deployed pool: buildPlan proposes a rotation out of the low-yield venue into the high one.
+  // The rotation is idle-neutral, so it must survive the critic intact — both legs, no doubt-hold.
+  const s = snap({ idle: 0n, totalDeployed: 100n * M, maxMoveSize: 100n * M, perVenueCap: 500n * M }, [
+    venue({ address: VENUE_A, name: "Low", apyBps: 30, allocatedPrincipal: 100n * M, liveBalance: 100n * M, liquidityUsd: 5_000_000 }),
+    venue({ address: VENUE_B, name: "High", apyBps: 800, allocatedPrincipal: 0n, liveBalance: 0n, liquidityUsd: 5_000_000 }),
+  ]);
+  const plan = buildPlan(s, { appetite: "moderate", maxConcentration: 1 });
+  assert.equal(plan.moves.filter((m) => m.rebalance).length, 2, "buildPlan proposed a rotation pair");
+  const out = critique(s, plan);
+  assert.equal(out.critic?.doubt, false, "idle-neutral rotation does not trip the buffer floor");
+  assert.equal(out.moves.filter((m) => m.rebalance).length, 2, "both rotation legs survive atomically");
 });

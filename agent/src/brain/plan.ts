@@ -3,7 +3,7 @@ import { BAND_RANK, scorePortfolio, type VenueRisk } from "../risk/engine.js";
 import type { StressReport } from "../risk/stress.js";
 import type { Reflection } from "./reflect.js";
 import type { CriticVerdict } from "./critic.js";
-import { IDLE_FLOOR, MOMENTUM_VETO, LIQUIDITY_SHARE_CAP } from "./critic.js";
+import { IDLE_FLOOR, MOMENTUM_VETO, LIQUIDITY_SHARE_CAP, REBALANCE_MIN_EDGE_BPS } from "./critic.js";
 import type { PanelResult } from "./panel.js";
 
 export interface Move {
@@ -16,6 +16,7 @@ export interface Move {
   band: RiskBand;
   riskScore: number;
   riskAdjustedApyBps: number;
+  rebalance?: boolean; // set on both legs of a venue-to-venue rotation; the critic keeps them atomic
 }
 
 export interface Plan {
@@ -168,29 +169,124 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
     });
   }
 
-  // Projected balances (principal basis; ignores accrued yield on retreat).
+  // 3) Rebalance: rotate capital from the lowest risk-adjusted venue we hold into the best eligible
+  //    venue when the risk-adjusted edge clears REBALANCE_MIN_EDGE_BPS. Retreat and idle-deploy ran
+  //    first, so this only fires when idle alone couldn't reach the better venue. Bounded to one
+  //    move-sized step per cycle and to the target's caps and exit-liquidity share, so it rotates
+  //    gradually and the on-chain per-epoch loss budget hard-caps the realized round-trip cost.
+  const target = eligible[0]; // highest risk-adjusted, already band/momentum/deny-filtered
+  if (target) {
+    const targetKey = target.v.address.toLowerCase();
+    const retreating = new Set(
+      moves.filter((m) => m.action === "deallocate").map((m) => m.venue.toLowerCase()),
+    );
+    // Held venues we could rotate OUT of: funded, not the target, not already being retreated. A held
+    // venue that is not retreated is by construction allowlisted and within appetite (step 1 unwinds
+    // anything that is not), so this only ever rotates between healthy venues.
+    const candidates = snap.venues
+      .map((v) => ({ v, r: riskByAddr.get(v.address.toLowerCase()) }))
+      .filter(
+        (x) =>
+          x.r &&
+          x.v.liveBalance > 0n &&
+          x.v.address.toLowerCase() !== targetKey &&
+          !retreating.has(x.v.address.toLowerCase()),
+      )
+      .sort((a, b) => a.r!.riskAdjustedApyBps - b.r!.riskAdjustedApyBps);
+    const source = candidates[0];
+
+    if (source && source.r) {
+      const edge = target.r.riskAdjustedApyBps - source.r.riskAdjustedApyBps;
+      if (edge >= REBALANCE_MIN_EDGE_BPS) {
+        // Target headroom AFTER any step-2 idle deploy into it this cycle.
+        const targetAdded = moves
+          .filter((m) => m.action === "allocate" && m.venue === target.v.address)
+          .reduce((a, m) => a + m.amount, 0n);
+        const held = target.v.allocatedPrincipal + targetAdded;
+        const perVenueHeadroom = vault.perVenueCap > held ? vault.perVenueCap - held : 0n;
+        const concHeadroom = concCap > held ? concCap - held : 0n;
+        const liqCapUnits =
+          target.v.liquidityUsd > 0
+            ? BigInt(Math.floor(LIQUIDITY_SHARE_CAP * target.v.liquidityUsd * unit))
+            : 0n;
+        const liqHeadroom = liqCapUnits > held ? liqCapUnits - held : 0n;
+
+        let rot = source.v.liveBalance;
+        if (rot > vault.maxMoveSize) rot = vault.maxMoveSize;
+        if (rot > perVenueHeadroom) rot = perVenueHeadroom;
+        if (rot > concHeadroom) rot = concHeadroom;
+        if (target.v.liquidityUsd > 0 && rot > liqHeadroom) rot = liqHeadroom;
+
+        if (rot > 0n) {
+          const edgePct = (edge / 100).toFixed(2);
+          moves.push({
+            venue: source.v.address,
+            venueName: source.v.name,
+            action: "deallocate",
+            amount: rot,
+            reasonTag: `rotate:out:ra${source.r.riskAdjustedApyBps}`.slice(0, 31),
+            rationale: `Rotate out of ${source.v.name} (${(source.r.riskAdjustedApyBps / 100).toFixed(
+              2,
+            )}% risk-adjusted) into ${target.v.name} (${(target.r.riskAdjustedApyBps / 100).toFixed(
+              2,
+            )}%) — a ${edgePct}% edge that clears the ${(REBALANCE_MIN_EDGE_BPS / 100).toFixed(
+              0,
+            )}% rotation floor. The per-epoch loss budget caps the realized round-trip cost.`,
+            band: source.r.band,
+            riskScore: source.r.riskScore,
+            riskAdjustedApyBps: source.r.riskAdjustedApyBps,
+            rebalance: true,
+          });
+          moves.push({
+            venue: target.v.address,
+            venueName: target.v.name,
+            action: "allocate",
+            amount: rot,
+            reasonTag: `rotate:in:ra${target.r.riskAdjustedApyBps}`.slice(0, 31),
+            rationale: `Rotate into ${target.v.name} at ${(target.v.apyBps / 100).toFixed(
+              2,
+            )}% APY (${(target.r.riskAdjustedApyBps / 100).toFixed(
+              2,
+            )}% risk-adjusted) from ${source.v.name}, capturing a ${edgePct}% risk-adjusted edge over the horizon.`,
+            band: target.r.band,
+            riskScore: target.r.riskScore,
+            riskAdjustedApyBps: target.r.riskAdjustedApyBps,
+            rebalance: true,
+          });
+        }
+      }
+    }
+  }
+
+  // Projected balances (principal basis; ignores accrued yield on retreat). A rotation's deallocate
+  // is credited at its FULL amount, not principal-capped: it is idle-neutral by construction (exactly
+  // what it withdraws funds the paired deposit), so it must not appear to draw down the buffer.
   const allocSum = moves
     .filter((m) => m.action === "allocate")
     .reduce((a, m) => a + m.amount, 0n);
-  const deallocPrincipal = moves
+  const deallocCredit = moves
     .filter((m) => m.action === "deallocate")
     .reduce((a, m) => {
+      if (m.rebalance) return a + m.amount;
       const v = snap.venues.find((x) => x.address === m.venue);
       const principal = v?.allocatedPrincipal ?? 0n;
       return a + (m.amount > principal ? principal : m.amount);
     }, 0n);
 
-  const idleAfter = vault.idle - allocSum + deallocPrincipal;
-  const totalDeployedAfter = vault.totalDeployed + allocSum - deallocPrincipal;
+  const idleAfter = vault.idle - allocSum + deallocCredit;
+  const totalDeployedAfter = vault.totalDeployed + allocSum - deallocCredit;
 
-  const nAlloc = moves.filter((m) => m.action === "allocate").length;
-  const nRetreat = moves.filter((m) => m.action === "deallocate").length;
+  const nAlloc = moves.filter((m) => m.action === "allocate" && !m.rebalance).length;
+  const nRetreat = moves.filter((m) => m.action === "deallocate" && !m.rebalance).length;
+  const nRotate = moves.filter((m) => m.rebalance && m.action === "allocate").length; // one per pair
+  const parts: string[] = [];
+  if (nAlloc) parts.push(`${nAlloc} deploy${nAlloc === 1 ? "" : "s"}`);
+  if (nRotate) parts.push(`${nRotate} rotation${nRotate === 1 ? "" : "s"}`);
+  if (nRetreat) parts.push(`${nRetreat} retreat${nRetreat === 1 ? "" : "s"}`);
   const summary =
     moves.length === 0
       ? `Hold. No move improves the risk-adjusted position within a ${regime} regime and ${appetite} appetite.`
-      : `${regime} regime, ${appetite} appetite: ${nAlloc} deploy${
-          nAlloc === 1 ? "" : "s"
-        }${nRetreat ? `, ${nRetreat} retreat${nRetreat === 1 ? "" : "s"}` : ""}.`;
+      : `${regime} regime, ${appetite} appetite: ${parts.join(", ")}.`;
 
   return {
     regime,
