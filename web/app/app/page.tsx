@@ -23,6 +23,7 @@ import { Loader } from "@/components/loader";
 import { AskAumo } from "@/components/ask-aumo";
 import { VenueIcon } from "@/components/venue-icon";
 import { RiskAppetite } from "@/components/risk-appetite";
+import { ProofStrip } from "@/components/proof-strip";
 import { useAppBase } from "@/lib/use-app-base";
 
 const unit = (raw: string | number, dec: number) => Number(raw) / 10 ** dec;
@@ -157,6 +158,8 @@ export default function Dashboard() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6">
       <Header identity={identity} view={view} setView={setView} isConnected={isConnected} />
+
+      <ProofStrip />
 
       {/* metrics */}
       <div className={`grid grid-cols-2 gap-4 ${mine ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
