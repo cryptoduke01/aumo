@@ -7,7 +7,6 @@ import { AumoMark } from "@/components/mark";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Faq } from "@/components/faq";
-import { ProofStrip } from "@/components/proof-strip";
 
 function ArrowOut({ className = "" }: { className?: string }) {
   return (
@@ -150,13 +149,6 @@ export default function Landing() {
             on-chain lending and a Treasury-backed dollar, inside guardrails it can&apos;t break.
           </p>
           <Cta className="mt-9" />
-        </div>
-      </section>
-
-      {/* real, on-chain proof bar: verifiable facts up front, before the narrative sections */}
-      <section className="border-t border-border/70">
-        <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-8">
-          <ProofStrip />
         </div>
       </section>
 
