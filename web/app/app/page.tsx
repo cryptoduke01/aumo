@@ -176,13 +176,13 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Real-yield-vs-idle benchmark — the honest counter to a simulated "backtest alpha": every
+      {/* Real-yield-vs-idle benchmark: the honest counter to a simulated "backtest alpha". Every
           dollar the agent deploys earns real, executed, provable on-chain yield; idle earns nothing. */}
       {!mine ? (
         <Panel className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
             <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Dot /> Real yield, executed on-chain — not a simulation
+              <Dot /> Real yield, executed on-chain, not a simulation
             </span>
             <span className="max-w-xl text-xs leading-relaxed text-muted-foreground">
               Idle stablecoins earn nothing. Aumo deploys them into real venues and proves every move on{" "}
@@ -210,7 +210,7 @@ export default function Dashboard() {
           </span>
           <span className="text-xs leading-relaxed text-muted-foreground">
             Held idle in your wallet, the same balance earns $0. Every allocation behind this is on-chain and
-            provable — and yield grows as the pool scales into higher-yield venues.
+            provable, and yield grows as the pool scales into higher-yield venues.
           </span>
         </Panel>
       ) : null}

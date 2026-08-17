@@ -26,7 +26,7 @@ const usd = (n: number) =>
 
 // Asset-class framing for the AI-RWA track: lead with real-world-asset venues (tokenized treasuries,
 // fixed-yield RWA) and treat on-chain lending as the conservative base. Drives both the label and the
-// RWA-first ordering, so the portfolio reads as RWA — not DeFi — at a glance.
+// RWA-first ordering, so the portfolio reads as RWA, not DeFi, at a glance.
 function assetClass(v: VenueSnapshot): { label: string; rwa: boolean } {
   const n = v.name.toLowerCase();
   if (n.includes("pendle") || n.includes("pt-") || n.includes("pt ")) return { label: "Tokenized fixed yield", rwa: true };
@@ -35,7 +35,7 @@ function assetClass(v: VenueSnapshot): { label: string; rwa: boolean } {
   return { label: "Yield venue", rwa: false };
 }
 
-// RWA venues first, then by headline APY — so the RWA coverage is what a judge sees first.
+// RWA venues first, then by headline APY, so the RWA coverage is what a judge sees first.
 const byRwaFirst = (a: VenueSnapshot, b: VenueSnapshot) => {
   const ra = assetClass(a).rwa ? 0 : 1;
   const rb = assetClass(b).rwa ? 0 : 1;
@@ -71,8 +71,8 @@ export default function VenuesPage() {
       <header className="flex flex-col gap-1 border-b border-border pb-6">
         <h1 className="text-xl font-medium tracking-tight">RWA yield portfolio</h1>
         <span className="text-xs text-muted-foreground">
-          A curated set of real-world-asset venues — tokenized treasuries (USDG) and fixed-yield RWA
-          (Pendle PT) — over a conservative on-chain lending base. The agent allocates only here, only
+          A curated set of real-world-asset venues: tokenized treasuries (USDG) and fixed-yield RWA
+          (Pendle PT), over a conservative on-chain lending base. The agent allocates only here, only
           within its guardrails, and proves every move on-chain.
         </span>
       </header>
@@ -133,11 +133,11 @@ function VenueCard({ venue, risk, dec }: { venue: VenueSnapshot; risk?: VenueRis
         <Badge tone={cls.rwa ? "accent" : "neutral"}>{cls.rwa ? `RWA · ${cls.label}` : cls.label}</Badge>
       </div>
 
-      {/* live pool allocation — makes the portfolio read as real capital at work, not a list */}
+      {/* live pool allocation: makes the portfolio read as real capital at work, not a list */}
       <div className={`mt-3 flex items-center justify-between rounded-lg border px-3 py-2 ${allocated > 0 ? "border-accent/20 bg-accent/5" : "border-border"}`}>
         <span className="text-[11px] uppercase tracking-wider text-faint">Pool allocation now</span>
         <span className={`tnum text-sm font-medium ${allocated > 0 ? "text-accent" : "text-muted-foreground"}`}>
-          {allocated > 0 ? `$${amount(venue.liveBalance, dec)}` : "—"}
+          {allocated > 0 ? `$${amount(venue.liveBalance, dec)}` : "$0"}
         </span>
       </div>
 
