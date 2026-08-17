@@ -176,11 +176,43 @@ export default function Dashboard() {
         )}
       </div>
 
-      {mine ? (
-        <p className="-mt-1 max-w-2xl text-xs leading-relaxed text-faint">
-          Estimated at today&apos;s blended rate. Yield grows as the pool scales and X Layer rates rise: a
-          bigger pool lets the agent safely use higher-yield venues it holds back from at small size.
-        </p>
+      {/* Real-yield-vs-idle benchmark — the honest counter to a simulated "backtest alpha": every
+          dollar the agent deploys earns real, executed, provable on-chain yield; idle earns nothing. */}
+      {!mine ? (
+        <Panel className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1">
+            <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Dot /> Real yield, executed on-chain — not a simulation
+            </span>
+            <span className="max-w-xl text-xs leading-relaxed text-muted-foreground">
+              Idle stablecoins earn nothing. Aumo deploys them into real venues and proves every move on{" "}
+              {identity.chainName}. Deliberately conservative at this size; it scales as the pool grows.
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-5 self-start sm:self-center">
+            <div className="flex flex-col gap-0.5">
+              <Label>Aumo · deployed</Label>
+              <span className="tnum text-xl font-medium text-accent"><Num value={liveYield} suffix="%" maximumFractionDigits={2} /></span>
+            </div>
+            <span className="mt-4 text-xs text-faint">vs</span>
+            <div className="flex flex-col gap-0.5">
+              <Label>Held idle</Label>
+              <span className="tnum text-xl font-medium text-muted-foreground">0.00%</span>
+            </div>
+          </div>
+        </Panel>
+      ) : hasPosition ? (
+        <Panel className="flex flex-col gap-1 p-5">
+          <span className="text-sm text-foreground">
+            Your <Num value={myPosition} currency maximumFractionDigits={2} /> is earning about{" "}
+            <span className="text-accent"><Num value={myYield} currency maximumFractionDigits={2} />/yr</span> at
+            the live blended rate.
+          </span>
+          <span className="text-xs leading-relaxed text-muted-foreground">
+            Held idle in your wallet, the same balance earns $0. Every allocation behind this is on-chain and
+            provable — and yield grows as the pool scales into higher-yield venues.
+          </span>
+        </Panel>
       ) : null}
 
       {/* charts + guardrails bento. In the private view only the personal allocation shows; the

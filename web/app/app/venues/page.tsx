@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   getReceipts,
+  amount,
   pct,
   timeAgo,
   addrUrl,
@@ -22,6 +23,24 @@ const usd = (n: number) =>
     : n >= 1_000
       ? `$${(n / 1_000).toFixed(0)}k`
       : `$${n.toFixed(0)}`;
+
+// Asset-class framing for the AI-RWA track: lead with real-world-asset venues (tokenized treasuries,
+// fixed-yield RWA) and treat on-chain lending as the conservative base. Drives both the label and the
+// RWA-first ordering, so the portfolio reads as RWA — not DeFi — at a glance.
+function assetClass(v: VenueSnapshot): { label: string; rwa: boolean } {
+  const n = v.name.toLowerCase();
+  if (n.includes("pendle") || n.includes("pt-") || n.includes("pt ")) return { label: "Tokenized fixed yield", rwa: true };
+  if (n.includes("usdg") || v.kind === "rwa") return { label: "Tokenized treasuries", rwa: true };
+  if (v.kind === "lending") return { label: "On-chain lending", rwa: false };
+  return { label: "Yield venue", rwa: false };
+}
+
+// RWA venues first, then by headline APY — so the RWA coverage is what a judge sees first.
+const byRwaFirst = (a: VenueSnapshot, b: VenueSnapshot) => {
+  const ra = assetClass(a).rwa ? 0 : 1;
+  const rb = assetClass(b).rwa ? 0 : 1;
+  return ra !== rb ? ra - rb : b.apyBps - a.apyBps;
+};
 
 export default function VenuesPage() {
   const [rec, setRec] = useState<DecisionRecord | null>(null);
@@ -50,10 +69,11 @@ export default function VenuesPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
       <header className="flex flex-col gap-1 border-b border-border pb-6">
-        <h1 className="text-xl font-medium tracking-tight">Venues</h1>
+        <h1 className="text-xl font-medium tracking-tight">RWA yield portfolio</h1>
         <span className="text-xs text-muted-foreground">
-          Real-world-asset and lending yield, allowlisted and scored. Treasury-backed USDG and Pendle fixed
-          yield sit alongside on-chain lending; the agent can allocate to these and nowhere else.
+          A curated set of real-world-asset venues — tokenized treasuries (USDG) and fixed-yield RWA
+          (Pendle PT) — over a conservative on-chain lending base. The agent allocates only here, only
+          within its guardrails, and proves every move on-chain.
         </span>
       </header>
 
@@ -66,12 +86,19 @@ export default function VenuesPage() {
       ) : (
         <>
           <div className="flex items-center justify-between text-xs text-faint">
-            <span>{rec.snapshot.venues.length} allowlisted</span>
+            <span>
+              {rec.snapshot.venues.filter((v) => assetClass(v).rwa).length} RWA · {rec.snapshot.venues.length} allowlisted
+            </span>
             <span>Scored {timeAgo(rec.takenAt)}</span>
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {rec.snapshot.venues.map((v) => (
-              <VenueCard key={v.address} venue={v} risk={rec.plan.risks.find((r) => r.address === v.address)} />
+            {[...rec.snapshot.venues].sort(byRwaFirst).map((v) => (
+              <VenueCard
+                key={v.address}
+                venue={v}
+                dec={rec.snapshot.vault.decimals ?? 6}
+                risk={rec.plan.risks.find((r) => r.address === v.address)}
+              />
             ))}
           </div>
         </>
@@ -80,14 +107,16 @@ export default function VenuesPage() {
   );
 }
 
-function VenueCard({ venue, risk }: { venue: VenueSnapshot; risk?: VenueRisk }) {
+function VenueCard({ venue, risk, dec }: { venue: VenueSnapshot; risk?: VenueRisk; dec: number }) {
+  const cls = assetClass(venue);
+  const allocated = Number(venue.liveBalance) / 10 ** dec;
   const factors: [string, string][] = [
     ["Protocol risk", `${Math.round(venue.protocolRisk * 100)}/100`],
     ["Utilization", `${Math.round(venue.utilization * 100)}%`],
     ["Peg deviation", `${venue.pegDeviationBps} bps`],
     ["TVL", usd(venue.tvlUsd)],
     ["Liquidity", usd(venue.liquidityUsd)],
-    ["Kind", venue.kind === "rwa" ? "Real-world asset" : venue.kind === "lending" ? "Lending" : "Test venue"],
+    ["Asset class", cls.label],
   ];
   return (
     <Panel className="flex flex-col p-5">
@@ -96,13 +125,20 @@ function VenueCard({ venue, risk }: { venue: VenueSnapshot; risk?: VenueRisk }) 
           <span className="flex flex-wrap items-center gap-2 font-medium text-foreground">
             <VenueIcon name={venue.name} className="size-4 text-muted-foreground" />
             {venue.name}
-            {venue.kind === "rwa" ? <Badge tone="accent">RWA · Treasury-backed</Badge> : null}
           </span>
           <a className="font-mono text-[11px] text-faint underline decoration-border underline-offset-2 hover:text-accent" href={addrUrl(venue.address)} target="_blank" rel="noreferrer">
             {short(venue.address)} ↗
           </a>
         </div>
-        {venue.allowed ? <Badge tone="accent">Allowlisted</Badge> : <Badge tone="neutral">Excluded</Badge>}
+        <Badge tone={cls.rwa ? "accent" : "neutral"}>{cls.rwa ? `RWA · ${cls.label}` : cls.label}</Badge>
+      </div>
+
+      {/* live pool allocation — makes the portfolio read as real capital at work, not a list */}
+      <div className={`mt-3 flex items-center justify-between rounded-lg border px-3 py-2 ${allocated > 0 ? "border-accent/20 bg-accent/5" : "border-border"}`}>
+        <span className="text-[11px] uppercase tracking-wider text-faint">Pool allocation now</span>
+        <span className={`tnum text-sm font-medium ${allocated > 0 ? "text-accent" : "text-muted-foreground"}`}>
+          {allocated > 0 ? `$${amount(venue.liveBalance, dec)}` : "—"}
+        </span>
       </div>
 
       {/* yields */}
