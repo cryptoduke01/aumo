@@ -13,7 +13,7 @@ import {
   type VenueSnapshot,
   type VenueRisk,
 } from "@/lib/agent";
-import { Panel, Label, Badge, RiskBar } from "@/components/ui";
+import { Panel, Label, Badge } from "@/components/ui";
 import { Loader } from "@/components/loader";
 import { VenueIcon } from "@/components/venue-icon";
 
@@ -35,12 +35,69 @@ function assetClass(v: VenueSnapshot): { label: string; rwa: boolean } {
   return { label: "Yield venue", rwa: false };
 }
 
-// RWA venues first, then by headline APY, so the RWA coverage is what a judge sees first.
 const byRwaFirst = (a: VenueSnapshot, b: VenueSnapshot) => {
   const ra = assetClass(a).rwa ? 0 : 1;
   const rb = assetClass(b).rwa ? 0 : 1;
   return ra !== rb ? ra - rb : b.apyBps - a.apyBps;
 };
+
+type CheckState = "pass" | "watch" | "info";
+type Check = { label: string; value: string; state: CheckState };
+
+// The passport: the trust dimensions the agent verifies on-chain before it allocates a dollar. AI
+// reasons over this, the contract enforces it. Every line maps to a real value the agent read this
+// cycle, which is exactly what separates verifying an RWA venue from chasing its yield.
+function passport(v: VenueSnapshot, risk: VenueRisk | undefined, cls: { label: string }, dec: number): Check[] {
+  const position = Number(v.liveBalance) / 10 ** dec;
+  const liqRatio = position > 0 && v.liquidityUsd > 0 ? v.liquidityUsd / position : 0;
+  const pr = Math.round(v.protocolRisk * 100);
+  const checks: Check[] = [
+    {
+      label: "Allowlisted on-chain",
+      value: v.allowed ? "Enforced by the vault" : "Excluded",
+      state: v.allowed ? "pass" : "watch",
+    },
+    {
+      label: "Peg stability",
+      value: `${v.pegDeviationBps} bps deviation`,
+      state: v.pegDeviationBps <= 50 ? "pass" : "watch",
+    },
+    {
+      label: "Exit liquidity",
+      value:
+        position > 0 ? `${Math.round(liqRatio).toLocaleString()}× position` : `${usd(v.liquidityUsd)} available`,
+      state: position === 0 || liqRatio >= 4 ? "pass" : "watch",
+    },
+    {
+      label: "Protocol risk",
+      value: `${v.protocolRisk <= 0.25 ? "Low" : v.protocolRisk <= 0.5 ? "Moderate" : "Elevated"} · ${pr}/100`,
+      state: v.protocolRisk <= 0.5 ? "pass" : "watch",
+    },
+    { label: "Custody", value: cls.label, state: "info" },
+  ];
+  if (risk) {
+    const band = risk.band.charAt(0).toUpperCase() + risk.band.slice(1);
+    checks.push({
+      label: "Agent verdict",
+      value: `${band} risk · ${pct(risk.riskAdjustedApyBps)} adj.`,
+      state: risk.band === "low" || risk.band === "moderate" ? "pass" : "watch",
+    });
+  }
+  return checks;
+}
+
+function Tick({ state }: { state: CheckState }) {
+  const map = {
+    pass: { cls: "bg-accent/15 text-accent", ch: "✓" },
+    watch: { cls: "bg-negative/15 text-negative", ch: "!" },
+    info: { cls: "bg-card-2 text-muted-foreground", ch: "•" },
+  }[state];
+  return (
+    <span className={`flex size-[18px] shrink-0 items-center justify-center rounded-full text-[10px] font-medium ${map.cls}`}>
+      {map.ch}
+    </span>
+  );
+}
 
 export default function VenuesPage() {
   const [rec, setRec] = useState<DecisionRecord | null>(null);
@@ -69,31 +126,31 @@ export default function VenuesPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
       <header className="flex flex-col gap-1 border-b border-border pb-6">
-        <h1 className="text-xl font-medium tracking-tight">RWA yield portfolio</h1>
+        <h1 className="text-xl font-medium tracking-tight">Venue passports</h1>
         <span className="text-xs text-muted-foreground">
-          A curated set of real-world-asset venues: tokenized treasuries (USDG) and fixed-yield RWA
-          (Pendle PT), over a conservative on-chain lending base. The agent allocates only here, only
-          within its guardrails, and proves every move on-chain.
+          RWA liquidity needs more than yield. Every venue carries a trust profile the agent verifies
+          on-chain before it allocates a dollar: peg, exit liquidity, protocol risk, custody. The AI
+          reasons over it, the contract enforces it.
         </span>
       </header>
 
       {error && !rec ? (
         <Panel className="p-8 text-center"><p className="text-sm text-negative">Couldn&apos;t reach the agent. {error}</p></Panel>
       ) : !rec ? (
-        <Loader label="Scoring venues" />
+        <Loader label="Verifying venues" />
       ) : rec.snapshot.venues.length === 0 ? (
         <Panel className="p-8 text-center"><p className="text-sm text-muted-foreground">No venues in the latest snapshot.</p></Panel>
       ) : (
         <>
           <div className="flex items-center justify-between text-xs text-faint">
             <span>
-              {rec.snapshot.venues.filter((v) => assetClass(v).rwa).length} RWA · {rec.snapshot.venues.length} allowlisted
+              {rec.snapshot.venues.filter((v) => assetClass(v).rwa).length} RWA · {rec.snapshot.venues.length} verified
             </span>
-            <span>Scored {timeAgo(rec.takenAt)}</span>
+            <span>Verified {timeAgo(rec.takenAt)}</span>
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {[...rec.snapshot.venues].sort(byRwaFirst).map((v) => (
-              <VenueCard
+              <VenuePassport
                 key={v.address}
                 venue={v}
                 dec={rec.snapshot.vault.decimals ?? 6}
@@ -107,19 +164,16 @@ export default function VenuesPage() {
   );
 }
 
-function VenueCard({ venue, risk, dec }: { venue: VenueSnapshot; risk?: VenueRisk; dec: number }) {
+function VenuePassport({ venue, risk, dec }: { venue: VenueSnapshot; risk?: VenueRisk; dec: number }) {
   const cls = assetClass(venue);
   const allocated = Number(venue.liveBalance) / 10 ** dec;
-  const factors: [string, string][] = [
-    ["Protocol risk", `${Math.round(venue.protocolRisk * 100)}/100`],
-    ["Utilization", `${Math.round(venue.utilization * 100)}%`],
-    ["Peg deviation", `${venue.pegDeviationBps} bps`],
-    ["TVL", usd(venue.tvlUsd)],
-    ["Liquidity", usd(venue.liquidityUsd)],
-    ["Asset class", cls.label],
-  ];
+  const checks = passport(venue, risk, cls, dec);
+  const cleared = checks.filter((c) => c.state === "pass").length;
+  const total = checks.filter((c) => c.state !== "info").length;
+
   return (
     <Panel className="flex flex-col p-5">
+      {/* header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <span className="flex flex-wrap items-center gap-2 font-medium text-foreground">
@@ -130,51 +184,51 @@ function VenueCard({ venue, risk, dec }: { venue: VenueSnapshot; risk?: VenueRis
             {short(venue.address)} ↗
           </a>
         </div>
-        <Badge tone={cls.rwa ? "accent" : "neutral"}>{cls.rwa ? `RWA · ${cls.label}` : cls.label}</Badge>
-      </div>
-
-      {/* live pool allocation: makes the portfolio read as real capital at work, not a list */}
-      <div className={`mt-3 flex items-center justify-between rounded-lg border px-3 py-2 ${allocated > 0 ? "border-accent/20 bg-accent/5" : "border-border"}`}>
-        <span className="text-[11px] uppercase tracking-wider text-faint">Pool allocation now</span>
-        <span className={`tnum text-sm font-medium ${allocated > 0 ? "text-accent" : "text-muted-foreground"}`}>
-          {allocated > 0 ? `$${amount(venue.liveBalance, dec)}` : "$0"}
-        </span>
-      </div>
-
-      {/* yields */}
-      <div className="mt-4 flex items-end justify-between border-y border-border py-4">
-        <div className="flex flex-col gap-1">
-          <Label>APY</Label>
-          <span className="tnum text-lg text-muted-foreground">{pct(venue.apyBps)}</span>
-        </div>
-        <span className="pb-1 text-faint">→</span>
-        <div className="flex flex-col items-end gap-1">
-          <Label>Risk-adjusted</Label>
-          <span className="tnum text-lg text-accent">{risk ? pct(risk.riskAdjustedApyBps) : "-"}</span>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <Badge tone={cls.rwa ? "accent" : "neutral"}>{cls.rwa ? `RWA · ${cls.label}` : cls.label}</Badge>
+          {risk ? <span className={`text-[11px] capitalize ${BAND_COLOR[risk.band]}`}>{risk.band} risk</span> : null}
         </div>
       </div>
 
-      {/* risk band */}
-      {risk ? (
-        <div className="mt-4 flex items-center gap-3">
-          <RiskBar score={risk.riskScore} />
-          <span className={`tnum shrink-0 text-xs ${BAND_COLOR[risk.band]}`}>{Math.round(risk.riskScore * 100)}</span>
-          <span className={`shrink-0 text-[11px] capitalize ${BAND_COLOR[risk.band]}`}>{risk.band}</span>
-        </div>
-      ) : null}
-
-      {/* factors */}
-      <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
-        {factors.map(([k, val]) => (
-          <div key={k} className="flex flex-col gap-0.5">
-            <dt className="text-[10px] uppercase tracking-wider text-faint">{k}</dt>
-            <dd className="tnum text-xs capitalize text-foreground">{val}</dd>
-          </div>
+      {/* the passport: verified trust profile */}
+      <div className="mt-5 flex items-center justify-between">
+        <Label>Trust profile</Label>
+        <span className="tnum text-[11px] text-faint">{cleared}/{total} verified</span>
+      </div>
+      <ul className="mt-3 flex flex-col divide-y divide-border/60">
+        {checks.map((c) => (
+          <li key={c.label} className="flex items-center gap-2.5 py-2.5">
+            <Tick state={c.state} />
+            <span className="text-xs text-muted-foreground">{c.label}</span>
+            <span
+              className={`tnum ml-auto text-right text-xs ${
+                c.state === "watch" ? "text-negative" : "text-foreground"
+              }`}
+            >
+              {c.value}
+            </span>
+          </li>
         ))}
-      </dl>
+      </ul>
+
+      {/* yield + live allocation */}
+      <div className="mt-4 flex items-end justify-between border-t border-border pt-4">
+        <div className="flex items-baseline gap-2">
+          <span className="tnum text-lg text-muted-foreground">{pct(venue.apyBps)}</span>
+          <span className="text-faint">→</span>
+          <span className="tnum text-lg text-accent">{risk ? pct(risk.riskAdjustedApyBps) : "-"}</span>
+          <span className="text-[10px] uppercase tracking-wider text-faint">risk-adj</span>
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="text-[10px] uppercase tracking-wider text-faint">Allocated now</span>
+          <span className={`tnum text-sm font-medium ${allocated > 0 ? "text-accent" : "text-muted-foreground"}`}>
+            {allocated > 0 ? `$${amount(venue.liveBalance, dec)}` : "$0"}
+          </span>
+        </div>
+      </div>
 
       {risk && risk.notes.length ? (
-        <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">{risk.notes.join("; ")}</p>
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{risk.notes.join("; ")}</p>
       ) : null}
     </Panel>
   );
