@@ -260,24 +260,24 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
 
     function deposit(uint256 amount) external onlyVault returns (uint256 supplied) {
         token.safeTransferFrom(msg.sender, address(this), amount);
-        // USDT0 -> USDG (floored), then USDG -> PT on Pendle (floored).
+        // USDT0 -> USDG (floored), then USDG -> PT on Pendle (floored). Report the realized PT value
+        // that reached the venue after BOTH entry legs (not the intermediate USDG), so the pool's
+        // per-epoch loss budget bounds the full entry cost, including the Pendle-leg slippage (F-1).
         uint256 gotUsdg = _uniSwap(token, address(usdg), amount, _floor(amount, uniSlippageBps));
-        _buyPt(gotUsdg);
-        // Report the asset value that reached the venue (post entry swap), not the gross input.
-        return gotUsdg;
+        return _buyPt(gotUsdg);
     }
 
     /// @dev Buy PT with `usdgIn` USDG. Value the buy at the TWAP rate and floor the PT received so a
     ///      thin or manipulated market reverts. guessMax bounds the router's on-chain search a little
     ///      above the oracle-implied amount; guessMin stays 0 so the search always converges, and
     ///      minPtOut is the hard safety floor.
-    function _buyPt(uint256 usdgIn) internal returns (uint256 netPtOut) {
+    function _buyPt(uint256 usdgIn) internal returns (uint256 ptValue) {
         uint256 rate = _rateLive(); // 1e18: USDG per PT (par-clamped; caches the NAV fallback)
         uint256 expectedPt = (usdgIn * 1e18) / rate; // PT is cheaper than par, so more PT than USDG
         uint256 minPtOut = (expectedPt * (10_000 - pendleSlippageBps)) / 10_000;
 
         usdg.forceApprove(address(router), usdgIn);
-        (netPtOut,,) = router.swapExactTokenForPt(
+        (uint256 netPtOut,,) = router.swapExactTokenForPt(
             address(this),
             market,
             minPtOut,
@@ -287,6 +287,12 @@ contract PendlePtAdapter is IVenueAdapter, Ownable {
         );
         usdg.forceApprove(address(router), 0);
         require(netPtOut >= minPtOut, "pt floor");
+        // Realized asset value of the PT actually received, at the same par-clamped TWAP `rate`. This
+        // is the value that reached the venue AFTER the USDG->PT leg, so `deposit` reports it as
+        // `supplied` and the pool's per-epoch loss budget meters the Pendle-leg slippage too (F-1).
+        // Valuing at `rate` recovers ~usdgIn on a fair fill and drops only by realized slippage, so the
+        // fixed-yield discount is never miscounted as a loss.
+        return (netPtOut * rate) / 1e18;
     }
 
     function withdraw(uint256 amount) external onlyVault returns (uint256 withdrawn) {
