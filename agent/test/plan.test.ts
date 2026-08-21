@@ -249,3 +249,26 @@ test("global invariant: every allocate satisfies all caps together", () => {
   }
   assert.ok(s.vault.totalDeployed + added <= s.vault.maxTotalDeployed);
 });
+
+test("RWA intelligence: no fresh capital into a redemption-gated venue", () => {
+  const s = snap({ idle: 1000n * M }, [
+    venue({ address: VENUE_A, kind: "lending", utilization: 0.99 }), // redemption-gated
+    venue({ address: VENUE_B, kind: "lending", utilization: 0.5, apyBps: 600 }), // healthy
+  ]);
+  const plan = buildPlan(s, { appetite: "moderate", maxConcentration: 1 });
+  const allocs = plan.moves.filter((m) => m.action === "allocate");
+  assert.ok(!allocs.some((m) => m.venue === VENUE_A), "gated venue gets no fresh capital");
+  assert.ok(allocs.some((m) => m.venue === VENUE_B), "healthy venue still funded");
+});
+
+test("RWA intelligence: no fresh capital into a venue whose live feed is stale", () => {
+  const s = snap({ idle: 1000n * M }, [
+    // Stale venue has the HIGHER apy — it would win if not gated — proving staleness excludes it.
+    venue({ address: VENUE_A, kind: "lending", apyBps: 800, feedVerified: false }),
+    venue({ address: VENUE_B, kind: "lending", apyBps: 600, feedVerified: true }),
+  ]);
+  const plan = buildPlan(s, { appetite: "moderate", maxConcentration: 1 });
+  const allocs = plan.moves.filter((m) => m.action === "allocate");
+  assert.ok(!allocs.some((m) => m.venue === VENUE_A), "stale venue gets no fresh capital");
+  assert.ok(allocs.some((m) => m.venue === VENUE_B), "fresh venue still funded");
+});

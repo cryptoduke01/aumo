@@ -164,8 +164,18 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
     .filter((v) => v.allowed && !deny.has(v.address.toLowerCase()) && v.pegDeviationBps <= HARD_PEG_BREAK_BPS)
     .map((v) => ({ v, r: riskByAddr.get(v.address.toLowerCase())! }))
     // Exclude venues the critic would veto anyway (deteriorating momentum), so budget flows to the
-    // next-best venue instead of being spent on a move that gets removed and stranded.
-    .filter(({ r }) => r && BAND_RANK[r.band] <= BAND_RANK[appetite] && r.momentumRisk <= MOMENTUM_VETO)
+    // next-best venue instead of being spent on a move that gets removed and stranded. Also hard-block
+    // fresh capital into a redemption-gated venue (exit currently impaired) or one whose live feed is
+    // stale this cycle (can't be priced) — the RWA-intelligence gates. This filters both new deploys
+    // and the rotation target, but still lets a held gated/stale venue be a rotation SOURCE (out of it).
+    .filter(
+      ({ r }) =>
+        r &&
+        BAND_RANK[r.band] <= BAND_RANK[appetite] &&
+        r.momentumRisk <= MOMENTUM_VETO &&
+        !r.redemptionGated &&
+        !r.dataStale,
+    )
     .sort((a, b) => b.r.riskAdjustedApyBps - a.r.riskAdjustedApyBps);
 
   for (const { v, r } of eligible) {

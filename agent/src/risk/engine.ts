@@ -25,6 +25,8 @@ export interface VenueRisk {
   concentrationRisk: number;
   momentumRisk: number; // 0..1 adverse-trend intensity from recent history (0 when no history)
   correlatedExposure: number; // 0..1 share of the portfolio in this venue + correlated venues
+  dataStale: boolean; // live market feed failed this cycle → venue is on stale static data
+  redemptionGated: boolean; // exit is currently impaired (util-gated lending, or position > exit depth)
   riskScore: number; // 0..1 blended (higher = riskier)
   band: RiskBand;
   riskAdjustedApyBps: number; // apyBps * (1 - riskScore)
@@ -74,6 +76,19 @@ export const BAND_RANK: Record<RiskBand, number> = {
 // How much an adverse trend can add to a venue's level-based risk. Bounded and additive so history
 // nudges the ranking (a deteriorating venue loses ground) without ever dominating the levels.
 const MOMENTUM_PENALTY = 0.15;
+
+// RWA-intelligence: an RWA venue's exit can be gated even when its yield looks fine, and its live
+// data can go stale. These are the two failure modes generic yield bots miss.
+// A lending reserve at/above this utilization gates withdrawals (borrowers hold the liquidity).
+const GATE_UTILIZATION = 0.98;
+// Flying blind on a venue's live feed is itself a risk: added to the score so a stale venue de-rates.
+const DATA_STALE_RISK = 0.25;
+// A gated exit is a real hazard to hold; add a strong penalty so a gated venue de-rates toward the
+// elevated/high band. The planner additionally refuses fresh capital outright (a hard block), while a
+// natural band crossing drives any retreat — we never force a full-position exit that could revert on
+// a genuinely trapped venue and stall the cycle; the owner's setVenueImpaired / emergencyWithdraw are
+// the hard-freeze escalation.
+const GATE_RISK = 0.3;
 
 export function scorePortfolio(
   venues: VenueState[],
@@ -152,6 +167,20 @@ export function scorePortfolio(
     const momentumRisk = mom.momentumRisk;
     for (const n of mom.notes) notes.push(n);
 
+    // --- RWA intelligence: data staleness + redemption-gate detection ---
+    // Data staleness: the live feed failed this cycle, so we're on stale static numbers. Treat it as
+    // real risk (we can't currently price the venue) rather than silently trusting the fallback.
+    const dataStale = v.feedVerified === false;
+    if (dataStale) notes.push("live feed stale this cycle — venue de-rated, no fresh capital");
+    // Redemption gate: exit is currently impaired. Two triggers — a lending reserve utilized to the
+    // point that withdrawals are gated (borrowers hold the liquidity), or our own position exceeding
+    // the venue's withdrawable depth so we could not exit it in one move. Either way, do not add.
+    const utilGated = v.kind === "lending" && v.utilization >= GATE_UTILIZATION;
+    const exitTrapped = positionUsd > 0 && v.liquidityUsd < positionUsd;
+    const redemptionGated = utilGated || exitTrapped;
+    if (utilGated) notes.push(`redemption gated — utilization ${(v.utilization * 100).toFixed(0)}% ≥ ${(GATE_UTILIZATION * 100).toFixed(0)}%`);
+    if (exitTrapped) notes.push("redemption gated — position exceeds withdrawable depth");
+
     const levelScore =
       W.protocol * protocolRisk +
       W.liquidity * liquidityRisk +
@@ -160,7 +189,12 @@ export function scorePortfolio(
       W.concentration * concentrationRisk;
     // Reflection can scale the momentum penalty UP (never below 1x) when trend has been predictive.
     const cal = Math.max(1, momentumCalibration);
-    const riskScore = clamp01(levelScore + MOMENTUM_PENALTY * cal * momentumRisk);
+    const riskScore = clamp01(
+      levelScore +
+        MOMENTUM_PENALTY * cal * momentumRisk +
+        (dataStale ? DATA_STALE_RISK : 0) +
+        (redemptionGated ? GATE_RISK : 0),
+    );
 
     return {
       address: v.address,
@@ -173,6 +207,8 @@ export function scorePortfolio(
       concentrationRisk,
       momentumRisk,
       correlatedExposure,
+      dataStale,
+      redemptionGated,
       riskScore,
       band: bandOf(riskScore),
       riskAdjustedApyBps: Math.round(v.apyBps * (1 - riskScore)),

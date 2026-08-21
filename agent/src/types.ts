@@ -80,6 +80,11 @@ export interface VenueState extends VenueMeta {
   allowed: boolean; // vault.venueAllowed(venue)
   allocatedPrincipal: bigint; // vault.allocated(venue)
   liveBalance: bigint; // vault.venueBalance(venue) — principal + accrued
+  feedVerified?: boolean; // true when the live market feed (APY/TVL/liquidity) was read this cycle;
+  // false means the read failed and the venue is on STALE static data. The risk engine de-rates a
+  // stale venue and the planner refuses to deploy fresh capital into one it cannot currently price
+  // (the data-staleness analog of an RWA issuer's attestation going stale). Absent = no feed
+  // configured, so the static config is authoritative (not stale).
 }
 
 /** One historical observation of a venue's market metrics, used for temporal/trend awareness. */

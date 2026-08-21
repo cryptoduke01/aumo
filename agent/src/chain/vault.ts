@@ -122,10 +122,16 @@ export async function readVenueState(
     utilization: meta.utilization,
   };
   let maturityTs = meta.maturityTs; // fixed-maturity venues override this from the live feed
+  // Track whether we actually read the venue's live market data this cycle. A venue with no feed is
+  // configured statically (authoritative, never stale); a venue WITH a feed is "stale" only if its
+  // live read threw and we fell back to the static numbers — the risk engine and planner treat that
+  // as flying blind and refuse fresh capital until the feed recovers.
+  let feedVerified = meta.feed ? false : true;
   if (meta.feed?.source === "aave") {
     try {
       const m = await readAaveMarket(pc, meta.feed.pool, meta.feed.underlying);
       market = { apyBps: m.apyBps, tvlUsd: m.tvlUsd, liquidityUsd: m.liquidityUsd, utilization: m.utilization };
+      feedVerified = true;
     } catch {
       // fall back to static metrics if the live read fails
     }
@@ -134,6 +140,7 @@ export async function readVenueState(
       const m = await readPendleMarket(pc, meta.feed.oracle, meta.feed.market, meta.feed.sy, meta.feed.pt, meta.feed.twapWindowSec);
       market = { apyBps: m.apyBps, tvlUsd: m.tvlUsd, liquidityUsd: m.liquidityUsd, utilization: m.utilization };
       maturityTs = m.maturityTs;
+      feedVerified = true;
     } catch {
       // fall back to static metrics if the live read fails
     }
@@ -155,5 +162,5 @@ export async function readVenueState(
     }
   }
 
-  return { ...meta, ...market, maturityTs, pegDeviationBps, pegVerified, allowed, allocatedPrincipal, liveBalance };
+  return { ...meta, ...market, maturityTs, pegDeviationBps, pegVerified, feedVerified, allowed, allocatedPrincipal, liveBalance };
 }

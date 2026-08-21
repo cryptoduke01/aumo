@@ -143,3 +143,47 @@ test("score stays within [0,1] under extreme inputs", () => {
   );
   assert.ok(r.riskScore >= 0 && r.riskScore <= 1);
 });
+
+// --- RWA intelligence: data staleness ---
+
+test("a healthy venue is neither data-stale nor redemption-gated", () => {
+  const r = scoreVenue(venue({ feedVerified: true }), 6, 1000);
+  assert.equal(r.dataStale, false);
+  assert.equal(r.redemptionGated, false);
+});
+
+test("a stale live feed de-rates the venue and is flagged", () => {
+  const fresh = scoreVenue(venue({ feedVerified: true }), 6, 1000);
+  const stale = scoreVenue(venue({ feedVerified: false }), 6, 1000);
+  assert.equal(stale.dataStale, true);
+  assert.ok(stale.riskScore > fresh.riskScore, "stale data raises risk");
+  assert.ok(stale.notes.some((n) => n.includes("live feed stale")));
+});
+
+test("no feed configured is not treated as stale", () => {
+  // feedVerified undefined (venue helper default) means no feed → static config is authoritative.
+  const r = scoreVenue(venue(), 6, 1000);
+  assert.equal(r.dataStale, false);
+});
+
+// --- RWA intelligence: redemption-gate detection ---
+
+test("a lending venue utilized past the gate is redemption-gated and de-rated", () => {
+  const ok = scoreVenue(venue({ kind: "lending", utilization: 0.5 }), 6, 1000);
+  const gated = scoreVenue(venue({ kind: "lending", utilization: 0.99 }), 6, 1000);
+  assert.equal(ok.redemptionGated, false);
+  assert.equal(gated.redemptionGated, true);
+  assert.ok(gated.riskScore > ok.riskScore);
+  assert.ok(gated.notes.some((n) => n.includes("redemption gated")));
+});
+
+test("a position exceeding withdrawable depth is redemption-gated (exit trapped)", () => {
+  // positionUsd (200) > liquidityUsd (50) → we could not exit our slice in one move.
+  const trapped = scoreVenue(
+    venue({ tvlUsd: 1_000_000, liquidityUsd: 50, allocatedPrincipal: 200_000_000n }),
+    6,
+    1_000_000,
+  );
+  assert.equal(trapped.redemptionGated, true);
+  assert.ok(trapped.notes.some((n) => n.includes("withdrawable depth")));
+});
