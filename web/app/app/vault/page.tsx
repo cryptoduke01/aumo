@@ -11,7 +11,20 @@ import {
   useWriteContract,
 } from "wagmi";
 import { toast } from "sonner";
-import { POOL, USDT0, poolAbi, erc20Abi, activeChain, poolConfigured, isMainnet } from "@/lib/chain";
+import {
+  POOL,
+  USDT0,
+  USDG,
+  ZAP,
+  USDG_POOL_FEE,
+  zapConfigured,
+  poolAbi,
+  erc20Abi,
+  zapAbi,
+  activeChain,
+  poolConfigured,
+  isMainnet,
+} from "@/lib/chain";
 import { Panel, Label, Badge } from "@/components/ui";
 import { ConnectButton } from "@/components/wallet";
 import { Num } from "@/components/num";
@@ -57,6 +70,11 @@ export default function VaultPage() {
   }, [isConnected, wrongChain, walletChainId, switching, switchChain]);
 
   const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
+  // Deposit asset: USDT0 (direct) or USDG (zapped USDG->USDT0->deposit). USDG is offered only when the
+  // zap is deployed (zapConfigured) on mainnet; otherwise the flow is exactly the USDT0-only original.
+  const [depositAsset, setDepositAsset] = useState<"USDT0" | "USDG">("USDT0");
+  const usdgOffered = zapConfigured && isMainnet;
+  const isUsdg = usdgOffered && tab === "deposit" && depositAsset === "USDG";
   const [amount, setAmount] = useState("");
   const [depositDone, setDepositDone] = useState<string | null>(null); // amount, when a deposit lands
   const router = useRouter();
@@ -84,6 +102,21 @@ export default function VaultPage() {
   const allowance = reads.data?.[1]?.result as bigint | undefined;
   const position = reads.data?.[2]?.result as bigint | undefined; // your redeemable USDT0
 
+  // USDG balance + its allowance to the ZAP, read only when USDG deposits are offered and selected.
+  const usdgReads = useReadContracts({
+    contracts: [
+      { address: USDG, abi: erc20Abi, functionName: "balanceOf", args: [address!] },
+      { address: USDG, abi: erc20Abi, functionName: "allowance", args: [address!, ZAP] },
+    ],
+    query: { enabled: Boolean(address) && !wrongChain && usdgOffered, refetchInterval: 12_000 },
+  });
+  const usdgBal = usdgReads.data?.[0]?.result as bigint | undefined;
+  const usdgAllowance = usdgReads.data?.[1]?.result as bigint | undefined;
+
+  // The active deposit token's balance, allowance and approval spender switch with the selected asset.
+  const activeBal = isUsdg ? usdgBal : walletBal;
+  const activeAllowance = isUsdg ? usdgAllowance : allowance;
+
   // The pool's blended live yield, tied to the position for an honest annual estimate: each held
   // venue's APY weighted by its live balance, over total assets (idle drags it down). Matches the
   // Overview's "Live yield" — not the single best venue available, which overstates the real return.
@@ -110,7 +143,11 @@ export default function VaultPage() {
   // Tracks the in-flight step so an approval can automatically continue into the deposit (they are
   // two separate transactions; without this the form reset after the approve and the deposit never
   // fired — the wallet showed "confirmed" but nothing moved).
-  const pending = useRef<{ action: "approve" | "deposit" | "withdraw"; amountWei: bigint } | null>(null);
+  const pending = useRef<{
+    action: "approve" | "deposit" | "withdraw" | "zap";
+    amountWei: bigint;
+    asset?: "USDT0" | "USDG"; // which deposit asset an approval should continue into
+  } | null>(null);
   // The post-confirmation reset() is deferred 4s; keep its handle so a new write can cancel a stray
   // reset that would otherwise wipe the in-flight tx state.
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -125,6 +162,21 @@ export default function VaultPage() {
     cancelReset();
     pending.current = { action: "deposit", amountWei: amt };
     writeContract({ address: POOL, abi: poolAbi, functionName: "deposit", args: [amt, address!], chainId: activeChain.id });
+  }
+
+  // USDG deposit: one call swaps USDG->USDT0 (behind a 1% floor; the legs are dollar-pegged) and
+  // deposits into the pool with shares minted straight to the depositor. Custody-free zap contract.
+  function doZap(amt: bigint) {
+    cancelReset();
+    pending.current = { action: "zap", amountWei: amt };
+    const minUsdt0Out = (amt * 99n) / 100n; // USDG ~ USDT0 1:1; a thin/manipulated swap reverts
+    writeContract({
+      address: ZAP,
+      abi: zapAbi,
+      functionName: "zapDeposit",
+      args: [USDG, USDG_POOL_FEE, amt, minUsdt0Out, address!],
+      chainId: activeChain.id,
+    });
   }
 
   // Testnet faucet: mint 1,000 test USDT0 to the connected wallet.
@@ -168,14 +220,16 @@ export default function VaultPage() {
     if (p?.action === "approve") {
       toast.success("Approved — confirming your deposit…");
       const amt = p.amountWei;
+      const asset = p.asset;
       reset(); // clear the approve's hash so the deposit gets a fresh one
-      // next tick so the reset lands before the new write
-      setTimeout(() => doDeposit(amt), 0);
+      // next tick so the reset lands before the new write; continue into the right deposit path.
+      setTimeout(() => (asset === "USDG" ? doZap(amt) : doDeposit(amt)), 0);
       return;
     }
     // deposit or withdraw settled
     tvlRead.refetch();
-    const wasDeposit = p?.action === "deposit";
+    usdgReads.refetch();
+    const wasDeposit = p?.action === "deposit" || p?.action === "zap";
     // The amount actually deposited (from the pending record), not the live input — the user may
     // have edited the field during the approve->deposit window.
     const settledAmount = p ? formatUnits(p.amountWei, DEC) : amount;
@@ -216,9 +270,9 @@ export default function VaultPage() {
     }
   }, [amount]);
 
-  const max = tab === "deposit" ? walletBal : position;
+  const max = tab === "deposit" ? activeBal : position;
   const overMax = max !== undefined && amountWei > max;
-  const needsApproval = tab === "deposit" && (allowance ?? 0n) < amountWei;
+  const needsApproval = tab === "deposit" && (activeAllowance ?? 0n) < amountWei;
   const busy = isPending || receipt.isLoading;
 
   function submit() {
@@ -230,12 +284,16 @@ export default function VaultPage() {
     if (!address || amountWei <= 0n) return;
     cancelReset(); // don't let a prior deposit's deferred reset() wipe this new write
     if (tab === "deposit") {
+      const token = isUsdg ? USDG : USDT0;
+      const spender = isUsdg ? ZAP : POOL;
       if (needsApproval) {
         // Approve exactly what's being deposited (not an unlimited allowance): the wallet then shows
         // the same number the user typed, instead of a confusing "0 / set unlimited" approval editor.
-        // The deposit fires automatically once this confirms (see the receipt effect).
-        pending.current = { action: "approve", amountWei };
-        writeContract({ address: USDT0, abi: erc20Abi, functionName: "approve", args: [POOL, amountWei], chainId: activeChain.id });
+        // The deposit (or zap) fires automatically once this confirms (see the receipt effect).
+        pending.current = { action: "approve", amountWei, asset: isUsdg ? "USDG" : "USDT0" };
+        writeContract({ address: token, abi: erc20Abi, functionName: "approve", args: [spender, amountWei], chainId: activeChain.id });
+      } else if (isUsdg) {
+        doZap(amountWei);
       } else {
         doDeposit(amountWei);
       }
@@ -259,8 +317,10 @@ export default function VaultPage() {
             ? "Confirming…"
             : tab === "deposit"
               ? needsApproval
-                ? "Approve USDT0"
-                : "Deposit"
+                ? `Approve ${isUsdg ? "USDG" : "USDT0"}`
+                : isUsdg
+                  ? "Deposit USDG"
+                  : "Deposit"
               : "Withdraw";
 
   return (
@@ -395,6 +455,34 @@ export default function VaultPage() {
             ))}
           </div>
 
+          {tab === "deposit" && usdgOffered ? (
+            <div className="mb-4 flex flex-col gap-1.5">
+              <Label>Deposit with</Label>
+              <div className="flex rounded-lg border border-border p-1">
+                {(["USDT0", "USDG"] as const).map((a) => (
+                  <button
+                    key={a}
+                    onClick={() => {
+                      setDepositAsset(a);
+                      setAmount("");
+                      reset();
+                    }}
+                    className={`flex-1 rounded-md px-3 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      depositAsset === a ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {a}
+                  </button>
+                ))}
+              </div>
+              {isUsdg ? (
+                <span className="text-xs text-faint">
+                  USDG is swapped to USDT0 in one transaction, then deposited. Shares are yours.
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <Label>Amount</Label>
@@ -413,11 +501,17 @@ export default function VaultPage() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
                 className="field-input tnum w-full min-w-0 bg-transparent text-xl font-medium outline-none placeholder:text-faint"
-                aria-label={`${tab} amount in USDT0`}
+                aria-label={`${tab} amount in ${isUsdg ? "USDG" : "USDT0"}`}
               />
               <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/usdt0.jpg" alt="" className="size-4 rounded-full" /> USDT0
+                {isUsdg ? (
+                  "USDG"
+                ) : (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/brand/usdt0.jpg" alt="" className="size-4 rounded-full" /> USDT0
+                  </>
+                )}
               </span>
             </div>
           </div>
