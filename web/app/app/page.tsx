@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
-import { POOL, poolAbi } from "@/lib/chain";
+import { POOL, poolAbi, activeChain } from "@/lib/chain";
 import {
   getReceipts,
   getStatus,
@@ -43,6 +43,7 @@ export default function Dashboard() {
     abi: poolAbi,
     functionName: "maxWithdraw",
     args: address ? [address] : undefined,
+    chainId: activeChain.id, // pin to X Layer: after a bridge the wallet may sit on a source chain
     query: { enabled: Boolean(address), refetchInterval: 15000 },
   });
   // Live pool totals, read straight from chain so a deposit shows up immediately in the public view
@@ -50,8 +51,8 @@ export default function Dashboard() {
   // computed against the SAME denominator as the on-chain position, not a lagging snapshot.
   const poolRead = useReadContracts({
     contracts: [
-      { address: POOL, abi: poolAbi, functionName: "totalAssets" },
-      { address: POOL, abi: poolAbi, functionName: "idleBalance" },
+      { address: POOL, abi: poolAbi, functionName: "totalAssets", chainId: activeChain.id },
+      { address: POOL, abi: poolAbi, functionName: "idleBalance", chainId: activeChain.id },
     ],
     query: { refetchInterval: 15000 },
   });
@@ -60,7 +61,7 @@ export default function Dashboard() {
   const venueAddrs = (records?.[0]?.snapshot.venues ?? []).map((v) => v.address as `0x${string}`);
   const venueBalRead = useReadContracts({
     contracts: venueAddrs.map(
-      (a) => ({ address: POOL, abi: poolAbi, functionName: "venueBalance", args: [a] }) as const,
+      (a) => ({ address: POOL, abi: poolAbi, functionName: "venueBalance", args: [a], chainId: activeChain.id }) as const,
     ),
     query: { enabled: venueAddrs.length > 0, refetchInterval: 15000 },
   });

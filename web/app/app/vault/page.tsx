@@ -66,6 +66,7 @@ export default function VaultPage() {
     address: POOL,
     abi: poolAbi,
     functionName: "totalAssets",
+    chainId: activeChain.id, // pin to X Layer so TVL doesn't read the wrong chain after a bridge
     query: { refetchInterval: 12_000 },
   });
   const tvl = tvlRead.data as bigint | undefined;

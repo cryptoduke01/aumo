@@ -62,7 +62,7 @@ function passport(v: VenueSnapshot, risk: VenueRisk | undefined, cls: { label: s
       value: `${v.pegDeviationBps} bps deviation`,
       state: v.pegDeviationBps <= 50 ? "pass" : "watch",
     },
-    { label: "Depeg breaker", value: "Armed · exits past 100 bps", state: "pass" },
+    { label: "Depeg breaker", value: "Armed at 100 bps", state: "info" },
     {
       label: "Exit liquidity",
       value:
