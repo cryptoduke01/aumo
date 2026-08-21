@@ -183,6 +183,34 @@ test("skips a dust deploy below the minimum move size", () => {
   assert.ok(!plan.moves.some((m) => m.action === "allocate"), "no dust deploy below the floor");
 });
 
+test("sizes cap headroom on exposure (max of principal, live), not just principal", () => {
+  // Venue at principal 90 of a 100 cap but live 96 (accrued). The contract caps on exposure = 96, so
+  // true headroom is 4, not 10. The planner must size to 4, or the allocate would revert on-chain.
+  const s = snap(
+    { idle: 1000n * M, totalDeployed: 90n * M, perVenueCap: 100n * M, maxMoveSize: 100n * M, maxTotalDeployed: 100000n * M },
+    [venue({ allocatedPrincipal: 90n * M, liveBalance: 96n * M, liquidityUsd: 50_000_000 })],
+  );
+  const plan = buildPlan(s, { appetite: "moderate", maxConcentration: 1 });
+  const alloc = plan.moves.find((m) => m.action === "allocate");
+  assert.ok(alloc, "expected an allocate");
+  assert.equal(alloc!.amount, 4n * M, "sized to cap minus live exposure, not cap minus principal");
+});
+
+test("does not rotate out of a venue step 2 just deployed into", () => {
+  // Both held venues get a step-2 top-up. The lowest-yield one would be the rotation source, but it
+  // was just deployed into, so the plan must not also withdraw from it in the same cycle.
+  const s = snap(
+    { idle: 1000n * M, totalDeployed: 200n * M, maxMoveSize: 100n * M, perVenueCap: 5000n * M, maxTotalDeployed: 100000n * M },
+    [
+      venue({ address: VENUE_A, name: "Low", apyBps: 30, allocatedPrincipal: 100n * M, liveBalance: 100n * M, liquidityUsd: 50_000_000 }),
+      venue({ address: VENUE_B, name: "High", apyBps: 800, allocatedPrincipal: 100n * M, liveBalance: 100n * M, liquidityUsd: 50_000_000 }),
+    ],
+  );
+  const plan = buildPlan(s, { appetite: "moderate", maxConcentration: 1 });
+  assert.ok(!plan.moves.some((m) => m.rebalance), "no rotation out of a just-topped-up venue");
+  assert.ok(!plan.moves.some((m) => m.action === "deallocate" && m.venue === VENUE_A), "must not deallocate a venue it just deployed into");
+});
+
 test("global invariant: every allocate satisfies all caps together", () => {
   const s = snap({ idle: 5000n * M, totalDeployed: 100n * M }, [
     venue({ address: VENUE_A, allocatedPrincipal: 100n * M, liveBalance: 100n * M }),

@@ -153,7 +153,10 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
 
   for (const { v, r } of eligible) {
     if (budget <= 0n) break;
-    const already = v.allocatedPrincipal;
+    // Size headroom on exposure = max(principal, live), mirroring the contract's cap check
+    // (_venueExposure), so a yield-bearing venue that has accrued above principal is never over-sized
+    // into a PerVenueCap/MaxTotalDeployed revert.
+    const already = v.liveBalance > v.allocatedPrincipal ? v.liveBalance : v.allocatedPrincipal;
     const perVenueHeadroom = vault.perVenueCap > already ? vault.perVenueCap - already : 0n;
     const concHeadroom = concCap > already ? concCap - already : 0n;
     // Cap the position at the critic's exit-liquidity share (LIQUIDITY_SHARE_CAP of the venue's
@@ -204,9 +207,15 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
     const retreating = new Set(
       moves.filter((m) => m.action === "deallocate").map((m) => m.venue.toLowerCase()),
     );
-    // Held venues we could rotate OUT of: funded, not the target, not already being retreated. A held
-    // venue that is not retreated is by construction allowlisted and within appetite (step 1 unwinds
-    // anything that is not), so this only ever rotates between healthy venues.
+    // Venues step 2 just topped up this cycle: never rotate OUT of one we just deployed INTO, or the
+    // plan would deposit and withdraw the same venue in one cycle — a wasted round-trip, and on an RWA
+    // venue a real swap loss that also needlessly burns the on-chain loss budget.
+    const deployedInto = new Set(
+      moves.filter((m) => m.action === "allocate").map((m) => m.venue.toLowerCase()),
+    );
+    // Held venues we could rotate OUT of: funded, not the target, not being retreated, and not just
+    // deployed into. A held venue that is not retreated is by construction allowlisted and within
+    // appetite (step 1 unwinds anything that is not), so this only ever rotates between healthy venues.
     const candidates = snap.venues
       .map((v) => ({ v, r: riskByAddr.get(v.address.toLowerCase()) }))
       .filter(
@@ -214,7 +223,8 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
           x.r &&
           x.v.liveBalance > 0n &&
           x.v.address.toLowerCase() !== targetKey &&
-          !retreating.has(x.v.address.toLowerCase()),
+          !retreating.has(x.v.address.toLowerCase()) &&
+          !deployedInto.has(x.v.address.toLowerCase()),
       )
       .sort((a, b) => a.r!.riskAdjustedApyBps - b.r!.riskAdjustedApyBps);
     const source = candidates[0];
@@ -243,7 +253,11 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
         const targetAdded = moves
           .filter((m) => m.action === "allocate" && m.venue === target.v.address)
           .reduce((a, m) => a + m.amount, 0n);
-        const held = target.v.allocatedPrincipal + targetAdded;
+        // Headroom on exposure = max(principal, live) + this cycle's top-up, mirroring the contract,
+        // so an accrued target isn't over-sized into a revert that would strand the rotation-out leg.
+        const targetExposure =
+          target.v.liveBalance > target.v.allocatedPrincipal ? target.v.liveBalance : target.v.allocatedPrincipal;
+        const held = targetExposure + targetAdded;
         const perVenueHeadroom = vault.perVenueCap > held ? vault.perVenueCap - held : 0n;
         const concHeadroom = concCap > held ? concCap - held : 0n;
         const liqCapUnits =

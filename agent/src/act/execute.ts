@@ -59,22 +59,47 @@ export async function execute(
     }
   };
 
-  // Retreats first — always reduce risk before adding it.
-  const retreats = plan.moves.filter((m) => m.action === "deallocate");
-  const deploys = plan.moves.filter((m) => m.action === "allocate");
+  // Split the plan into pure retreats, idle deploys, and rotation legs. Rotations are paired: the
+  // planner tags both legs `rebalance`, and they are emitted out-leg then in-leg, so they pair 1:1
+  // by order.
+  const pureRetreats = plan.moves.filter((m) => m.action === "deallocate" && !m.rebalance);
+  const deploys = plan.moves.filter((m) => m.action === "allocate" && !m.rebalance);
+  const rotOuts = plan.moves.filter((m) => m.action === "deallocate" && m.rebalance);
+  const rotIns = plan.moves.filter((m) => m.action === "allocate" && m.rebalance);
 
-  for (const move of retreats) results.push(await runMove(move));
+  // 1) Pure retreats first — always reduce risk before adding any exposure.
+  for (const move of pureRetreats) results.push(await runMove(move));
 
-  // Enforce the de-risk-first invariant: if any retreat did not confirm, do NOT add new exposure
-  // this cycle. Adding elsewhere while still stuck in a venue we tried to exit is exactly the wrong
-  // move under the stressed conditions that trigger a retreat. Defer the deploys, recorded honestly.
+  // De-risk-first invariant: if any retreat did not confirm, do NOT add or move exposure this cycle.
+  // That means deferring the idle deploys AND the rotations (both legs) — pulling from a healthy
+  // venue while still stuck exiting a bad one is exactly the wrong move under the stress that
+  // triggers a retreat. Recorded honestly as skipped; nothing is left half-done.
   if (results.some((r) => r.status !== "confirmed")) {
-    for (const move of deploys) {
-      results.push({ move, status: "skipped", error: "retreat did not confirm; new allocations deferred this cycle" });
+    for (const move of [...deploys, ...rotOuts, ...rotIns]) {
+      results.push({ move, status: "skipped", error: "retreat did not confirm; new exposure deferred this cycle" });
     }
     return results;
   }
 
+  // 2) Idle deploys.
   for (const move of deploys) results.push(await runMove(move));
+
+  // 3) Rotations, executed as an ATOMIC pair: run each out-leg, and only run its paired in-leg if
+  //    that out-leg confirmed. A rotation-in can therefore never fire without its own funding
+  //    out-leg, and an unrelated move's failure can never strand a rotation half-done in idle — which
+  //    is precisely the depeg-stress scenario where the old shared retreat/deploy split broke.
+  for (let i = 0; i < rotOuts.length; i++) {
+    const outMove = rotOuts[i];
+    if (!outMove) continue;
+    const out = await runMove(outMove);
+    results.push(out);
+    const inLeg = rotIns[i];
+    if (!inLeg) continue;
+    if (out.status === "confirmed") {
+      results.push(await runMove(inLeg));
+    } else {
+      results.push({ move: inLeg, status: "skipped", error: "rotation out-leg did not confirm; paired in-leg skipped" });
+    }
+  }
   return results;
 }
