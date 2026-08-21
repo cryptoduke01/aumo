@@ -8,6 +8,7 @@ import { buildIdentity } from "./identity.js";
 import { makeChain } from "./chain/client.js";
 import { readDepositorPosition } from "./chain/vault.js";
 import { RECEIPTS_FILE } from "./act/receipts.js";
+import { computeAttribution } from "./proof/attribution.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Same env-resolved path the writer uses (RECEIPTS_DIR), so a persistent volume is read back correctly.
@@ -352,6 +353,13 @@ export function startServer(cfg: Config) {
     if (url.pathname === "/receipts") {
       const limit = Math.min(Number(url.searchParams.get("limit") ?? 20), 100);
       res.end(JSON.stringify(readRecent(limit), null, 2));
+      return;
+    }
+
+    // Realized-yield attribution and the "beat idle" proof, computed from the receipts trail.
+    if (url.pathname === "/attribution") {
+      const dec = Number((readRecent(1)[0] as Decision | undefined)?.snapshot?.vault?.decimals ?? 6);
+      res.end(JSON.stringify(computeAttribution(dec), null, 2));
       return;
     }
 

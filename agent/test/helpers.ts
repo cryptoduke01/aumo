@@ -39,6 +39,8 @@ export function snap(
     symbol: "USDT0",
     idle: 1000n * M,
     totalDeployed: 0n,
+    totalAssets: 1000n * M,
+    totalSupply: 1000n * M,
     maxMoveSize: 100n * M,
     perVenueCap: 500n * M,
     maxTotalDeployed: 1000n * M,

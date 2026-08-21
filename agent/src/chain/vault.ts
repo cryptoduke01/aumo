@@ -19,6 +19,8 @@ export async function readVaultState(
     maxTotalDeployed,
     totalDeployed,
     idle,
+    totalAssets,
+    totalSupply,
     paused,
   ] = await Promise.all([
     pc.readContract({ ...c, functionName: "asset" }),
@@ -29,6 +31,8 @@ export async function readVaultState(
     pc.readContract({ ...c, functionName: "maxTotalDeployed" }),
     pc.readContract({ ...c, functionName: "totalDeployed" }),
     pc.readContract({ ...c, functionName: "idleBalance" }),
+    pc.readContract({ ...c, functionName: "totalAssets" }),
+    pc.readContract({ ...c, functionName: "totalSupply" }),
     pc.readContract({ ...c, functionName: "paused" }),
   ]);
 
@@ -64,6 +68,8 @@ export async function readVaultState(
     symbol,
     idle,
     totalDeployed,
+    totalAssets,
+    totalSupply,
     maxMoveSize,
     perVenueCap,
     maxTotalDeployed,

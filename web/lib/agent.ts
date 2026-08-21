@@ -128,6 +128,28 @@ export const getStatus = (signal?: AbortSignal) => getJson<Status>("/", signal);
 export const getReceipts = (limit = 20, signal?: AbortSignal) =>
   getJson<DecisionRecord[]>(`/receipts?limit=${limit}`, signal);
 
+export interface VenueAttribution {
+  address: string;
+  name: string;
+  accrued: number; // yield currently sitting in this venue, in asset units
+  sharePct: number; // share of the total currently-accrued yield, 0..1
+}
+
+// Realized-yield attribution and the "beat idle" proof, computed by the agent from its receipts.
+export interface Attribution {
+  trackedFromTs: string | null;
+  latestTs: string | null;
+  realizedYieldBps: number | null; // vault price-per-share growth since tracking began (idle = 0)
+  annualizedBps: number | null;
+  beatIdle: boolean;
+  totalAccrued: number; // current sum of per-venue accrued yield, in asset units
+  perVenue: VenueAttribution[];
+  samples: number;
+}
+
+export const getAttribution = (signal?: AbortSignal) =>
+  getJson<Attribution>("/attribution", signal);
+
 // Conversational Q&A: ask the agent about its decisions, grounded in its live state. When a
 // connected wallet is passed, the agent can also answer the depositor's own position (read on-chain).
 export async function ask(question: string, address?: string, signal?: AbortSignal): Promise<string> {

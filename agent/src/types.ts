@@ -13,6 +13,10 @@ export interface VaultState {
   symbol: string;
   idle: bigint; // asset held by the vault, not deployed
   totalDeployed: bigint; // principal deployed across all venues
+  totalAssets: bigint; // ERC-4626 totalAssets: idle + live value across venues (incl. accrued yield)
+  totalSupply: bigint; // ERC-4626 total shares outstanding; totalAssets/totalSupply = price per share.
+  // Captured each cycle so the receipts trail records the vault's realized return over time — the
+  // honest "beat idle" proof (idle keeps price per share flat; the agent's job is to grow it).
   maxMoveSize: bigint; // hard cap per allocate()
   perVenueCap: bigint; // hard cap of principal per venue
   maxTotalDeployed: bigint; // hard global cap

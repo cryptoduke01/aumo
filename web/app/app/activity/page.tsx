@@ -6,6 +6,7 @@ import { getReceipts, amount, pct, timeAgo, BAND_COLOR, type DecisionRecord } fr
 import { Panel, Badge } from "@/components/ui";
 import { Loader } from "@/components/loader";
 import { DecisionReplay } from "@/components/decision-replay";
+import { AttributionPanel } from "@/components/attribution-panel";
 
 type Filter = "all" | "moved" | "held";
 
@@ -69,6 +70,8 @@ export default function ActivityPage() {
         <Stat label="Held" value={records ? stats.held : "—"} />
         <Stat label="Latest regime" value={<span className="capitalize">{stats.regime}</span>} />
       </div>
+
+      <AttributionPanel />
 
       {/* filter */}
       <div className="flex items-center justify-between border-b border-border pb-4">
