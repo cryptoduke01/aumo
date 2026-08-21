@@ -33,6 +33,7 @@ interface IUniV3Pool {
     function token0() external view returns (address);
     function token1() external view returns (address);
     function tickSpacing() external view returns (int24);
+    function fee() external view returns (uint24);
 }
 
 /// @dev Uniswap v3 SwapRouter02 (no deadline in the struct).
@@ -76,6 +77,10 @@ contract UniV3LpAdapter is IVenueAdapter, Ownable {
     uint160 internal constant MIN_SQRT_RATIO = 4295128739;
     uint160 internal constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
     uint256 internal constant Q96 = 0x1000000000000000000000000;
+    // NAV valuation clamps the pool's spot sqrt price to +/- PEG_BAND_BPS of the 1:1 peg (Q96). Both
+    // legs are hard-pegged dollars, so a fair sqrt price is ~Q96; this bounds NAV against a manipulated
+    // or depegged spot without needing a TWAP. Wide enough never to bind under normal ~0.1% pool drift.
+    uint256 internal constant PEG_BAND_BPS = 100; // +/-1%
 
     IERC20 public immutable token; // USDT0 (vault asset)
     IERC20 public immutable usdg; // USDG (RWA-backed dollar)
@@ -121,6 +126,7 @@ contract UniV3LpAdapter is IVenueAdapter, Ownable {
         bool usdg1 = (t1 == usdg_ && t0 == token_);
         if (!usdg0 && !usdg1) revert BadParam(); // pool must be exactly USDG/USDT0
         if (IUniV3Pool(pool_).tickSpacing() != 1) revert BadParam(); // full-range bounds assume spacing 1
+        if (IUniV3Pool(pool_).fee() != poolFee_) revert BadParam(); // swap fee tier must match the LP pool
 
         token = IERC20(token_);
         usdg = IERC20(usdg_);
@@ -154,6 +160,13 @@ contract UniV3LpAdapter is IVenueAdapter, Ownable {
     // --- money path ---
 
     function deposit(uint256 amount) external onlyVault returns (uint256 supplied) {
+        // Snapshot the venue's value BEFORE this call so we return only THIS call's contribution (the
+        // delta), not the cumulative position value. The pool books the return as an increment
+        // (allocated[venue] += supplied), so returning the whole _grossValue() would double-count
+        // principal on every repeat allocation. This matches the sibling adapters' delta contract and
+        // keeps the pool's loss budget metering the entry swap on `amount - supplied`.
+        uint256 valueBefore = _grossValue();
+
         token.safeTransferFrom(msg.sender, address(this), amount);
         // Both legs are dollar-pegged ~1:1, so swap half of the USDT0 to USDG to fund a balanced
         // full-range mint. The mint pulls exactly what the chosen liquidity needs; any tiny remainder
@@ -170,9 +183,11 @@ contract UniV3LpAdapter is IVenueAdapter, Ownable {
         if (liquidity > 0) {
             pool.mint(address(this), MIN_TICK, MAX_TICK, liquidity, "");
         }
-        // Report the realized value that reached the venue (position + any remainder), so the pool's
-        // loss budget meters the round-trip swap cost of entry.
-        return _grossValue();
+        // Report the value THIS call placed in the venue (delta). Guard against the rare case where a
+        // price shift during our own swap re-marks the pre-existing position down by more than we
+        // added (never at these sizes): clamp to 0 rather than underflow.
+        uint256 valueAfter = _grossValue();
+        return valueAfter > valueBefore ? valueAfter - valueBefore : 0;
     }
 
     /// @dev Withdrawals honor `amount`: the adapter realizes approximately `amount` of USDT0 and leaves
@@ -209,7 +224,15 @@ contract UniV3LpAdapter is IVenueAdapter, Ownable {
     // --- internals ---
 
     function _grossValue() internal view returns (uint256) {
-        (uint160 sqrtP,,,,,,) = pool.slot0();
+        // Value the position at a peg-band-clamped sqrt price, not raw spot. USDG and USDT0 are both
+        // hard-pegged 6dp dollars and the live pool cannot be moved more than ~0.1% before a token
+        // runs out, so this clamp is invisible in normal operation; it only bites a manipulated or
+        // sharply-depegged spot, bounding how far the reported NAV (which rises as sqrtP leaves peg)
+        // can be pushed. Defense-in-depth that scales with the per-venue cap and needs no TWAP (the
+        // pool carries no observation history). A genuine USDG depeg is handled operationally by the
+        // agent's live peg check and depeg breaker, which retreats the venue before it grows.
+        (uint160 spotP,,,,,,) = pool.slot0();
+        uint160 sqrtP = _clampToPegBand(spotP);
         (uint128 liquidity,,, uint128 owed0, uint128 owed1) = pool.positions(_positionKey());
         (uint256 amt0, uint256 amt1) = _amountsForLiquidity(sqrtP, liquidity);
         // add uncollected fees credited to the position
@@ -301,6 +324,16 @@ contract UniV3LpAdapter is IVenueAdapter, Ownable {
     /// @dev The pool tracks a position by keccak256(owner, tickLower, tickUpper).
     function _positionKey() internal view returns (bytes32) {
         return keccak256(abi.encodePacked(address(this), MIN_TICK, MAX_TICK));
+    }
+
+    /// @dev Clamp a sqrt price to +/- PEG_BAND_BPS of the 1:1 peg (Q96) for conservative NAV. Returns
+    ///      the input unchanged in normal operation; only a manipulated or depegged spot is clamped.
+    function _clampToPegBand(uint160 sqrtP) internal pure returns (uint160) {
+        uint256 lo = (Q96 * (10_000 - PEG_BAND_BPS)) / 10_000;
+        uint256 hi = (Q96 * (10_000 + PEG_BAND_BPS)) / 10_000;
+        if (sqrtP < lo) return uint160(lo);
+        if (sqrtP > hi) return uint160(hi);
+        return sqrtP;
     }
 
     /// @notice Uniswap v3 mint callback: pay the pool exactly what it asks for. Only the pool may call.

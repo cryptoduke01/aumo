@@ -122,6 +122,33 @@ contract UniV3LpAdapterForkTest is Test {
         assertLt(aumo.venueBalance(address(adapter)), 1e6, "venue emptied");
     }
 
+    /// @notice Regression for the Kensho finding M-1: deposit must return THIS call's delta, not the
+    ///         cumulative position value. Before the fix, a second allocation returned the whole
+    ///         ~600 position and the pool added it on top of the ~300 already booked (allocated ~900
+    ///         for a ~600 position), prematurely tripping the caps.
+    function test_lp_repeat_allocate_books_delta_not_cumulative() public {
+        if (!active) {
+            vm.skip(true);
+            return;
+        }
+
+        _fund(1_000e6);
+
+        vm.prank(agent);
+        aumo.allocate(address(adapter), 300e6, "lp-1");
+        uint256 principal1 = aumo.allocated(address(adapter));
+
+        vm.prank(agent);
+        aumo.allocate(address(adapter), 300e6, "lp-2");
+        uint256 principal2 = aumo.allocated(address(adapter));
+
+        // Second deposit books ~its own 300, so principal is ~600 — NOT ~900 (the cumulative bug).
+        assertApproxEqAbs(principal2, principal1 + 300e6, 5e6, "second deposit books its delta");
+        assertLt(principal2, 800e6, "principal is not cumulative-double-counted");
+        // Principal agrees with live venue value (no phantom over-count).
+        assertApproxEqRel(aumo.venueBalance(address(adapter)), principal2, 0.03e18, "principal tracks live value");
+    }
+
     /// @notice Availability: balanceOf must never revert (it feeds the pool-wide totalAssets).
     function test_lp_balanceOf_is_zero_before_any_deposit() public {
         if (!active) {
