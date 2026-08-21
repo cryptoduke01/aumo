@@ -65,6 +65,24 @@
         "twapWindowSec": 300
       },
       "note": "Pendle PT-USDG market 0xcFB506cb34DD340e80d3dF8764182a5187636032 (Router V4, PT oracle 0x5542be50420E88dd7D5B4a3D488FA6ED82F6DAc2), SY 0x1F336F899f77B084133bc14a81170837ED618D1b, PT 0x9a09a9E491DB3dd8Ada5B1B889991AC9Ad5fd362. Fixed yield to maturity 2026-10-29. APY, TVL, and exit liquidity are now read live on-chain each cycle via feed.source=pendle (implied APY from the PT oracle, reserves from the market); the static values here are only a fallback if that read fails. Peg to USDG measured live from the USDT0/USDG v3 pool (pegSource); pegVerified is EARNED from a TWAP each cycle, never hardcoded."
+    },
+    {
+      "address": "0x483aC413349951b34bFC9a8f0311A70F35e80F38",
+      "name": "USDG/USDT0 LP (Uniswap v3)",
+      "kind": "rwa",
+      "apyBps": 120,
+      "tvlUsd": 2080000,
+      "liquidityUsd": 2000000,
+      "utilization": 0,
+      "protocolRisk": 0.1,
+      "pegDeviationBps": 0,
+      "pegSource": {
+        "kind": "univ3Twap",
+        "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA",
+        "yieldToken": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+        "twapWindowSec": 300
+      },
+      "note": "Full-range USDG/USDT0 liquidity on Uniswap v3 (0.01% pool 0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA, fee 100, tickSpacing 1). Adapter 0x483aC413349951b34bFC9a8f0311A70F35e80F38 deployed + allowlisted on mainnet 2026-08-22, 3-pass Kensho-audited, fork-verified. The position is valued LIVE on-chain each cycle (adapter.balanceOf via the pool's peg-band-clamped sqrt price plus fees); peg to USDG is measured live from the same v3 pool (pegSource) and pegVerified is EARNED from a TWAP. apyBps here is a CONSERVATIVE STATIC PLACEHOLDER (base trading fees) pending a live fee-APY feed; the LP's real draw is X Layer's RWA liquidity incentives (eligible-asset list drops 2026-08-24). Until its risk-adjusted yield beats the other venues the agent correctly holds it near zero — deliberate, not idle."
     }
   ]
 }

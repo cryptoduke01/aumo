@@ -42,12 +42,14 @@ const ADDR = {
     pool: "0x9A972bEeA00C6f2D76781586eAbd0c16e9b6d360",
     usdt0: "0xFc440733d882f28012B190b11Bbec56b44508448",
     usdg: ZERO, // no testnet USDG; the USDG deposit zap is a mainnet feature
+    zap: ZERO,
   },
   mainnet: {
     // Deployed 2026-08-13 (DeployPoolMainnet, chain 196). USDT0 is the canonical X Layer address.
     pool: "0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F",
     usdt0: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
     usdg: "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8", // Global Dollar (USDG), 94% of X Layer stables
+    zap: "0x29C9D4e86E587F42dadDa0b8004181EFE2D8B3df", // ZapDeposit, deployed 2026-08-22
   },
 } as const;
 
@@ -56,7 +58,7 @@ export const USDT0 = (process.env.NEXT_PUBLIC_USDT0 ?? ADDR[NET].usdt0) as `0x${
 export const USDG = (process.env.NEXT_PUBLIC_USDG ?? ADDR[NET].usdg) as `0x${string}`;
 // The USDG->USDT0->deposit zap. Set NEXT_PUBLIC_ZAP after deploying ZapDeposit; until then the USDG
 // deposit option is hidden and the app behaves exactly as before (USDT0-only).
-export const ZAP = (process.env.NEXT_PUBLIC_ZAP ?? ZERO) as `0x${string}`;
+export const ZAP = (process.env.NEXT_PUBLIC_ZAP ?? ADDR[NET].zap) as `0x${string}`;
 // The USDG/USDT0 pool fee tier (0.01%), used by the zap swap and to quote the minimum out.
 export const USDG_POOL_FEE = 100;
 export const zapConfigured = ZAP !== ZERO && USDG !== ZERO;
