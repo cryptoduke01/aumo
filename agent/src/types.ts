@@ -44,6 +44,10 @@ export type VenueFeed =
       sy: Address; // Standardized Yield token
       pt: Address; // Principal Token
       twapWindowSec: number; // oracle TWAP window used for the PT rate
+    }
+  | {
+      source: "univ3lp";
+      pool: Address; // the Uniswap v3 pool whose fee growth we measure for a live LP fee APY
     };
 
 /**

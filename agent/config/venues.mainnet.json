@@ -76,13 +76,17 @@
       "utilization": 0,
       "protocolRisk": 0.1,
       "pegDeviationBps": 0,
+      "feed": {
+        "source": "univ3lp",
+        "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA"
+      },
       "pegSource": {
         "kind": "univ3Twap",
         "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA",
         "yieldToken": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
         "twapWindowSec": 300
       },
-      "note": "Full-range USDG/USDT0 liquidity on Uniswap v3 (0.01% pool 0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA, fee 100, tickSpacing 1). Adapter 0x483aC413349951b34bFC9a8f0311A70F35e80F38 deployed + allowlisted on mainnet 2026-08-22, 3-pass Kensho-audited, fork-verified. The position is valued LIVE on-chain each cycle (adapter.balanceOf via the pool's peg-band-clamped sqrt price plus fees); peg to USDG is measured live from the same v3 pool (pegSource) and pegVerified is EARNED from a TWAP. apyBps here is a CONSERVATIVE STATIC PLACEHOLDER (base trading fees) pending a live fee-APY feed; the LP's real draw is X Layer's RWA liquidity incentives (eligible-asset list drops 2026-08-24). Until its risk-adjusted yield beats the other venues the agent correctly holds it near zero — deliberate, not idle."
+      "note": "Full-range USDG/USDT0 liquidity on Uniswap v3 (0.01% pool 0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA, fee 100, tickSpacing 1). Adapter 0x483aC413349951b34bFC9a8f0311A70F35e80F38 deployed + allowlisted on mainnet 2026-08-22, 3-pass Kensho-audited, fork-verified. The position is valued LIVE on-chain each cycle (adapter.balanceOf via the pool's peg-band-clamped sqrt price plus fees); peg to USDG is measured live (pegSource), pegVerified EARNED from a TWAP. APY is now read LIVE via feed.source=univ3lp (annualized growth of the pool's feeGrowthGlobal between hourly readings); the apyBps here is only a cold-start fallback until a full window accrues. TVL/liquidity are the pool's real reserves. Base trading fees on a pegged pair are thin, so until X Layer's RWA liquidity incentives land (eligible-asset list drops 2026-08-24) the agent correctly holds this near zero — deliberate, not idle; PENDING 2026-08-24 incentives to make it competitive."
     }
   ]
 }
