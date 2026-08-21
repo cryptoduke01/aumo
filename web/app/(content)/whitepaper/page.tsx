@@ -14,7 +14,7 @@ export default function WhitepaperPage() {
       <header className="relative border-b border-border/70 py-16">
         <DitherMark className="pointer-events-none absolute right-0 top-12 hidden size-40 text-foreground/[0.12] sm:block" />
         <span className="text-xs uppercase tracking-[0.14em] text-accent">
-          Whitepaper · v0.4 · 2026
+          Whitepaper · v0.5 · 2026
         </span>
         <h1 className="relative mt-3 text-4xl font-medium tracking-tight sm:text-5xl">
           Aumo: a guardrailed treasury agent
@@ -72,6 +72,19 @@ export default function WhitepaperPage() {
           disabled so the vault can never become ownerless. The pool is pausable.
           Venue approvals are reset to zero after each allocation so no standing
           allowance lingers.
+        </p>
+        <p>
+          Capital reaches yield through venue adapters, one per market, each
+          fork-tested against its live counterpart on X Layer mainnet: Aave v3
+          lending; USDG supplied to Aave for RWA-backed yield; Pendle PT-USDG fixed
+          yield to maturity; and a full-range USDG/USDT0 position on Uniswap v3 that
+          earns trading fees on two dollar-pegged legs. Beyond the per-move,
+          per-venue, and total-deployed caps, two rolling per-epoch budgets bound the
+          agent further: a loss budget caps the value it can destroy through swap
+          spreads in a window, and a deploy budget rate-limits how fast it can stage
+          new capital. Both meter the entry swap and the exit round trip alike.
+          Depositor withdrawals are never subject to either, so redemptions always
+          clear.
         </p>
 
         <h2>4. Risk model</h2>

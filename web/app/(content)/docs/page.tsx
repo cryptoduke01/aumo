@@ -147,13 +147,16 @@ export default function DocsPage() {
               <li><strong>The bridge.</strong> USDT0&apos;s native LayerZero OFT, so deposits can originate on Ethereum, Arbitrum, Optimism, or Polygon and arrive on X Layer ready to deposit.</li>
             </ul>
             <p>
-              Everything settles on X Layer. The base asset is USDT0 throughout, and
-              the agent allocates across three real venues: <strong>Aave v3</strong>{" "}
+              Everything settles on X Layer. The base asset is USDT0 throughout. The
+              agent allocates across three live venues: <strong>Aave v3</strong>{" "}
               lending; <strong>USDG</strong>, a regulated dollar backed by cash and
               short-term U.S. Treasuries (USDT0 is swapped to USDG on Uniswap, then
               supplied to Aave) for real-world-asset yield; and <strong>Pendle
               PT-USDG</strong>, fixed yield to maturity on that same Treasury-backed
-              dollar. Each is proven end-to-end against live X Layer mainnet contracts.
+              dollar. A fourth adapter, a full-range <strong>USDG/USDT0</strong> position
+              on Uniswap v3 that earns trading fees on two dollar-pegged legs, is shipped
+              and fork-verified, pending allowlisting on the live pool. Each is proven
+              end-to-end against live X Layer mainnet contracts.
             </p>
           </section>
 
@@ -189,6 +192,7 @@ export default function DocsPage() {
               <li><strong>Per-venue cap.</strong> The most that can sit in any one venue.</li>
               <li><strong>Max total deployed.</strong> The ceiling on how much of the pool is ever at work.</li>
               <li><strong>Per-epoch loss budget.</strong> A swap venue costs a small spread on each round trip, so even the value a rogue agent could burn by churning is capped per epoch. Your own withdrawals are never subject to it, so you can always exit.</li>
+              <li><strong>Per-epoch deploy budget.</strong> A separate rate limit on how fast new capital can be staged, bounding churn independently of the loss budget.</li>
               <li><strong>Allowlisted venues only.</strong> The agent can send funds nowhere else.</li>
               <li><strong>No external withdrawal path.</strong> The agent can shuffle funds between allowlisted venues and back to the pool. It cannot withdraw to any outside address.</li>
             </ul>
