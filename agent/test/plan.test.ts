@@ -88,6 +88,31 @@ test("depeg circuit breaker forces an immediate full exit when the peg breaks, e
   assert.equal(out!.amount, 100n * M);
 });
 
+test("depeg breaker exits an RWA venue whose peg has been unverifiable for two cycles", () => {
+  const s = {
+    ...snap({ idle: 0n, totalDeployed: 100n * M }, [
+      venue({ address: VENUE_A, kind: "rwa", pegVerified: false, pegDeviationBps: 5, protocolRisk: 0.1, liquidityUsd: 5_000_000, allocatedPrincipal: 100n * M, liveBalance: 100n * M }),
+    ]),
+    history: {
+      [VENUE_A.toLowerCase()]: [
+        { utilization: 0, pegDeviationBps: 5, pegVerified: false, liquidityUsd: 5_000_000, tvlUsd: 5_000_000, apyBps: 500 },
+      ],
+    },
+  };
+  const plan = buildPlan(s, { appetite: "high" }); // even the most permissive appetite can't keep it
+  const out = plan.moves.find((m) => m.action === "deallocate");
+  assert.ok(out, "expected a peg-blindness exit");
+  assert.match(out!.rationale, /could not be verified/);
+});
+
+test("a single unverified cycle does not trigger the peg-blindness exit (no churn)", () => {
+  const s = snap({ idle: 0n, totalDeployed: 100n * M }, [
+    venue({ address: VENUE_A, kind: "rwa", pegVerified: false, pegDeviationBps: 5, protocolRisk: 0.1, liquidityUsd: 5_000_000, allocatedPrincipal: 100n * M, liveBalance: 100n * M }),
+  ]); // no prior unverified sample → one flaky read, tolerated
+  const plan = buildPlan(s, { appetite: "high" });
+  assert.ok(!plan.moves.some((m) => m.action === "deallocate"), "one flaky read must not force an exit");
+});
+
 test("does not deploy into a venue past the depeg breaker", () => {
   const s = snap({ idle: 1000n * M }, [
     venue({ pegDeviationBps: 250, protocolRisk: 0.1, liquidityUsd: 5_000_000 }),

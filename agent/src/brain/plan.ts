@@ -99,17 +99,34 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
     const r = riskByAddr.get(v.address.toLowerCase());
     if (!r) continue;
     const outOfPolicy = !v.allowed || BAND_RANK[r.band] > BAND_RANK[appetite];
-    const pegBreak = v.pegDeviationBps > HARD_PEG_BREAK_BPS;
+    const pegDevBreak = v.pegDeviationBps > HARD_PEG_BREAK_BPS;
+    // Persistent peg blindness: an RWA venue whose peg feed failed to verify THIS cycle AND in the most
+    // recent prior cycle. A single transient miss is tolerated (no churn); sustained blindness on a
+    // live RWA position means the depeg breaker itself is running blind — we can no longer confirm the
+    // peg — so we exit rather than hold an unverifiable RWA. Closes the "feed-down disarms the breaker"
+    // gap without exiting on one flaky read.
+    const priorSamples = snap.history?.[v.address.toLowerCase()];
+    const priorSample = priorSamples && priorSamples.length ? priorSamples[priorSamples.length - 1] : undefined;
+    const pegBlind =
+      v.kind === "rwa" && v.pegVerified !== true && priorSample !== undefined && priorSample.pegVerified !== true;
+    const pegBreak = pegDevBreak || pegBlind;
     if (v.allocatedPrincipal > 0n && (outOfPolicy || pegBreak)) {
       const amount = v.liveBalance > 0n ? v.liveBalance : v.allocatedPrincipal;
+      const breakerRationale = pegDevBreak
+        ? `Depeg circuit breaker: ${v.name} peg deviation is ${v.pegDeviationBps} bps, past the ${HARD_PEG_BREAK_BPS} bps breaker. Full exit now, before it becomes a loss.`
+        : `Depeg circuit breaker: ${v.name} peg could not be verified on-chain for two cycles running. Exiting a live RWA position we can no longer confirm.`;
       moves.push({
         venue: v.address,
         venueName: v.name,
         action: "deallocate",
         amount,
-        reasonTag: pegBreak ? `depeg:${v.pegDeviationBps}bps`.slice(0, 31) : `retreat:${r.band}`.slice(0, 31),
+        reasonTag: pegDevBreak
+          ? `depeg:${v.pegDeviationBps}bps`.slice(0, 31)
+          : pegBlind
+            ? "depeg:unverified"
+            : `retreat:${r.band}`.slice(0, 31),
         rationale: pegBreak
-          ? `Depeg circuit breaker: ${v.name} peg deviation is ${v.pegDeviationBps} bps, past the ${HARD_PEG_BREAK_BPS} bps breaker. Full exit now, before it becomes a loss.`
+          ? breakerRationale
           : `Exit ${v.name}: ${
               !v.allowed
                 ? "no longer allowlisted on-chain"

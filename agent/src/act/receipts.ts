@@ -83,6 +83,7 @@ export function loadHistory(limit = 6): VenueHistory {
       const sample: VenueSample = {
         utilization: Number(v.utilization) || 0,
         pegDeviationBps: Number(v.pegDeviationBps) || 0,
+        pegVerified: typeof v.pegVerified === "boolean" ? v.pegVerified : undefined,
         liquidityUsd: Number(v.liquidityUsd) || 0,
         tvlUsd: Number(v.tvlUsd) || 0,
         apyBps: Number(v.apyBps) || 0,

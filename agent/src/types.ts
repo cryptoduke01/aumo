@@ -86,6 +86,7 @@ export interface VenueState extends VenueMeta {
 export interface VenueSample {
   utilization: number; // 0..1
   pegDeviationBps: number;
+  pegVerified?: boolean; // whether the peg was live-verified that cycle; drives persistent-blindness exit
   liquidityUsd: number;
   tvlUsd: number;
   apyBps: number;
