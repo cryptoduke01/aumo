@@ -83,6 +83,45 @@ contract UniV3LpAdapterForkTest is Test {
         assertGt(aumo.idleBalance(), (amount * 96) / 100, "principal returned minus round-trip cost");
     }
 
+    /// @notice Regression for the Kensho finding: a PARTIAL retreat must leave the rest of the LP
+    ///         position live and keep the pool's principal ledger consistent. Before the fix, the
+    ///         adapter fully unwound on any withdraw, so `allocated` stayed overstated (phantom
+    ///         principal) while the venue was actually empty, and a later exit reverted EmptyWithdraw.
+    function test_lp_partial_withdraw_keeps_position_and_accounting() public {
+        if (!active) {
+            vm.skip(true);
+            return;
+        }
+
+        uint256 amount = 500e6;
+        _fund(amount);
+        vm.prank(agent);
+        aumo.allocate(address(adapter), amount, "usdg-usdt0-lp");
+
+        uint256 principal0 = aumo.allocated(address(adapter));
+        assertGt(aumo.venueBalance(address(adapter)), (amount * 97) / 100, "position funded");
+
+        // Partial retreat of ~100 (agent path, loss-metered).
+        uint256 pullAmt = 100e6;
+        vm.prank(agent);
+        aumo.deallocate(address(adapter), pullAmt);
+
+        // The remainder must still be a live LP position, not fully unwound.
+        uint256 pos1 = aumo.venueBalance(address(adapter));
+        assertGt(pos1, (amount * 70) / 100, "remainder stays deployed as a live position");
+
+        // Principal drops by exactly the pulled amount (no stuck phantom), and live value agrees.
+        uint256 principal1 = aumo.allocated(address(adapter));
+        assertEq(principal1, principal0 - pullAmt, "principal tracks the partial pull");
+        assertApproxEqRel(pos1, principal1, 0.05e18, "live balance and principal agree, no phantom");
+
+        // A later full exit clears cleanly (this reverted EmptyWithdraw under the bug).
+        vm.prank(agent);
+        aumo.deallocate(address(adapter), type(uint256).max);
+        assertEq(aumo.allocated(address(adapter)), 0, "principal cleared on full exit");
+        assertLt(aumo.venueBalance(address(adapter)), 1e6, "venue emptied");
+    }
+
     /// @notice Availability: balanceOf must never revert (it feeds the pool-wide totalAssets).
     function test_lp_balanceOf_is_zero_before_any_deposit() public {
         if (!active) {

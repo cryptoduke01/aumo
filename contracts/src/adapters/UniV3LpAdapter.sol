@@ -62,9 +62,10 @@ interface ISwapRouter02 {
 /// @dev One adapter per (vault, pool). Full-range keeps the math free of TickMath: the range bounds
 ///      are the absolute min/max ticks, whose sqrt ratios are the well-known MIN/MAX_SQRT_RATIO
 ///      constants. Every swap carries a non-zero slippage floor. Only the owning vault moves funds;
-///      the owner can retune floors and force an emergency exit. Withdrawals ALWAYS fully unwind the
-///      position (an LP position is all-or-nothing here), returning realized value to the vault; the
-///      vault's idle buffer re-absorbs any excess over the requested amount.
+///      the owner can retune floors and force an emergency exit. Withdrawals honor the requested
+///      amount: a partial request burns a proportional slice and leaves the rest of the position live
+///      (keeping the pool's partial-deallocate accounting consistent, as every other adapter does); a
+///      request at or above the position's live value, or the max sentinel, exits the whole position.
 contract UniV3LpAdapter is IVenueAdapter, Ownable {
     using SafeERC20 for IERC20;
 
@@ -174,12 +175,20 @@ contract UniV3LpAdapter is IVenueAdapter, Ownable {
         return _grossValue();
     }
 
-    /// @dev Withdrawals fully unwind the position — an LP position is all-or-nothing here. `amount` is
-    ///      advisory; the whole position (plus any accrued fees) is realized to USDT0 and returned, and
-    ///      the vault's idle buffer re-absorbs any excess over the request.
-    function withdraw(uint256 /*amount*/ ) external onlyVault returns (uint256 withdrawn) {
-        _unwindAll(true); // floor the USDG->USDT0 exit swap against a thin/manipulated pool
-        return _sweepToVault(0); // per-swap floor already applied
+    /// @dev Withdrawals honor `amount`: the adapter realizes approximately `amount` of USDT0 and leaves
+    ///      the rest of the full-range position live, so the pool's partial-deallocate accounting stays
+    ///      consistent (every other adapter behaves the same). A request at or above the position's live
+    ///      value, or the max sentinel, exits the whole position. Serving a small redemption by burning
+    ///      only a proportional slice keeps a dust withdrawal from forcing the entire position through
+    ///      the exit swap, exactly as the pool's _ensureIdle intends. The vault's idle buffer re-absorbs
+    ///      any small excess over the request.
+    function withdraw(uint256 amount) external onlyVault returns (uint256 withdrawn) {
+        if (amount == type(uint256).max || amount >= _grossValue()) {
+            _unwindAll(true); // full exit; floor the USDG->USDT0 swap against a thin/manipulated pool
+            return _sweepToVault(0);
+        }
+        _partialUnwind(amount); // realize ~amount, keep the remainder deployed
+        return _sweepToVault(0); // per-swap floor already applied inside
     }
 
     /// @notice Owner escape hatch: unwind the whole position and return USDT0 to the vault at a
@@ -228,6 +237,30 @@ contract UniV3LpAdapter is IVenueAdapter, Ownable {
             // floor on the total USDT0 returned instead.
             _uniSwap(usdg, address(token), usdgBal, useFloor ? _floorFrom(usdgBal) : 0);
         }
+    }
+
+    /// @dev Realize approximately `targetUsdt` of USDT0 by burning a proportional slice of the
+    ///      full-range position, then swapping the released USDG leg back with a floor. Both legs are
+    ///      dollar-pegged, so the slice is targetUsdt / (position value at the live price). The
+    ///      remaining liquidity stays a live full-range position. A dust target burns ~nothing, so a
+    ///      small redemption is served from the vault's idle or other venues rather than churning the
+    ///      whole position (matching _ensureIdle's intent).
+    function _partialUnwind(uint256 targetUsdt) internal {
+        (uint160 sqrtP,,,,,,) = pool.slot0();
+        (uint128 liquidity,,,,) = pool.positions(_positionKey());
+        if (liquidity > 0) {
+            (uint256 a0, uint256 a1) = _amountsForLiquidity(sqrtP, liquidity);
+            uint256 posValue = a0 + a1; // USDG + USDT0, both ~$1
+            if (posValue > 0) {
+                uint256 burnLiq = _mulDiv(uint256(liquidity), targetUsdt, posValue);
+                if (burnLiq > liquidity) burnLiq = liquidity;
+                if (burnLiq > 0) pool.burn(MIN_TICK, MAX_TICK, uint128(burnLiq));
+            }
+        }
+        // Collect the burned principal plus any accrued fees; the remaining liquidity is untouched.
+        pool.collect(address(this), MIN_TICK, MAX_TICK, type(uint128).max, type(uint128).max);
+        uint256 usdgBal = usdg.balanceOf(address(this));
+        if (usdgBal > 0) _uniSwap(usdg, address(token), usdgBal, _floorFrom(usdgBal));
     }
 
     function _sweepToVault(uint256 minOut) internal returns (uint256 sent) {
