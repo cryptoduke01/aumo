@@ -33,6 +33,11 @@ export const REBALANCE_MIN_EDGE_BPS = 200;
 // must clear this, or the position matures before the round-trip pays for itself. Deliberately high so
 // the agent never chases annualized yield it cannot actually realize before maturity.
 export const ROTATION_ROUNDTRIP_BPS = 100;
+// Depeg circuit breaker: the hard peg-deviation threshold (bps) past which the agent forces an
+// immediate, full exit from an RWA venue, independent of the graduated risk band. A dollar-pegged
+// RWA that has slipped 1% is a red alert, not a slow-scoring input, so the agent gets out now rather
+// than waiting for the band to catch up. Retreat is never blocked, so this always executes.
+export const HARD_PEG_BREAK_BPS = 100;
 
 export function critique(snap: MarketSnapshot, plan: Plan): Plan {
   const dec = snap.vault.decimals;

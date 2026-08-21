@@ -75,6 +75,27 @@ test("retreats when the venue risk band exceeds appetite", () => {
   assert.ok(!plan.moves.some((m) => m.action === "allocate"));
 });
 
+test("depeg circuit breaker forces an immediate full exit when the peg breaks, even within appetite", () => {
+  // Held venue with a hard peg break but otherwise healthy. At the most permissive appetite the band
+  // can't trigger a retreat, so this isolates the breaker: it exits on the peg alone.
+  const s = snap({ idle: 0n, totalDeployed: 100n * M }, [
+    venue({ pegDeviationBps: 250, protocolRisk: 0.1, liquidityUsd: 5_000_000, allocatedPrincipal: 100n * M, liveBalance: 100n * M }),
+  ]);
+  const plan = buildPlan(s, { appetite: "high" });
+  const out = plan.moves.find((m) => m.action === "deallocate");
+  assert.ok(out, "expected a depeg exit");
+  assert.match(out!.rationale, /circuit breaker/);
+  assert.equal(out!.amount, 100n * M);
+});
+
+test("does not deploy into a venue past the depeg breaker", () => {
+  const s = snap({ idle: 1000n * M }, [
+    venue({ pegDeviationBps: 250, protocolRisk: 0.1, liquidityUsd: 5_000_000 }),
+  ]);
+  const plan = buildPlan(s, { appetite: "high" });
+  assert.ok(!plan.moves.some((m) => m.action === "allocate"), "no deploy into a depegged venue");
+});
+
 test("a vetoed venue is excluded from new deploys", () => {
   const s = snap();
   const withVeto = buildPlan(s, { appetite: "moderate", deny: new Set([VENUE_A.toLowerCase()]) });

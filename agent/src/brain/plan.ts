@@ -9,6 +9,7 @@ import {
   LIQUIDITY_SHARE_CAP,
   REBALANCE_MIN_EDGE_BPS,
   ROTATION_ROUNDTRIP_BPS,
+  HARD_PEG_BREAK_BPS,
 } from "./critic.js";
 
 const SECONDS_PER_YEAR = 31_536_000;
@@ -89,25 +90,31 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
 
   const moves: Move[] = [];
 
-  // 1) Retreat first. Any venue we hold that is no longer allowlisted or whose risk
-  //    band now exceeds appetite is fully unwound. Retreat is never blocked.
+  // 1) Retreat first. Any venue we hold that is no longer allowlisted or whose risk band now exceeds
+  //    appetite is fully unwound. On top of that, a DEPEG CIRCUIT BREAKER forces an immediate full
+  //    exit the instant an RWA venue's peg breaks past HARD_PEG_BREAK_BPS, independent of the
+  //    graduated band, so a fast depeg is met with an instant exit rather than a slow re-score.
+  //    Retreat is never blocked, so both always execute.
   for (const v of snap.venues) {
     const r = riskByAddr.get(v.address.toLowerCase());
     if (!r) continue;
     const outOfPolicy = !v.allowed || BAND_RANK[r.band] > BAND_RANK[appetite];
-    if (v.allocatedPrincipal > 0n && outOfPolicy) {
+    const pegBreak = v.pegDeviationBps > HARD_PEG_BREAK_BPS;
+    if (v.allocatedPrincipal > 0n && (outOfPolicy || pegBreak)) {
       const amount = v.liveBalance > 0n ? v.liveBalance : v.allocatedPrincipal;
       moves.push({
         venue: v.address,
         venueName: v.name,
         action: "deallocate",
         amount,
-        reasonTag: `retreat:${r.band}`.slice(0, 31),
-        rationale: `Exit ${v.name}: ${
-          !v.allowed
-            ? "no longer allowlisted on-chain"
-            : `risk band ${r.band} exceeds appetite ${appetite}`
-        }.${r.notes.length ? " " + r.notes.join("; ") + "." : ""}`,
+        reasonTag: pegBreak ? `depeg:${v.pegDeviationBps}bps`.slice(0, 31) : `retreat:${r.band}`.slice(0, 31),
+        rationale: pegBreak
+          ? `Depeg circuit breaker: ${v.name} peg deviation is ${v.pegDeviationBps} bps, past the ${HARD_PEG_BREAK_BPS} bps breaker. Full exit now, before it becomes a loss.`
+          : `Exit ${v.name}: ${
+              !v.allowed
+                ? "no longer allowlisted on-chain"
+                : `risk band ${r.band} exceeds appetite ${appetite}`
+            }.${r.notes.length ? " " + r.notes.join("; ") + "." : ""}`,
         band: r.band,
         riskScore: r.riskScore,
         riskAdjustedApyBps: r.riskAdjustedApyBps,
@@ -137,7 +144,7 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
   const concCap = (portfolioBig * BigInt(Math.round(maxConc * 10000))) / 10000n;
 
   const eligible = snap.venues
-    .filter((v) => v.allowed && !deny.has(v.address.toLowerCase()))
+    .filter((v) => v.allowed && !deny.has(v.address.toLowerCase()) && v.pegDeviationBps <= HARD_PEG_BREAK_BPS)
     .map((v) => ({ v, r: riskByAddr.get(v.address.toLowerCase())! }))
     // Exclude venues the critic would veto anyway (deteriorating momentum), so budget flows to the
     // next-best venue instead of being spent on a move that gets removed and stranded.
