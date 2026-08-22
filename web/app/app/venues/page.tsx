@@ -152,16 +152,53 @@ export default function VenuesPage() {
             </span>
             <span>Verified {timeAgo(rec.takenAt)}</span>
           </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {[...rec.snapshot.venues].sort(byRwaFirst).map((v) => (
-              <VenuePassport
-                key={v.address}
-                venue={v}
-                dec={rec.snapshot.vault.decimals ?? 6}
-                risk={rec.plan.risks.find((r) => r.address === v.address)}
-              />
-            ))}
-          </div>
+          {(() => {
+            const all = [...rec.snapshot.venues].sort(byRwaFirst);
+            const isLp = (v: VenueSnapshot) => assetClass(v).label === "Liquidity provision";
+            const liquidity = all.filter(isLp);
+            const allocations = all.filter((v) => !isLp(v));
+            const dec = rec.snapshot.vault.decimals ?? 6;
+            const grid = (vs: VenueSnapshot[]) => (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {vs.map((v) => (
+                  <VenuePassport key={v.address} venue={v} dec={dec} risk={rec.plan.risks.find((r) => r.address === v.address)} />
+                ))}
+              </div>
+            );
+            return (
+              <div className="flex flex-col gap-8">
+                {/* What the agent did before: deposit capital into external yield venues. */}
+                <section className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1">
+                    <h2 className="text-sm font-medium text-foreground">Allocations</h2>
+                    <p className="text-xs text-muted-foreground">
+                      Capital deposited into external yield venues — lending, tokenized treasuries, and
+                      fixed yield. The agent moves it to the best risk-adjusted return.
+                    </p>
+                  </div>
+                  {grid(allocations)}
+                </section>
+
+                {/* The new capability: the agent provides liquidity itself, not just deposits. */}
+                {liquidity.length > 0 ? (
+                  <section className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-sm font-medium text-foreground">Liquidity provision</h2>
+                        <Badge tone="accent">New</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        The agent supplies liquidity to RWA pools itself and earns trading fees — acting as
+                        a market maker, not just a depositor. It provides autonomously when the
+                        risk-adjusted yield beats holding, and unwinds the same way.
+                      </p>
+                    </div>
+                    {grid(liquidity)}
+                  </section>
+                ) : null}
+              </div>
+            );
+          })()}
         </>
       )}
     </div>
