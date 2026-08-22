@@ -30,6 +30,9 @@ const usd = (n: number) =>
 function assetClass(v: VenueSnapshot): { label: string; rwa: boolean } {
   const n = v.name.toLowerCase();
   if (n.includes("pendle") || n.includes("pt-") || n.includes("pt ")) return { label: "Tokenized fixed yield", rwa: true };
+  // Check LP before the generic USDG/RWA bucket — the LP venue's name contains "usdg" but it is
+  // liquidity provision, not a tokenized-treasury holding, and mislabeling it undercuts the launch.
+  if (n.includes("uniswap") || n.includes(" lp") || n.includes("liquidity")) return { label: "Liquidity provision", rwa: true };
   if (n.includes("usdg") || v.kind === "rwa") return { label: "Tokenized treasuries", rwa: true };
   if (v.kind === "lending") return { label: "On-chain lending", rwa: false };
   return { label: "Yield venue", rwa: false };
