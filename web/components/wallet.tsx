@@ -32,31 +32,34 @@ function pickWallets(connectors: readonly Connector[]): Connector[] {
 export function ConnectButton() {
   // chainId from useAccount (the connected wallet's actual chain). useChainId() reports the wagmi
   // config's chain even when the wallet sits elsewhere, so it never catches a wrong-network wallet.
-  const { address, isConnected, status, chainId } = useAccount();
-  const { connect, connectors, isPending } = useConnect({
-    mutation: {
-      onError: (e) => {
-        const msg = e.message.split("\n")[0];
-        // A wallet already connected under the hood (common right after an auto-reconnect, or when the
-        // same wallet is exposed via both EIP-6963 and the generic injected connector) is NOT a
-        // failure. The account state settles to connected on its own; just close the picker quietly
-        // instead of showing a scary error.
-        if (/already connected/i.test(msg)) {
-          setOpen(false);
-          return;
-        }
-        toast.error(msg.slice(0, 120) || "Connection failed");
-      },
-      onSuccess: () => setOpen(false),
-    },
-  });
-  const { disconnect } = useDisconnect();
+  const { address, isConnected, chainId } = useAccount();
+  const { connectAsync, connectors, isPending } = useConnect();
+  const { disconnect, disconnectAsync } = useDisconnect();
   const { switchChain } = useSwitchChain();
   const [open, setOpen] = useState(false);
-  // While wagmi auto-reconnects a previously-connected wallet, `isConnected` is briefly false. Showing
-  // "Connect wallet" then lets a user fire connect() mid-reconnect and hit "Connector already
-  // connected" a beat later. Treat reconnecting/connecting as a busy state so that never happens.
-  const reconnecting = status === "reconnecting" || status === "connecting";
+
+  // Connect the picked wallet. If wagmi reports it as already connected — a stale/desynced session,
+  // common when several wallet extensions are installed and one holds a half-connection — reset it and
+  // reconnect automatically, so the user never has to open their wallet and disconnect by hand.
+  const pick = async (c: Connector) => {
+    try {
+      await connectAsync({ connector: c });
+      setOpen(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message.split("\n")[0] : String(e);
+      if (/already connected/i.test(msg)) {
+        try {
+          await disconnectAsync();
+          await connectAsync({ connector: c });
+          setOpen(false);
+          return;
+        } catch {
+          /* fall through to the toast below */
+        }
+      }
+      toast.error(msg.slice(0, 120) || "Connection failed");
+    }
+  };
 
   // Funnel signal: count each wallet that connects (privacy-safe — the event carries NO address, so
   // it stays consistent with the cookieless "does not identify you" analytics promise). Fires once
@@ -88,14 +91,14 @@ export function ConnectButton() {
 
   return (
     <>
-      <button className={btn} onClick={() => setOpen(true)} disabled={isPending || reconnecting}>
-        {isPending || reconnecting ? "Connecting…" : "Connect wallet"}
+      <button className={btn} onClick={() => setOpen(true)} disabled={isPending}>
+        {isPending ? "Connecting…" : "Connect wallet"}
       </button>
       <ConnectModal
         open={open}
         onClose={() => setOpen(false)}
         wallets={pickWallets(connectors)}
-        onPick={(c) => connect({ connector: c })}
+        onPick={pick}
         hasWcProject={Boolean(process.env.NEXT_PUBLIC_WC_PROJECT_ID)}
       />
     </>
