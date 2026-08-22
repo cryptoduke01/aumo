@@ -30,6 +30,14 @@ export async function execute(
   const chain = wallet.chain;
   const results: MoveResult[] = [];
 
+  // Manage the nonce locally across the cycle. When a cycle sends more than one tx (e.g. deploying a
+  // fresh deposit across two venues), letting viem auto-fetch the nonce per tx breaks on X Layer's
+  // load-balanced public RPC: the next tx's `getTransactionCount(pending)` can hit a node that hasn't
+  // registered the just-mined tx yet and returns a stale (too-low) nonce, so the second tx is rejected
+  // with "nonce too low". We read the pending nonce ONCE, pass it explicitly, and advance it only on a
+  // successful broadcast (a tx that never broadcasts — e.g. a pre-flight revert — does not consume it).
+  let nonce = await pc.getTransactionCount({ address: account.address, blockTag: "pending" });
+
   // Send one move on-chain. The contract re-checks every guardrail, so the worst a bug here can do
   // is get a transaction reverted — never move funds out of policy.
   const runMove = async (move: Move): Promise<MoveResult> => {
@@ -39,6 +47,7 @@ export async function execute(
           ? await wallet.writeContract({
               account,
               chain,
+              nonce,
               address: vault,
               abi: vaultAbi,
               functionName: "allocate",
@@ -47,14 +56,18 @@ export async function execute(
           : await wallet.writeContract({
               account,
               chain,
+              nonce,
               address: vault,
               abi: vaultAbi,
               functionName: "deallocate",
               args: [move.venue, move.amount],
             });
+      nonce += 1; // broadcast succeeded → this nonce is spent; advance for the next tx in the cycle
       const receipt = await pc.waitForTransactionReceipt({ hash });
       return { move, hash, status: receipt.status === "success" ? "confirmed" : "reverted" };
     } catch (err) {
+      // Threw before broadcast (e.g. a simulation revert): the nonce was NOT consumed, so leave it as
+      // is and the next move reuses it.
       return { move, status: "error", error: err instanceof Error ? err.message : String(err) };
     }
   };
