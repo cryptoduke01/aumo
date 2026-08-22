@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { getReceipts, getStatus, amount, pct, timeAgo, BAND_COLOR, type DecisionRecord, type Status } from "@/lib/agent";
+import { getReceiptsPage, getStatus, receiptsCsvUrl, amount, pct, timeAgo, BAND_COLOR, type DecisionRecord, type Status } from "@/lib/agent";
 import { Panel, Badge } from "@/components/ui";
 import { Loader } from "@/components/loader";
 import { DecisionReplay } from "@/components/decision-replay";
@@ -20,17 +20,23 @@ function Stat({ label, value, accent }: { label: string; value: React.ReactNode;
 }
 
 export default function ActivityPage() {
+  const PAGE = 50;
   const [records, setRecords] = useState<DecisionRecord[] | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<string | null>(null);
+  const [paging, setPaging] = useState(false); // true once the user loads older pages → pause polling
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
-      // Feed shows the most recent 100; the headline counts come from the status endpoint's true
-      // totals over the whole trail, so a 300+ history isn't undersold by the display cap.
-      const [recs, st] = await Promise.all([getReceipts(100, signal), getStatus(signal).catch(() => null)]);
+      // First page (newest PAGE); headline counts come from the status endpoint's true totals over
+      // the whole trail, so a 300+ history isn't undersold by the display cap.
+      const [recs, st] = await Promise.all([
+        getReceiptsPage(PAGE, 0, signal),
+        getStatus(signal).catch(() => null),
+      ]);
       setRecords(recs);
       if (st) setStatus(st);
       setError(null);
@@ -39,15 +45,33 @@ export default function ActivityPage() {
     }
   }, []);
 
+  const loadMore = useCallback(async () => {
+    setLoadingMore(true);
+    try {
+      const more = await getReceiptsPage(PAGE, records?.length ?? 0);
+      setRecords((prev) => {
+        const seen = new Set((prev ?? []).map((r) => r.takenAt));
+        return [...(prev ?? []), ...more.filter((r) => !seen.has(r.takenAt))];
+      });
+      setPaging(true); // stop the live poll from resetting the paged view
+    } catch {
+      /* transient; the button stays available to retry */
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [records]);
+
   useEffect(() => {
     const ctrl = new AbortController();
     load(ctrl.signal);
-    const id = setInterval(() => load(), 15000);
+    const id = setInterval(() => {
+      if (!paging) load();
+    }, 15000);
     return () => {
       ctrl.abort();
       clearInterval(id);
     };
-  }, [load]);
+  }, [load, paging]);
 
   const stats = useMemo(() => {
     const rs = records ?? [];
@@ -88,9 +112,18 @@ export default function ActivityPage() {
 
       {/* filter */}
       <div className="flex items-center justify-between border-b border-border pb-4">
-        <span className="text-xs text-faint">
-          {shown.length} shown{stats.total > (records?.length ?? 0) ? ` of ${stats.total}` : ""}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-faint">
+            {shown.length} shown{stats.total > (records?.length ?? 0) ? ` of ${stats.total}` : ""}
+          </span>
+          <a
+            href={receiptsCsvUrl}
+            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            title="Download every decision as CSV"
+          >
+            Export CSV
+          </a>
+        </div>
         <div className="flex items-center gap-1 rounded-lg border border-border p-1">
           {(["all", "moved", "held"] as const).map((f) => (
             <button
@@ -190,6 +223,18 @@ export default function ActivityPage() {
           })}
         </ol>
       )}
+
+      {records && stats.total > records.length ? (
+        <div className="flex justify-center pt-1">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+          >
+            {loadingMore ? "Loading…" : `Load ${Math.min(PAGE, stats.total - records.length)} more`}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

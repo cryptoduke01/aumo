@@ -130,6 +130,12 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
 export const getStatus = (signal?: AbortSignal) => getJson<Status>("/", signal);
 export const getReceipts = (limit = 20, signal?: AbortSignal) =>
   getJson<DecisionRecord[]>(`/receipts?limit=${limit}`, signal);
+// Paged, newest-first: skip the `offset` most recent, return the next `limit`. Lets the Activity feed
+// page all the way back through the full trail.
+export const getReceiptsPage = (limit: number, offset: number, signal?: AbortSignal) =>
+  getJson<DecisionRecord[]>(`/receipts?limit=${limit}&offset=${offset}`, signal);
+// The full decision trail as a CSV download (Content-Disposition set server-side).
+export const receiptsCsvUrl = `${AGENT_URL}/receipts.csv`;
 
 export interface VenueAttribution {
   address: string;

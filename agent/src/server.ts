@@ -61,6 +61,87 @@ function decisionTotals(): { total: number; rebalanced: number; held: number } {
   return { total, rebalanced, held: total - rebalanced };
 }
 
+/**
+ * One page of decisions, most-recent-first: skip the `offset` newest, return the next `limit`. Lets
+ * the dashboard page all the way back through the full trail (not just the most recent 50).
+ */
+function readPage(limit: number, offset: number): unknown[] {
+  if (!existsSync(RECEIPTS)) return [];
+  let raw: string;
+  try {
+    raw = readFileSync(RECEIPTS, "utf8").trim();
+  } catch {
+    return [];
+  }
+  if (!raw) return [];
+  const lines = raw.split("\n").filter(Boolean);
+  const end = Math.max(0, lines.length - offset); // newest are at the end of the file
+  const start = Math.max(0, end - limit);
+  const out: unknown[] = [];
+  for (const line of lines.slice(start, end)) {
+    try {
+      out.push(JSON.parse(line));
+    } catch {
+      /* skip a bad line */
+    }
+  }
+  return out.reverse(); // newest-first
+}
+
+const csvCell = (x: unknown): string => {
+  const v = x === null || x === undefined ? "" : String(x);
+  return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+};
+
+/**
+ * The entire decision trail as CSV, one row per decision: the context the agent saw, the regime and
+ * appetite it chose, whether it moved or held, where it moved, its plain-language rationale, the
+ * vault's price per share, and the on-chain tx hashes. Flat and self-describing, so a model (or a
+ * spreadsheet) can learn from every move the agent has ever made.
+ */
+function decisionsCsv(): string {
+  const header = [
+    "takenAt", "regime", "appetite", "source", "action", "moveCount", "movedInto",
+    "idle", "deployed", "totalAssets", "totalSupply", "pricePerShare", "rationale", "txHashes",
+  ];
+  const rows = [header.join(",")];
+  if (!existsSync(RECEIPTS)) return rows.join("\n");
+  let raw: string;
+  try {
+    raw = readFileSync(RECEIPTS, "utf8").trim();
+  } catch {
+    return rows.join("\n");
+  }
+  for (const line of raw.split("\n")) {
+    if (!line) continue;
+    let rec: Decision;
+    try {
+      rec = JSON.parse(line) as Decision;
+    } catch {
+      continue;
+    }
+    const plan = rec.plan ?? {};
+    const vault = (rec.snapshot?.vault ?? {}) as Record<string, unknown>;
+    const moves = plan.moves ?? [];
+    const ta = Number(vault.totalAssets) || 0;
+    const ts = Number(vault.totalSupply) || 0;
+    const txs = (rec.execution ?? [])
+      .map((e) => (e as { hash?: string }).hash)
+      .filter(Boolean)
+      .join(" ");
+    rows.push(
+      [
+        rec.takenAt, plan.regime, plan.appetite, plan.source,
+        moves.length > 0 ? "rebalanced" : "held", moves.length,
+        moves.map((m) => (m as { venueName?: string; venue?: string }).venueName ?? (m as { venue?: string }).venue).join(" | "),
+        vault.idle, vault.totalDeployed, vault.totalAssets, vault.totalSupply,
+        ts > 0 ? ta / ts : "", plan.summary, txs,
+      ].map(csvCell).join(","),
+    );
+  }
+  return rows.join("\n");
+}
+
 interface Decision {
   takenAt?: string;
   policyFingerprint?: string;
@@ -82,6 +163,7 @@ interface Decision {
     };
     venues?: Array<Record<string, unknown>>;
   };
+  execution?: Array<{ hash?: string }> | null;
 }
 
 /** Compact, model-friendly view of the agent's current state for Q&A grounding. */
@@ -381,8 +463,17 @@ export function startServer(cfg: Config) {
     }
 
     if (url.pathname === "/receipts") {
-      const limit = Math.min(Number(url.searchParams.get("limit") ?? 20), 100);
-      res.end(JSON.stringify(readRecent(limit), null, 2));
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") ?? 20)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
+      res.end(JSON.stringify(readPage(limit, offset), null, 2));
+      return;
+    }
+
+    // The full decision trail as a CSV download (for analysis / training).
+    if (url.pathname === "/receipts.csv") {
+      res.setHeader("content-type", "text/csv; charset=utf-8");
+      res.setHeader("content-disposition", "attachment; filename=aumo-decisions.csv");
+      res.end(decisionsCsv());
       return;
     }
 
