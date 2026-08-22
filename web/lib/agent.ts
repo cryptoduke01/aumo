@@ -115,7 +115,10 @@ export interface DecisionRecord {
 
 export interface Status {
   agent: Identity;
-  latest: { takenAt: string } | null;
+  // True totals over the whole receipts trail (not just the fetched page), so the headline count
+  // reflects every decision the agent has recorded, not the display cap.
+  decisions?: { total: number; rebalanced: number; held: number };
+  latest: { takenAt: string; regime?: string } | null;
 }
 
 async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {

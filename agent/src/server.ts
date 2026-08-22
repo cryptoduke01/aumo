@@ -31,6 +31,36 @@ function readRecent(limit: number): unknown[] {
   return out.reverse();
 }
 
+/**
+ * The TRUE decision totals over the whole receipts trail, not just the page the dashboard fetches.
+ * The Activity feed only renders the most recent slice, but the headline counts must reflect every
+ * decision the agent has ever recorded (300+), or the dashboard undersells the agent's track record.
+ * One cheap pass over the file; a malformed line is counted toward the total but not the split.
+ */
+function decisionTotals(): { total: number; rebalanced: number; held: number } {
+  if (!existsSync(RECEIPTS)) return { total: 0, rebalanced: 0, held: 0 };
+  let raw: string;
+  try {
+    raw = readFileSync(RECEIPTS, "utf8").trim();
+  } catch {
+    return { total: 0, rebalanced: 0, held: 0 };
+  }
+  if (!raw) return { total: 0, rebalanced: 0, held: 0 };
+  let total = 0;
+  let rebalanced = 0;
+  for (const line of raw.split("\n")) {
+    if (!line) continue;
+    total += 1;
+    try {
+      const moves = (JSON.parse(line) as Decision).plan?.moves ?? [];
+      if (moves.length > 0) rebalanced += 1;
+    } catch {
+      /* malformed line: still counts toward total */
+    }
+  }
+  return { total, rebalanced, held: total - rebalanced };
+}
+
 interface Decision {
   takenAt?: string;
   policyFingerprint?: string;
@@ -369,11 +399,13 @@ export function startServer(cfg: Config) {
       JSON.stringify(
         {
           agent: identity,
+          decisions: decisionTotals(),
           latest: latest
             ? {
                 takenAt: latest.takenAt,
                 policyFingerprint: latest.policyFingerprint,
                 source: latest.plan?.source,
+                regime: latest.plan?.regime,
                 summary: latest.plan?.summary,
                 idle: vault?.idle,
                 deployed: vault?.totalDeployed,
