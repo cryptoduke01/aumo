@@ -31,6 +31,7 @@ const product: [string, string][] = [
 const learn: [string, string][] = [
   ["/docs", "Docs"],
   ["/whitepaper", "Whitepaper"],
+  ["/internals", "Internals"],
   ["/research", "Research"],
   ["/ecosystem", "Ecosystem"],
   ["/brand", "Brand"],

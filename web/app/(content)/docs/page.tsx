@@ -158,6 +158,11 @@ export default function DocsPage() {
               and fork-verified, pending allowlisting on the live pool. Each is proven
               end-to-end against live X Layer mainnet contracts.
             </p>
+            <p>
+              For the full mechanics and the math behind every decision (the risk-engine blend, the
+              guardrail budgets, the adapter internals, the LP fee accounting), see{" "}
+              <a href="/internals">Internals</a>.
+            </p>
           </section>
 
           <section id="risk">
