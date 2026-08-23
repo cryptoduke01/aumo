@@ -96,7 +96,7 @@ export default function ActivityPage() {
       <header className="flex flex-col gap-1">
         <h1 className="text-xl font-medium tracking-tight">Activity</h1>
         <span className="text-sm text-muted-foreground">
-          Every decision the agent recorded — replay the full reasoning chain and follow each move on-chain.
+          Every decision the agent recorded. Replay the full reasoning chain and follow each move on-chain.
         </span>
       </header>
 

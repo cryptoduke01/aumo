@@ -36,9 +36,14 @@ const num = (x: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
-// Below this elapsed window an annualized figure extrapolates wildly from noise; report null instead.
-const MIN_ANNUALIZE_MS = 24 * 60 * 60 * 1000; // 1 day
+const DAY_MS = 24 * 60 * 60 * 1000;
+const YEAR_MS = 365 * DAY_MS;
+// Right after a deposit, price-per-share dips by the one-time swap cost of deploying that capital, then
+// recovers as yield accrues. Measured over a day or two that dip dominates and reads as a "loss" that
+// isn't one. So don't report a realized-yield verdict until a fair window has elapsed, and don't
+// annualize until longer still (annualizing a short window extrapolates noise into absurd figures).
+const MIN_REPORT_MS = 3 * DAY_MS;
+const MIN_ANNUALIZE_MS = 14 * DAY_MS;
 
 interface RawReceipt {
   takenAt?: string;
@@ -120,10 +125,15 @@ export function computeAttribution(decimals = 6, file = RECEIPTS_FILE): Attribut
     return { ...empty, latestTs: latest?.takenAt ?? null, totalAccrued, perVenue, samples };
   }
 
-  const realizedYieldBps = (lastPps.pps / firstPps.pps - 1) * 10_000;
   const elapsedMs = Date.parse(lastPps.ts) - Date.parse(firstPps.ts);
+  // Not a fair read yet (window too short / deposit entry costs still dominate): report null so the UI
+  // shows "building track record" instead of a misleading number.
+  const ready = elapsedMs >= MIN_REPORT_MS;
+  const realizedYieldBps = ready ? (lastPps.pps / firstPps.pps - 1) * 10_000 : null;
   const annualizedBps =
-    elapsedMs >= MIN_ANNUALIZE_MS ? realizedYieldBps * (YEAR_MS / elapsedMs) : null;
+    ready && realizedYieldBps !== null && elapsedMs >= MIN_ANNUALIZE_MS
+      ? realizedYieldBps * (YEAR_MS / elapsedMs)
+      : null;
 
   return {
     trackedFromTs: firstPps.ts,
@@ -132,7 +142,7 @@ export function computeAttribution(decimals = 6, file = RECEIPTS_FILE): Attribut
     pricePerShareNow: lastPps.pps,
     realizedYieldBps,
     annualizedBps,
-    beatIdle: realizedYieldBps > 0,
+    beatIdle: realizedYieldBps !== null && realizedYieldBps > 0,
     totalAccrued,
     perVenue,
     samples,

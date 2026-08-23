@@ -34,7 +34,7 @@ test("attribution: realized yield is price-per-share growth and beats idle", () 
     file,
     [
       receipt("2026-08-01T00:00:00.000Z", 1_000_000_000, 1_000_000_000, v0), // pps 1.00
-      receipt("2026-08-03T00:00:00.000Z", 1_020_000_000, 1_000_000_000, v1), // pps 1.02 (+2%)
+      receipt("2026-08-21T00:00:00.000Z", 1_020_000_000, 1_000_000_000, v1), // pps 1.02 (+2%), 20d later
     ].join("\n") + "\n",
   );
 
@@ -56,4 +56,23 @@ test("attribution: no data returns nulls, never throws", () => {
   assert.equal(a.beatIdle, false);
   assert.equal(a.samples, 0);
   assert.deepEqual(a.perVenue, []);
+});
+
+test("attribution: a short window returns null realized yield (deposit entry costs still dominate)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "aumo-attr-short-"));
+  const file = join(dir, "decisions.jsonl");
+  const v = [{ address: "0xaa", name: "Aave", liveBalance: "500000000", allocatedPrincipal: "500000000" }];
+  // Only ~1 day apart, and price-per-share dipped (entry cost). Must NOT report a loss verdict.
+  writeFileSync(
+    file,
+    [
+      receipt("2026-08-01T00:00:00.000Z", 1_000_000_000, 1_000_000_000, v),
+      receipt("2026-08-02T00:00:00.000Z", 997_000_000, 1_000_000_000, v), // -0.30% dip, 1d later
+    ].join("\n") + "\n",
+  );
+  const a = computeAttribution(6, file);
+  assert.equal(a.realizedYieldBps, null, "too-short window reports null, not a scary negative");
+  assert.equal(a.annualizedBps, null);
+  assert.equal(a.beatIdle, false);
+  assert.equal(a.samples, 2); // still counts the samples
 });

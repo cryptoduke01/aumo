@@ -106,6 +106,7 @@ function Tick({ state }: { state: CheckState }) {
 export default function VenuesPage() {
   const [rec, setRec] = useState<DecisionRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"allocations" | "liquidity">("allocations");
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -165,37 +166,53 @@ export default function VenuesPage() {
                 ))}
               </div>
             );
+            const tabs = [
+              { id: "allocations" as const, label: "Allocations", count: allocations.length, isNew: false },
+              { id: "liquidity" as const, label: "Liquidity provision", count: liquidity.length, isNew: true },
+            ];
             return (
-              <div className="flex flex-col gap-8">
-                {/* What the agent did before: deposit capital into external yield venues. */}
-                <section className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1">
-                    <h2 className="text-sm font-medium text-foreground">Allocations</h2>
+              <div className="flex flex-col gap-5">
+                {/* Two capabilities as tabs: depositing into venues vs providing liquidity directly. */}
+                <div className="flex rounded-lg border border-border p-1">
+                  {tabs.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        tab === t.id ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <span>{t.label}</span>
+                      <span className="tnum text-[11px] text-faint">{t.count}</span>
+                      {t.isNew ? <Badge tone="accent">New</Badge> : null}
+                    </button>
+                  ))}
+                </div>
+
+                {tab === "allocations" ? (
+                  <div className="flex flex-col gap-4">
                     <p className="text-xs text-muted-foreground">
-                      Capital deposited into external yield venues — lending, tokenized treasuries, and
+                      Capital deposited into external yield venues: lending, tokenized treasuries, and
                       fixed yield. The agent moves it to the best risk-adjusted return.
                     </p>
+                    {grid(allocations)}
                   </div>
-                  {grid(allocations)}
-                </section>
-
-                {/* The new capability: the agent provides liquidity itself, not just deposits. */}
-                {liquidity.length > 0 ? (
-                  <section className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-sm font-medium text-foreground">Liquidity provision</h2>
-                        <Badge tone="accent">New</Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        The agent supplies liquidity to RWA pools itself and earns trading fees — acting as
-                        a market maker, not just a depositor. It provides autonomously when the
-                        risk-adjusted yield beats holding, and unwinds the same way.
-                      </p>
-                    </div>
-                    {grid(liquidity)}
-                  </section>
-                ) : null}
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    <p className="text-xs text-muted-foreground">
+                      The agent supplies liquidity to RWA pools itself and earns trading fees, acting as a
+                      market maker rather than a depositor. It provides autonomously when the risk-adjusted
+                      yield beats holding, and unwinds the same way.
+                    </p>
+                    {liquidity.length > 0 ? (
+                      grid(liquidity)
+                    ) : (
+                      <Panel className="p-8 text-center">
+                        <p className="text-sm text-muted-foreground">No liquidity venues in the latest snapshot.</p>
+                      </Panel>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })()}
