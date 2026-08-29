@@ -46,9 +46,9 @@ export interface AgentIdentity {
   agentAddress: string | null;
   hasReasoningLayer: boolean;
   // How the agent's signing key is custodied. "turnkey" = the key lives in a Turnkey secure enclave
-  // (TEE) and the agent only holds an API credential that requests signatures for the two whitelisted
-  // actions — it can never export the key or sign anything else. "hotkey" = a raw private key in the
-  // process env (used on testnet with throwaway funds). Reported honestly per environment.
+  // and the agent only holds an API credential that requests signatures. "hotkey" = a raw private key
+  // in the process env. Either way the agent's authority is bounded by the on-chain guardrails, not by
+  // the signer, so a compromised key still cannot move funds outside the allowlisted venues.
   signer: "turnkey" | "hotkey";
   policy: { appetite: string; maxConcentration: number; execute: boolean };
 }
@@ -126,7 +126,7 @@ export function renderBanner(id: AgentIdentity): string {
     `  ▲ ${id.name} · autonomous treasury agent`,
     `    v${id.version} (build ${id.build}) · ${id.chainName} · vault ${short(id.vault)}`,
     `    agent ${short(id.agentAddress)} · signer ${
-      id.signer === "turnkey" ? "Turnkey TEE" : "hot key (testnet)"
+      id.signer === "turnkey" ? "Turnkey TEE" : "hot key"
     } · appetite ${id.policy.appetite} · max concentration ${(
       id.policy.maxConcentration * 100
     ).toFixed(0)}%`,

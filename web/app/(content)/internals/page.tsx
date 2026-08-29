@@ -168,12 +168,15 @@ export default function InternalsPage() {
             </p>
           </Drawer>
 
-          <Drawer title="Who holds the keys" teaser="Turnkey TEE, and how funds arrive">
+          <Drawer title="Who holds the keys" teaser="The signer is untrusted by design">
             <p>
-              On mainnet the agent&apos;s signing key lives in a Turnkey secure enclave, under a policy that
-              only lets it call the two pool functions, never a transfer out and never a deposit. So even a
-              compromised signer cannot self-deal. Deposits can start on Ethereum, Arbitrum, Optimism, or
-              Polygon and land on X Layer through USDT0&apos;s native bridge, no wrapped-asset detour.
+              The agent signs with an ordinary key, and the design assumes that key could be
+              compromised at any moment. That is the point: the safety does not come from hiding the
+              key, it comes from the contract. Even holding the signing key, the only moves it permits
+              are allocating to an allowlisted venue and pulling funds back to the pool. No function
+              sends money to an outside address, so a stolen signer still cannot drain a cent. Deposits
+              can start on Ethereum, Arbitrum, Optimism, or Polygon and land on X Layer through
+              USDT0&apos;s native bridge, no wrapped-asset detour.
             </p>
           </Drawer>
 

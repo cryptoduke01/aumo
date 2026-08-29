@@ -191,8 +191,8 @@ export default function EcosystemPage() {
           Aumo runs the full stack on X Layer: the pooled vault, the reasoning agent, three live
           venues (Aave lending, a Treasury-backed dollar, and Pendle fixed yield) with a fourth, a
           full-range USDG/USDT0 Uniswap v3 position, shipped and fork-verified, per-depositor
-          positions, provable receipts, and an agent whose signing key is held in a secure enclave
-          rather than a hot environment. Every venue adapter is fork-proven against live X Layer
+          positions, provable receipts, and an agent whose authority is bounded by the contract
+          rather than by trust in its signing key. Every venue adapter is fork-proven against live X Layer
           contracts, and the pool is covered by 72 tests including a stateful invariant suite. Launch
           is deliberate by design: the pool deploys paused with conservative caps, and go-live is a
           verified unpause.

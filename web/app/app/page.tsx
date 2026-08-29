@@ -360,7 +360,7 @@ function GuardrailsCard({ vault, identity, dec }: { vault: NonNullable<DecisionR
           <Dot /> Turnkey TEE
         </span>
       ) : (
-        <span key="5" className="text-muted-foreground">Testnet key</span>
+        <span key="5" className="text-muted-foreground">Hot key, guarded on-chain</span>
       ),
     ],
   ];

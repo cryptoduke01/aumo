@@ -26,7 +26,8 @@ export interface Identity {
   vault: string;
   agentAddress: string | null;
   hasReasoningLayer: boolean;
-  // "turnkey" = signing key sealed in a Turnkey TEE (mainnet); "hotkey" = throwaway key (testnet).
+  // "turnkey" = signing key in a Turnkey TEE; "hotkey" = a raw private key. Either way the agent's
+  // authority is bounded by the on-chain guardrails, not by the signer.
   signer?: "turnkey" | "hotkey";
   policy: { appetite: Band; maxConcentration: number; execute: boolean };
 }

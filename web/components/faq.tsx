@@ -8,7 +8,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Can Aumo take my funds?",
-    a: "No. The agent can only shuffle funds between allowlisted venues and back. There is no path to withdraw to any outside address, and the caps are enforced by the contract, not the agent. Its signing key is held in a secure enclave and restricted to two actions.",
+    a: "No. The agent can only shuffle funds between allowlisted venues and back. There is no path to withdraw to any outside address, and the caps are enforced by the contract, not the agent. The design treats the signing key as untrusted: even if it were fully compromised, the contract still only permits moves between approved venues, so it cannot drain the pool.",
   },
   {
     q: "Where does the yield come from?",
