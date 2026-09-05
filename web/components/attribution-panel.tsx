@@ -69,11 +69,13 @@ export function AttributionPanel() {
             <span className="text-3xl font-medium tnum text-muted-foreground">—</span>
           )}
           <span className="text-xs text-faint">
-            vs 0.00% idle{a.trackedFromTs ? ` · from ${timeAgo(a.trackedFromTs)}` : " · building record"}
+            {hasRealized && !up
+              ? "one-time cost of deploying, earned back as yield accrues"
+              : `vs 0.00% idle${a.trackedFromTs ? ` · from ${timeAgo(a.trackedFromTs)}` : " · building record"}`}
           </span>
         </div>
 
-        {a.annualizedBps !== null ? (
+        {a.annualizedBps !== null && up ? (
           <div className="flex flex-col gap-1">
             <span className="text-[11px] uppercase tracking-wide text-faint">Annualized</span>
             <span className="text-3xl font-medium tnum text-foreground">

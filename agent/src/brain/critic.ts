@@ -27,12 +27,14 @@ export const IDLE_FLOOR = 0.05; // keep at least this share of the pool as dry p
 // churn on trivial (sub-2%) differences. The on-chain per-epoch loss budget hard-caps the realized
 // cost regardless, so this is the "worth it" gate, not the safety bound.
 export const REBALANCE_MIN_EDGE_BPS = 200;
-// Conservative estimate of the round-trip cost (bps of the moved amount) to rotate into and later out
-// of a venue: entry swap + eventual exit. Used only to gate rotations into a FIXED-MATURITY venue,
-// where the annualized edge is earned over a shrinking horizon — the pickup (edge × years-to-maturity)
-// must clear this, or the position matures before the round-trip pays for itself. Deliberately high so
-// the agent never chases annualized yield it cannot actually realize before maturity.
-export const ROTATION_ROUNDTRIP_BPS = 100;
+// Estimated round-trip cost (bps of the moved amount) to rotate into and later out of a venue: entry
+// swap + eventual exit. Gates rotations into a FIXED-MATURITY venue, where the annualized edge is
+// earned over a shrinking horizon, so the pickup (edge x years-to-maturity) must clear this or the
+// position matures before the round trip pays for itself. Calibrated 2026-09-05 from on-chain reads:
+// the USDG/USDT0 legs cost ~2-8bps round trip (1bp pool fee + ~6bps peg) and the near-par Pendle AMM
+// spread adds ~10-30bps, so real round trips run ~15-40bps. Set to 50 to keep a margin; the on-chain
+// per-epoch loss budget is the hard safety cap regardless.
+export const ROTATION_ROUNDTRIP_BPS = 50;
 // Depeg circuit breaker: the hard peg-deviation threshold (bps) past which the agent forces an
 // immediate, full exit from an RWA venue, independent of the graduated risk band. A dollar-pegged
 // RWA that has slipped 1% is a red alert, not a slow-scoring input, so the agent gets out now rather
