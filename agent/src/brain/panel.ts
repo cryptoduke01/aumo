@@ -58,18 +58,31 @@ function pegView(snap: MarketSnapshot) {
   };
 }
 
-function liquidityView(snap: MarketSnapshot) {
+export function liquidityView(snap: MarketSnapshot) {
   const unit = 10 ** snap.vault.decimals;
+  // The whole pool. Even if every dollar sat in one venue, this is the largest position we could
+  // ever need to unwind there — so it bounds the worst case the liquidity panelist has to consider.
+  const poolUsd = Number(snap.vault.idle + snap.vault.totalDeployed) / unit;
   return {
-    venues: snap.venues.map((v) => ({
-      address: v.address,
-      name: v.name,
-      kind: v.kind,
-      tvlUsd: v.tvlUsd,
-      withdrawableUsd: v.liquidityUsd,
-      ourPositionUsd: Number(v.allocatedPrincipal) / unit,
-      depthPctOfTvl: v.tvlUsd > 0 ? Math.round((v.liquidityUsd / v.tvlUsd) * 100) : 0,
-    })),
+    poolUsd,
+    note: "Exit risk is size-relative. worstCaseExitSharePct is the share of a venue's withdrawable liquidity our ENTIRE pool would occupy if it all sat there; if that is tiny the venue cannot trap us, however thin its depth looks next to its TVL.",
+    venues: snap.venues.map((v) => {
+      const withdrawableUsd = v.liquidityUsd;
+      const ourPositionUsd = Number(v.allocatedPrincipal) / unit;
+      return {
+        address: v.address,
+        name: v.name,
+        kind: v.kind,
+        tvlUsd: v.tvlUsd,
+        withdrawableUsd,
+        ourPositionUsd,
+        depthPctOfTvl: v.tvlUsd > 0 ? Math.round((withdrawableUsd / v.tvlUsd) * 100) : 0,
+        // Current position's exit share, and the worst case if the whole pool were here. Both are
+        // measured against withdrawable liquidity, never against TVL — TVL is not what we exit into.
+        ourExitSharePct: withdrawableUsd > 0 ? Number(((ourPositionUsd / withdrawableUsd) * 100).toFixed(3)) : null,
+        worstCaseExitSharePct: withdrawableUsd > 0 ? Number(((poolUsd / withdrawableUsd) * 100).toFixed(3)) : null,
+      };
+    }),
   };
 }
 
