@@ -35,6 +35,12 @@ export const REBALANCE_MIN_EDGE_BPS = 200;
 // spread adds ~10-30bps, so real round trips run ~15-40bps. Set to 50 to keep a margin; the on-chain
 // per-epoch loss budget is the hard safety cap regardless.
 export const ROTATION_ROUNDTRIP_BPS = 50;
+// Max share of the whole pool that may sit in venues sharing a single underlying asset (e.g. USDG,
+// which backs both the USDG venue and Pendle PT-USDG). The per-venue concentration cap misses this
+// because those are separate venues, so without a combined cap the pool can end up ~95% exposed to
+// one issuer's dollar. The planner trims any over-cap underlying back toward this bound and blocks
+// new deploys/rotations that would breach it, so diversification is enforced, not merely scored.
+export const MAX_UNDERLYING_CONCENTRATION = 0.8;
 // Depeg circuit breaker: the hard peg-deviation threshold (bps) past which the agent forces an
 // immediate, full exit from an RWA venue, independent of the graduated risk band. A dollar-pegged
 // RWA that has slipped 1% is a red alert, not a slow-scoring input, so the agent gets out now rather

@@ -10,6 +10,7 @@ import {
   REBALANCE_MIN_EDGE_BPS,
   ROTATION_ROUNDTRIP_BPS,
   HARD_PEG_BREAK_BPS,
+  MAX_UNDERLYING_CONCENTRATION,
 } from "./critic.js";
 
 const SECONDS_PER_YEAR = 31_536_000;
@@ -160,6 +161,59 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
   const portfolioBig = vault.idle + vault.totalDeployed;
   const concCap = (portfolioBig * BigInt(Math.round(maxConc * 10000))) / 10000n;
 
+  // Correlated-underlying concentration cap. The per-venue cap above bounds any single venue, but
+  // venues riding the same underlying asset (USDG backs both the USDG venue and Pendle PT-USDG) are
+  // not independent — without a combined cap the pool can end up ~95% exposed to one issuer's dollar.
+  // Group venues by underlying and hold the combined exposure of any one underlying to
+  // MAX_UNDERLYING_CONCENTRATION of the pool: trim an over-cap group here, and gate new deploys and
+  // rotations below via underlyingHeadroom. Untagged venues are their own group (no combined cap).
+  const underlyingCap = (portfolioBig * BigInt(Math.round(MAX_UNDERLYING_CONCENTRATION * 10000))) / 10000n;
+  const groupKey = (v: { underlying?: Address }): string | null =>
+    v.underlying ? v.underlying.toLowerCase() : null;
+  const groupExposure = new Map<string, bigint>();
+  for (const v of snap.venues) {
+    const k = groupKey(v);
+    if (!k) continue; // untagged venues are their own group, exempt from the combined-underlying cap
+    const e = v.liveBalance > v.allocatedPrincipal ? v.liveBalance : v.allocatedPrincipal;
+    groupExposure.set(k, (groupExposure.get(k) ?? 0n) + e);
+  }
+  // Diversification trim: if an underlying is over the cap, unwind the excess (bounded by one move)
+  // from that underlying's LOWEST risk-adjusted venue back to idle, so the concentration corrects over
+  // a few cycles. It is a deallocate to idle, never metered against a depositor withdrawal, and the
+  // per-epoch loss budget still bounds any swap spread it costs.
+  const retreatingNow = new Set(
+    moves.filter((m) => m.action === "deallocate").map((m) => m.venue.toLowerCase()),
+  );
+  for (const [k, exp] of groupExposure) {
+    if (exp <= underlyingCap) continue;
+    const src = snap.venues
+      .filter((v) => groupKey(v) === k && v.liveBalance > 0n && !retreatingNow.has(v.address.toLowerCase()))
+      .map((v) => ({ v, r: riskByAddr.get(v.address.toLowerCase()) }))
+      .filter((x) => x.r)
+      .sort((a, b) => a.r!.riskAdjustedApyBps - b.r!.riskAdjustedApyBps)[0];
+    if (!src || !src.r) continue;
+    let trim = exp - underlyingCap;
+    if (trim > src.v.liveBalance) trim = src.v.liveBalance;
+    if (trim > vault.maxMoveSize) trim = vault.maxMoveSize;
+    if (trim < minMove) continue;
+    const sharePct = portfolioBig > 0n ? (Number(exp) / Number(portfolioBig)) * 100 : 0;
+    moves.push({
+      venue: src.v.address,
+      venueName: src.v.name,
+      action: "deallocate",
+      amount: trim,
+      reasonTag: "diversify:underlying".slice(0, 31),
+      rationale: `Diversification: this underlying holds ~${sharePct.toFixed(0)}% of the pool, over the ${(
+        MAX_UNDERLYING_CONCENTRATION * 100
+      ).toFixed(0)}% single-underlying cap. Trimming ${src.v.name} (its lowest risk-adjusted venue) back toward the cap so no single issuer's dollar dominates the pool.`,
+      band: src.r.band,
+      riskScore: src.r.riskScore,
+      riskAdjustedApyBps: src.r.riskAdjustedApyBps,
+    });
+    groupExposure.set(k, exp - trim);
+    retreatingNow.add(src.v.address.toLowerCase());
+  }
+
   const eligible = snap.venues
     .filter((v) => v.allowed && !deny.has(v.address.toLowerCase()) && v.pegDeviationBps <= HARD_PEG_BREAK_BPS)
     .map((v) => ({ v, r: riskByAddr.get(v.address.toLowerCase())! }))
@@ -192,15 +246,20 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
     // Pendle) unfunded at any real pool size. Uncapped when liquidity is unknown, matching the critic.
     const liqCapUnits = v.liquidityUsd > 0 ? BigInt(Math.floor(LIQUIDITY_SHARE_CAP * v.liquidityUsd * unit)) : 0n;
     const liqHeadroom = liqCapUnits > already ? liqCapUnits - already : 0n;
+    const gk = groupKey(v);
+    const gExp = gk ? (groupExposure.get(gk) ?? 0n) : 0n;
+    const underlyingHeadroom = gk ? (underlyingCap > gExp ? underlyingCap - gExp : 0n) : null;
 
     let size = budget;
     if (size > vault.maxMoveSize) size = vault.maxMoveSize;
     if (size > perVenueHeadroom) size = perVenueHeadroom;
     if (size > concHeadroom) size = concHeadroom;
+    if (underlyingHeadroom !== null && size > underlyingHeadroom) size = underlyingHeadroom;
     if (v.liquidityUsd > 0 && size > liqHeadroom) size = liqHeadroom;
     if (size < minMove) continue; // don't propose a dust deploy that reverts on the venue's swap floor
 
     budget -= size;
+    if (gk) groupExposure.set(gk, gExp + size);
     moves.push({
       venue: v.address,
       venueName: v.name,
@@ -297,6 +356,16 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
         if (rot > vault.maxMoveSize) rot = vault.maxMoveSize;
         if (rot > perVenueHeadroom) rot = perVenueHeadroom;
         if (rot > concHeadroom) rot = concHeadroom;
+        // Cross-underlying rotation: only cap by the target's underlying headroom. A same-underlying
+        // rotation (e.g. USDG venue to Pendle PT-USDG) doesn't change that underlying's total, so it
+        // is not gated; rotating INTO an already-capped underlying is.
+        const gkT = groupKey(target.v);
+        const gkS = groupKey(source.v);
+        if (gkT && gkT !== gkS) {
+          const gExpT = groupExposure.get(gkT) ?? 0n;
+          const uHeadT = underlyingCap > gExpT ? underlyingCap - gExpT : 0n;
+          if (rot > uHeadT) rot = uHeadT;
+        }
         if (target.v.liquidityUsd > 0 && rot > liqHeadroom) rot = liqHeadroom;
 
         if (rot >= minMove) {

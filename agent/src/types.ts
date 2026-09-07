@@ -81,6 +81,10 @@ export interface VenueMeta {
   maturityTs?: number; // unix seconds; set only for fixed-maturity venues (e.g. a Pendle PT). The
   // planner uses the remaining horizon to decide whether a rotation's yield edge can recoup its
   // round-trip cost before the position matures — a perpetual venue (no maturity) skips that gate.
+  underlying?: Address; // the ultimate underlying asset this venue's value rides on (e.g. USDG for
+  // both the USDG venue and Pendle PT-USDG). Venues sharing an underlying are capped together by the
+  // planner's single-underlying concentration limit, so no one issuer's dollar can dominate the pool.
+  // Absent = the venue is its own group (no combined cap).
 }
 
 /** Venue metadata joined with its live on-chain position. */
