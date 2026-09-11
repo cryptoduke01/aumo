@@ -58,6 +58,8 @@ contract EquityAdapter is IVenueAdapter {
 
     uint256 private constant WAD = 1e18;
     uint256 private constant BPS = 10_000;
+    uint256 private constant DUST = 1e3; // ~0.001 USD₮0 (6dp): treat a request this close to the whole
+        // position as a full retreat, so decimal rounding never leaves the caller a wei short
 
     error OnlyVault();
     error StalePrice();
@@ -136,15 +138,17 @@ contract EquityAdapter is IVenueAdapter {
         uint256 px = _freshPriceWad();
 
         // Whole position's value in USD₮0. If the request meets or exceeds it (a full retreat, incl.
-        // amount == type(uint256).max), sell everything; otherwise size the sell to `amount`. Doing
-        // the compare first avoids overflowing `amount * WAD` on a max-value request.
+        // amount == type(uint256).max) OR lands within DUST of it, sell everything; otherwise size the
+        // sell to `amount`, rounding the units UP so the realized USD₮0 is >= `amount` despite the two
+        // decimal conversions flooring. Comparing before any `amount * ...` avoids overflowing on a
+        // max-value request, and `fullValue - amount` is only evaluated when amount < fullValue.
         uint256 fullValue = _stockToToken(held, px);
         uint256 sellUnits;
-        if (amount >= fullValue) {
+        if (amount >= fullValue || fullValue - amount <= DUST) {
             sellUnits = held;
         } else {
-            sellUnits = _usdToStock(_tokenToUsdWad(amount), px);
-            if (sellUnits > held) sellUnits = held; // rounding safety
+            sellUnits = _usdToStockCeil(_tokenToUsdWad(amount), px);
+            if (sellUnits > held) sellUnits = held; // never sell more than we hold
         }
         if (sellUnits == 0) return 0; // dust request rounds to nothing; never swap 0 in
 
@@ -191,9 +195,15 @@ contract EquityAdapter is IVenueAdapter {
         return (tokenAmt * WAD) / (10 ** _tokenDec);
     }
 
-    /// @dev USD value (WAD) at price `pxWad` (USD/share, WAD) -> stock units (stockDec).
+    /// @dev USD value (WAD) at price `pxWad` (USD/share, WAD) -> stock units (stockDec), rounding down.
     function _usdToStock(uint256 usdWad, uint256 pxWad) internal view returns (uint256) {
         return (usdWad * (10 ** _stockDec)) / pxWad;
+    }
+
+    /// @dev Same conversion rounding UP, so a sell sized to return `amount` never realizes short.
+    function _usdToStockCeil(uint256 usdWad, uint256 pxWad) internal view returns (uint256) {
+        uint256 num = usdWad * (10 ** _stockDec);
+        return (num + pxWad - 1) / pxWad;
     }
 
     /// @dev stock units (stockDec) at price `pxWad` -> USD₮0 amount (tokenDec).

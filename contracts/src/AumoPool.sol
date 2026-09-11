@@ -205,6 +205,7 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
 
     function deposit(uint256 assets, address receiver)
         public
+        virtual
         override
         whenNotPaused
         nonReentrant
@@ -215,6 +216,7 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
 
     function mint(uint256 shares, address receiver)
         public
+        virtual
         override
         whenNotPaused
         nonReentrant
@@ -225,6 +227,7 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
 
     function withdraw(uint256 assets, address receiver, address owner)
         public
+        virtual
         override
         nonReentrant
         returns (uint256)
@@ -234,6 +237,7 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
 
     function redeem(uint256 shares, address receiver, address owner)
         public
+        virtual
         override
         nonReentrant
         returns (uint256)
@@ -450,6 +454,7 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     /// @notice Deploy idle asset into an allowlisted venue, within every guardrail.
     function allocate(address venue, uint256 amount, bytes32 reason)
         external
+        virtual
         onlyAgent
         whenNotPaused
         nonReentrant
@@ -503,11 +508,18 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
 
     /// @notice Retreat up to `amount` from a venue back into the pool. Allowed even while paused so
     ///         the agent can always de-risk. Agent-initiated retreats are metered by the loss budget.
-    function deallocate(address venue, uint256 amount) external onlyAgent nonReentrant {
+    function deallocate(address venue, uint256 amount) external virtual onlyAgent nonReentrant {
         // retreat only from a venue we have ever allowlisted; never a bare call to an arbitrary
         // address. (_ensureIdle only ever targets venues already in the list.)
         if (!_inList[venue]) revert VenueNotAllowed();
         _doDeallocate(venue, amount, true);
+    }
+
+    /// @dev Whether a venue is (or ever was) in the totalAssets summation list. Exposed to
+    ///      subclasses so a specialized pool can reproduce the retreat allowlist check without
+    ///      touching this contract's internals. Non-behavioral for AumoPool itself.
+    function _venueListed(address venue) internal view returns (bool) {
+        return _inList[venue];
     }
 
     /// @param enforce When true (agent-initiated), any realized round-trip loss is charged to the
