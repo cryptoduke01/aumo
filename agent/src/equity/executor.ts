@@ -46,15 +46,19 @@ function clients(cfg: EquityConfig): Clients {
 const fmt = (x: bigint, dec: number) =>
   (Number(x) / 10 ** dec).toLocaleString("en-US", { maximumFractionDigits: 2 });
 
-/** Retry a flaky read a few times with a short backoff (X Layer's public RPC blips on lagging nodes). */
-async function withRetry<T>(fn: () => Promise<T>, tries = 3, delayMs = 1500): Promise<T> {
+/**
+ * Retry a read a few times. X Layer's load-balanced RPC occasionally routes a call to a node lagging
+ * a block or two, which returns empty data ("0x") or "block is out of range"; re-issuing lands on a
+ * synced node. Cheap insurance on a 15-minute tick — never let one flaky read kill the cycle.
+ */
+async function readRetry<T>(fn: () => Promise<T>, tries = 4): Promise<T> {
   let last: unknown;
   for (let i = 0; i < tries; i++) {
     try {
       return await fn();
-    } catch (err) {
-      last = err;
-      if (i < tries - 1) await new Promise((r) => setTimeout(r, delayMs));
+    } catch (e) {
+      last = e;
+      await new Promise((r) => setTimeout(r, 300 * (i + 1)));
     }
   }
   throw last;
@@ -126,11 +130,8 @@ export async function equityTick(cfg: EquityConfig, opts: { dryRun?: boolean } =
   const { pc, wallet, agentAddr } = clients(cfg);
   const c = { address: cfg.pool, abi: equityPoolAbi } as const;
 
-  // X Layer's public RPC is load-balanced and occasionally returns an empty result on a lagging node
-  // (a read "reverts" spuriously). Retry the whole read batch a few times so a single blip never skips
-  // a soak tick; a genuinely down RPC still surfaces after the retries and the loop logs + waits.
   const [asset, agent, paused, marketOpen, idle, totalDeployed, nav, maxMove, perVenueCap, maxTotal] =
-    await withRetry(() =>
+    await readRetry(() =>
       Promise.all([
         pc.readContract({ ...c, functionName: "asset" }),
         pc.readContract({ ...c, functionName: "agent" }),
@@ -145,7 +146,7 @@ export async function equityTick(cfg: EquityConfig, opts: { dryRun?: boolean } =
       ]),
     );
 
-  const [dec, allowed, principal, liveBal] = await withRetry(() =>
+  const [dec, allowed, principal, liveBal] = await readRetry(() =>
     Promise.all([
       pc.readContract({ address: asset as Address, abi: erc20Abi, functionName: "decimals" }),
       pc.readContract({ ...c, functionName: "venueAllowed", args: [cfg.venue] }),
