@@ -481,6 +481,46 @@ export default function StocksPage() {
           </p>
         </Panel>
       )}
+
+      <section className="grid grid-cols-1 gap-8 border-t border-border pt-8 lg:grid-cols-2">
+        <div className="flex flex-col gap-4">
+          <Label>How it works</Label>
+          <ol className="flex flex-col gap-4">
+            {[
+              "Deposit USDT0 into a stock's pool. Each stock is its own pool, so your exposure is only ever to the one you chose.",
+              "The agent buys the tokenized stock through an on-chain swap, within hard caps the owner set. The pool now holds that price exposure, priced by an independent feed.",
+              "Withdraw while the market is open: the stock is sold and you get USDT0 back at the current price, more or less than you put in. While the market is closed, entry and exit pause.",
+            ].map((step, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="tnum flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-card-2 text-xs font-medium text-foreground">
+                  {i + 1}
+                </span>
+                <span className="text-sm leading-relaxed text-muted-foreground">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <Label>What you&apos;re taking on</Label>
+          <ul className="flex flex-col gap-3">
+            {[
+              ["Price risk", "This is not capital preservation. The pool's value moves with the stock, and you can withdraw less than you deposited."],
+              ["Market-hours freeze", "Stocks price only while the market is open. Deposits and withdrawals both pause when it's closed, including nights and weekends."],
+              ["Spread and slippage", "Every buy and sell crosses a spread, so a quick in-and-out costs a little even if the price hasn't moved."],
+              ["Oracle dependency", "Pricing comes from an independent market feed. If that feed goes stale, the pool refuses to trade rather than transact on a blind price."],
+              ["Not advice", "This is a tool for exposure you choose, not investment advice or a recommendation to buy any stock."],
+            ].map(([title, body]) => (
+              <li key={title} className="flex gap-3">
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-negative/70" />
+                <span className="text-sm leading-relaxed text-muted-foreground">
+                  <span className="font-medium text-foreground">{title}.</span> {body}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
     </div>
   );
 }
