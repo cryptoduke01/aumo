@@ -4,6 +4,7 @@ import type { Address, VaultState, VenueMeta, VenueState } from "../types.js";
 import { readAaveMarket } from "../sense/aaveFeed.js";
 import { readPendleMarket } from "../sense/pendleFeed.js";
 import { readUniV3LpMarket } from "../sense/univ3LpFeed.js";
+import { readErc4626Market } from "../sense/erc4626Feed.js";
 import { readPeg } from "../sense/pegFeed.js";
 
 export async function readVaultState(
@@ -154,6 +155,14 @@ export async function readVenueState(
   } else if (meta.feed?.source === "univ3lp") {
     try {
       const m = await readUniV3LpMarket(pc, meta.feed.pool, meta.apyBps);
+      market = { apyBps: m.apyBps, tvlUsd: m.tvlUsd, liquidityUsd: m.liquidityUsd, utilization: m.utilization };
+      feedVerified = true;
+    } catch {
+      // fall back to static metrics if the live read fails
+    }
+  } else if (meta.feed?.source === "erc4626") {
+    try {
+      const m = await readErc4626Market(pc, meta.feed.vault, meta.apyBps);
       market = { apyBps: m.apyBps, tvlUsd: m.tvlUsd, liquidityUsd: m.liquidityUsd, utilization: m.utilization };
       feedVerified = true;
     } catch {

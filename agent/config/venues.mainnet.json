@@ -103,6 +103,10 @@
       "utilization": 0,
       "protocolRisk": 0.12,
       "pegDeviationBps": 0,
+      "feed": {
+        "source": "erc4626",
+        "vault": "0xc358c90D32375721Cb3924320Fdc2F8B694347Ca"
+      },
       "note": "Spark Savings USDT (spUSDT) ERC-4626 vault 0xc358c90D32375721Cb3924320Fdc2F8B694347Ca on X Layer (asset()==USDT0, so no swap leg). Sky/Spark savings via OKX Onchain Earn, flexible redemption, ~3.2% quoted APR. Aumo adapter (Erc4626Adapter) 0xd14f133D2ad6a7CF32cdaB5166eC95d58048fC10 deployed + fork-proven 2026-09-11. underlying tagged USDT0 so the correlated-underlying cap groups it with Aave (balances the USDG side). kind lending = base-asset-denominated yield position like aUSDT0, no separate peg. apyBps 320 is a documented fallback from the Spark/OKX quote; a live erc4626 growth feed (convertToAssets delta) is the follow-up to score it on real yield. GATED until the pool owner runs setVenueAllowed(adapter, true); venueAllowed was false at time of writing, so the agent will list but not allocate until then."
     }
   ]

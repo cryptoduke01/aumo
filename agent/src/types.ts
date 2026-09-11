@@ -48,6 +48,10 @@ export type VenueFeed =
   | {
       source: "univ3lp";
       pool: Address; // the Uniswap v3 pool whose fee growth we measure for a live LP fee APY
+    }
+  | {
+      source: "erc4626";
+      vault: Address; // the ERC-4626 savings vault whose share-price growth is the live yield
     };
 
 /**
