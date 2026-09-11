@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { AumoWordmark } from "./mark";
 import { ThemeToggle } from "./theme-toggle";
 import { MenuButton } from "./menu-button";
+import { AnnouncementBar } from "./announcement-bar";
 
 function ArrowOut({ className = "" }: { className?: string }) {
   return (
@@ -24,7 +25,9 @@ const links = [
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   return (
-    <header className="settle sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-md">
+    <>
+      <AnnouncementBar />
+      <header className="settle sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-6xl items-center px-5 py-4 sm:px-8">
         <Link href="/" className="shrink-0">
           <AumoWordmark />
@@ -69,5 +72,6 @@ export function SiteHeader() {
         )}
       </AnimatePresence>
     </header>
+    </>
   );
 }

@@ -7,6 +7,7 @@ import { POOL, USDT0, poolAbi, erc20Abi, activeChain, isMainnet } from "@/lib/ch
 import { addrUrl, short } from "@/lib/agent";
 import { Panel, Label } from "@/components/ui";
 import { ConnectButton } from "@/components/wallet";
+import { XLayerMark } from "@/components/brand";
 
 const DEC = 6;
 const fmt = (v: bigint | undefined) =>
@@ -148,8 +149,7 @@ export default function SettingsPage() {
       <Panel className="p-5">
         <Label>Network &amp; contracts</Label>
         <div className="mt-4 flex items-center gap-3 rounded-lg border border-border bg-card-2 px-3.5 py-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/xlayer.jpg" alt="" className="size-8 shrink-0 rounded-lg" />
+          <XLayerMark className="size-8 shrink-0" />
           <div className="flex flex-col">
             <span className="text-sm font-medium text-foreground">{activeChain.name}</span>
             <span className="text-xs text-muted-foreground">Chain ID {activeChain.id}{isMainnet ? "" : " · testnet"}</span>
@@ -189,8 +189,7 @@ export default function SettingsPage() {
           on-chain guardrails, and proves every move.
         </p>
         <div className="mt-4 inline-flex items-center gap-2 text-xs text-muted-foreground">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/xlayer.jpg" alt="" className="size-4 rounded" />
+          <XLayerMark className="size-4" />
           Built on X Layer
         </div>
       </Panel>

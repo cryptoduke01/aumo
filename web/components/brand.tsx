@@ -9,6 +9,7 @@ type Brand = { src: string; alt: string; round: string };
 // Pendle mark, not the USDG one. (pendle.svg is a clean brand-palette stand-in; swap in Pendle's
 // official brand-kit SVG when handy, same as aave.svg / usdg.png.)
 const BRANDS: { test: (n: string) => boolean; brand: Brand }[] = [
+  { test: (n) => n.includes("spark"), brand: { src: "/brand/spark.jpg", alt: "Spark", round: "rounded-md" } },
   { test: (n) => n.includes("pendle"), brand: { src: "/brand/pendle.svg", alt: "Pendle", round: "rounded-md" } },
   { test: (n) => n.includes("aave"), brand: { src: "/brand/aave.svg", alt: "Aave", round: "rounded-md" } },
   {
@@ -38,4 +39,29 @@ export function BrandLogo({ name, className = "size-4" }: { name: string; classN
 /** Convenience for the bridge "Powered by LayerZero" credit. */
 export function LayerZeroLogo({ className = "size-4" }: { className?: string }) {
   return <BrandLogo name="layerzero" className={className} />;
+}
+
+/**
+ * The official X Layer chain mark (checker + bars), drawn as a CSS mask over currentColor so it
+ * themes correctly on either background (white on the dark app, ink on light) with no baked-in
+ * tile — unlike the old xlayer.jpg badge, which read muddy. Source: X Layer public brand kit.
+ */
+export function XLayerMark({ className = "size-4" }: { className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`${className} inline-block shrink-0`}
+      style={{
+        WebkitMaskImage: "url(/brand/xlayer-mark.svg)",
+        maskImage: "url(/brand/xlayer-mark.svg)",
+        WebkitMaskSize: "contain",
+        maskSize: "contain",
+        WebkitMaskRepeat: "no-repeat",
+        maskRepeat: "no-repeat",
+        WebkitMaskPosition: "center",
+        maskPosition: "center",
+        backgroundColor: "currentColor",
+      }}
+    />
+  );
 }

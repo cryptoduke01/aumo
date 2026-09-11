@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AumoWordmark } from "./mark";
 import { DitherBg } from "./dither-bg";
+import { XLayerMark } from "./brand";
 
 function XIcon({ className = "" }: { className?: string }) {
   return (
@@ -71,8 +72,7 @@ export function SiteFooter() {
               Autonomous, guardrailed stablecoin yield on X Layer.
             </p>
             <span className="mt-4 inline-flex items-center gap-2 text-xs text-faint">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/xlayer.jpg" alt="" className="size-4 rounded" />
+              <XLayerMark className="size-4" />
               Built on X Layer
             </span>
           </div>
