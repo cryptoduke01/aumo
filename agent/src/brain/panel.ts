@@ -65,10 +65,13 @@ export function liquidityView(snap: MarketSnapshot) {
   const poolUsd = Number(snap.vault.idle + snap.vault.totalDeployed) / unit;
   return {
     poolUsd,
-    note: "Exit risk is size-relative. worstCaseExitSharePct is the share of a venue's withdrawable liquidity our ENTIRE pool would occupy if it all sat there; if that is tiny the venue cannot trap us, however thin its depth looks next to its TVL.",
+    note: "Exit risk is size-relative. worstCaseExitSharePct (a PERCENTAGE string, e.g. \"0.3%\" is negligible, \"40%\" is a real trap) is the share of a venue's withdrawable liquidity our ENTIRE pool would occupy if it all sat there; if that is tiny the venue cannot trap us, however thin its depth looks next to its TVL. Both share fields are already percentages: read \"0.3%\" as three-tenths of one percent, not as a third.",
     venues: snap.venues.map((v) => {
       const withdrawableUsd = v.liquidityUsd;
       const ourPositionUsd = Number(v.allocatedPrincipal) / unit;
+      // Exit shares are formatted as percentage STRINGS (with a % sign) so a small value like "0.3%"
+      // can never be misread as the fraction 0.3 (= 30%). Only the LLM panelist consumes these; the
+      // deterministic LIQUIDITY_SHARE_CAP in the critic works off liquidityUsd directly, not these.
       return {
         address: v.address,
         name: v.name,
@@ -77,10 +80,8 @@ export function liquidityView(snap: MarketSnapshot) {
         withdrawableUsd,
         ourPositionUsd,
         depthPctOfTvl: v.tvlUsd > 0 ? Math.round((withdrawableUsd / v.tvlUsd) * 100) : 0,
-        // Current position's exit share, and the worst case if the whole pool were here. Both are
-        // measured against withdrawable liquidity, never against TVL — TVL is not what we exit into.
-        ourExitSharePct: withdrawableUsd > 0 ? Number(((ourPositionUsd / withdrawableUsd) * 100).toFixed(3)) : null,
-        worstCaseExitSharePct: withdrawableUsd > 0 ? Number(((poolUsd / withdrawableUsd) * 100).toFixed(3)) : null,
+        ourExitSharePct: withdrawableUsd > 0 ? `${((ourPositionUsd / withdrawableUsd) * 100).toFixed(3)}%` : null,
+        worstCaseExitSharePct: withdrawableUsd > 0 ? `${((poolUsd / withdrawableUsd) * 100).toFixed(3)}%` : null,
       };
     }),
   };

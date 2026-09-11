@@ -19,8 +19,9 @@ test("liquidityView: a huge, deep venue is a rounding error for a tiny pool", ()
   assert.equal(view.poolUsd, 87);
   const aave = view.venues[0]!;
   assert.equal(aave.depthPctOfTvl, 10); // the number that used to trigger the over-veto
-  assert.equal(aave.ourExitSharePct, 0); // we hold nothing
-  assert.ok(aave.worstCaseExitSharePct! < 0.01, "whole pool is a rounding error of withdrawable liquidity");
+  assert.equal(aave.ourExitSharePct, "0.000%"); // we hold nothing
+  // whole pool is a rounding error of withdrawable liquidity: 87 / 5.1M = 0.0017% -> "0.002%"
+  assert.equal(aave.worstCaseExitSharePct, "0.002%");
 });
 
 test("liquidityView: a small, shallow venue can genuinely trap a position", () => {
@@ -30,8 +31,8 @@ test("liquidityView: a small, shallow venue can genuinely trap a position", () =
   ]);
   const view = liquidityView(s);
   const shallow = view.venues[0]!;
-  assert.equal(shallow.ourExitSharePct, 25); // 500 / 2000 — already at the danger line
-  assert.equal(shallow.worstCaseExitSharePct, 50); // whole 1000 pool would be half the exit depth
+  assert.equal(shallow.ourExitSharePct, "25.000%"); // 500 / 2000 — already at the danger line
+  assert.equal(shallow.worstCaseExitSharePct, "50.000%"); // whole 1000 pool would be half the exit depth
 });
 
 test("liquidityView: withdrawable liquidity of zero yields null shares, not a divide-by-zero", () => {
