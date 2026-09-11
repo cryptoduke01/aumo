@@ -75,28 +75,65 @@ if (isMainnet && !poolConfigured) {
   );
 }
 
-// --- Opt-in, AT-RISK equity pool (tokenized-stock exposure). A separate contract from the safe
-// pool, never mixed. Testnet points at the live soak deploy so the surface renders real data;
-// mainnet is zero until launch, and the surface shows a "coming soon" state instead. Override any of
-// these per-env with the matching NEXT_PUBLIC_EQUITY_* var.
-const EQUITY = {
-  testnet: {
-    pool: "0x912C2916e1284C5874692a611Dc8F9a7b5198eA4",
-    oracle: "0xA1e12A539dC6698De9a6a073E3e33b78B3bbD82B",
-    stock: "0xe18b3545be348a2a8da69Fe77Fa611E76759B305",
-  },
-  mainnet: { pool: ZERO, oracle: ZERO, stock: ZERO },
-} as const;
+// --- Opt-in, AT-RISK tokenized-stock pools. Each stock is its OWN pool (one pool == one stock) so
+// positions are priced by their own feed and never entangled — never mixed with the safe pool. The
+// catalog is the target menu; the real availability is the intersection of Chainlink Data Streams
+// equity feeds and X Layer xStock liquidity. A stock with a zero `pool` on the active network renders
+// as "coming soon"; on testnet the first stock points at the live soak deploy so the surface is real.
+const ZERO32 = ("0x" + "00".repeat(32)) as `0x${string}`;
 
-export const EQUITY_POOL = (process.env.NEXT_PUBLIC_EQUITY_POOL ?? EQUITY[NET].pool) as `0x${string}`;
-export const EQUITY_ORACLE = (process.env.NEXT_PUBLIC_EQUITY_ORACLE ?? EQUITY[NET].oracle) as `0x${string}`;
-export const EQUITY_STOCK = (process.env.NEXT_PUBLIC_EQUITY_STOCK ?? EQUITY[NET].stock) as `0x${string}`;
-// Data Streams feed id (bytes32) for the equity. Testnet uses bytes32("NVDA"); mainnet is the real id.
-export const EQUITY_FEED_ID = (process.env.NEXT_PUBLIC_EQUITY_FEED_ID ??
-  "0x4e56444100000000000000000000000000000000000000000000000000000000") as `0x${string}`;
-export const EQUITY_SYMBOL = process.env.NEXT_PUBLIC_EQUITY_SYMBOL ?? "NVDAx";
-export const EQUITY_NAME = process.env.NEXT_PUBLIC_EQUITY_NAME ?? "NVIDIA";
-export const equityConfigured = EQUITY_POOL !== ZERO;
+export interface StockConfig {
+  symbol: string; // xStock ticker (e.g. NVDAx)
+  name: string; // company (e.g. NVIDIA)
+  feedId: `0x${string}`; // Data Streams feed id (bytes32)
+  pool: `0x${string}`; // the at-risk pool for this stock
+  oracle: `0x${string}`; // the equity oracle backing it
+  stock: `0x${string}`; // the xStock token
+}
+
+const soon = (symbol: string, name: string): StockConfig => ({
+  symbol,
+  name,
+  feedId: ZERO32,
+  pool: ZERO,
+  oracle: ZERO,
+  stock: ZERO,
+});
+
+// The target catalog. NVDAx is live on testnet (the soak deploy); the rest list as coming soon until
+// each one's pool is deployed. Final availability tracks Chainlink's equity streams + xStock liquidity.
+const STOCKS_BY_NET: Record<"mainnet" | "testnet", StockConfig[]> = {
+  testnet: [
+    {
+      symbol: "NVDAx",
+      name: "NVIDIA",
+      feedId: "0x4e56444100000000000000000000000000000000000000000000000000000000",
+      pool: "0x912C2916e1284C5874692a611Dc8F9a7b5198eA4",
+      oracle: "0xA1e12A539dC6698De9a6a073E3e33b78B3bbD82B",
+      stock: "0xe18b3545be348a2a8da69Fe77Fa611E76759B305",
+    },
+    soon("TSLAx", "Tesla"),
+    soon("AAPLx", "Apple"),
+    soon("MSFTx", "Microsoft"),
+    soon("AMZNx", "Amazon"),
+    soon("METAx", "Meta"),
+    soon("GOOGLx", "Alphabet"),
+    soon("COINx", "Coinbase"),
+  ],
+  mainnet: [
+    soon("NVDAx", "NVIDIA"),
+    soon("TSLAx", "Tesla"),
+    soon("AAPLx", "Apple"),
+    soon("MSFTx", "Microsoft"),
+    soon("AMZNx", "Amazon"),
+    soon("METAx", "Meta"),
+    soon("GOOGLx", "Alphabet"),
+    soon("COINx", "Coinbase"),
+  ],
+};
+
+export const STOCKS = STOCKS_BY_NET[NET];
+export const liveStocks = STOCKS.filter((s) => s.pool !== ZERO);
 
 // The equity pool's surface: the safe-pool reads plus the market-hours gate. Kept distinct from
 // poolAbi so the at-risk pool can never be driven through the safe-pool code paths by accident.
