@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AumoMark } from "./mark";
+import { BrandLogo } from "./brand";
 
 // A dismissible top strip announcing a launch. Deliberately dark in both themes (a fixed accent
 // band above the header), and remembers dismissal per viewer. Bump KEY to re-show a new message.
@@ -32,7 +32,7 @@ export function AnnouncementBar() {
   return (
     <div className="relative z-50 w-full bg-[#0a0b0d] text-[#f1eee5]">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-5 py-2.5 text-sm sm:px-8">
-        <AumoMark className="size-4 shrink-0 text-[#ffbc3e]" />
+        <BrandLogo name="spark" className="size-5 shrink-0" />
         <p className="min-w-0 flex-1 truncate">
           <span className="font-medium">Spark Savings is live on Aumo.</span>{" "}
           <span className="text-[#f1eee5]/60">Idle stablecoins now earn in Spark&rsquo;s savings vault on X Layer.</span>
