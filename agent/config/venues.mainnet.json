@@ -91,6 +91,19 @@
         "twapWindowSec": 300
       },
       "note": "Full-range USDG/USDT0 liquidity on Uniswap v3 (0.01% pool 0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA, fee 100, tickSpacing 1). Adapter 0x483aC413349951b34bFC9a8f0311A70F35e80F38 deployed + allowlisted on mainnet 2026-08-22, 3-pass Kensho-audited, fork-verified. The position is valued LIVE on-chain each cycle (adapter.balanceOf via the pool's peg-band-clamped sqrt price plus fees); peg to USDG is measured live (pegSource), pegVerified EARNED from a TWAP. APY is now read LIVE via feed.source=univ3lp (annualized growth of the pool's feeGrowthGlobal between hourly readings); the apyBps here is only a cold-start fallback until a full window accrues. TVL/liquidity are the pool's real reserves. Base trading fees on a pegged pair are thin, so until X Layer's RWA liquidity incentives land (eligible-asset list drops 2026-08-24) the agent correctly holds this near zero — deliberate, not idle; PENDING 2026-08-24 incentives to make it competitive."
+    },
+    {
+      "address": "0xd14f133D2ad6a7CF32cdaB5166eC95d58048fC10",
+      "name": "Spark Savings USDT (spUSDT)",
+      "kind": "lending",
+      "underlying": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+      "apyBps": 320,
+      "tvlUsd": 0,
+      "liquidityUsd": 0,
+      "utilization": 0,
+      "protocolRisk": 0.12,
+      "pegDeviationBps": 0,
+      "note": "Spark Savings USDT (spUSDT) ERC-4626 vault 0xc358c90D32375721Cb3924320Fdc2F8B694347Ca on X Layer (asset()==USDT0, so no swap leg). Sky/Spark savings via OKX Onchain Earn, flexible redemption, ~3.2% quoted APR. Aumo adapter (Erc4626Adapter) 0xd14f133D2ad6a7CF32cdaB5166eC95d58048fC10 deployed + fork-proven 2026-09-11. underlying tagged USDT0 so the correlated-underlying cap groups it with Aave (balances the USDG side). kind lending = base-asset-denominated yield position like aUSDT0, no separate peg. apyBps 320 is a documented fallback from the Spark/OKX quote; a live erc4626 growth feed (convertToAssets delta) is the follow-up to score it on real yield. GATED until the pool owner runs setVenueAllowed(adapter, true); venueAllowed was false at time of writing, so the agent will list but not allocate until then."
     }
   ]
 }
