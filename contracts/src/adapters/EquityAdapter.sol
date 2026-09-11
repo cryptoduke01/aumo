@@ -146,6 +146,7 @@ contract EquityAdapter is IVenueAdapter {
             sellUnits = _usdToStock(_tokenToUsdWad(amount), px);
             if (sellUnits > held) sellUnits = held; // rounding safety
         }
+        if (sellUnits == 0) return 0; // dust request rounds to nothing; never swap 0 in
 
         uint256 minUsdt = (_stockToToken(sellUnits, px) * (BPS - slippageBps)) / BPS;
 
