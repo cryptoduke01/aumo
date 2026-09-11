@@ -6,7 +6,7 @@ import { BrandLogo } from "./brand";
 
 // A dismissible top strip announcing a launch. Deliberately dark in both themes (a fixed accent
 // band above the header), and remembers dismissal per viewer. Bump KEY to re-show a new message.
-const KEY = "aumo-announce-spark-v1";
+const KEY = "aumo-announce-spark-v2";
 
 export function AnnouncementBar() {
   const [show, setShow] = useState(false);
