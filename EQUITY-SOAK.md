@@ -67,10 +67,42 @@ Dry-run either without `EXECUTE=1` (`npm run equity-plan` for a single read-only
 - The executor only ever deploys within caps and never trades while closed; no stuck approvals.
 - No unexpected reverts in the executor/feeder logs.
 
-## Before mainnet (out of soak scope — mainnet phase)
+## The real oracle (BUILT — `ChainlinkStreamsEquityOracle`)
 
-- Real `ChainlinkEquityOracle` wrapper; confirm X Layer's Chainlink product (Data Streams pull-verify
-  vs Data Feeds AggregatorV3) + feed ids + xStock addresses. Fork-test vs live X Layer.
-- Decide DEX routing (direct xStock/USD₮0 vs via USDG) + fee tier.
+Confirmed by research (Sep 2026): X Layer runs Chainlink **Data Streams** for equities (OKX, Jun 17
+2026: 24/5 US equities incl. NVDA/TSLA/AAPL, plus tokenized treasuries + commodities). It is
+**pull-based** — an off-chain report is fetched and its DON signatures are checked on-chain by a
+`VerifierProxy`. US equities use the **RWA Advanced (v11)** schema, which carries an explicit
+`marketStatus` (0 Unknown, 1 Pre-market, 2 Regular, 3 Post-market, 4 Overnight, 5 Closed) and
+bid/ask/mid. **Subscription billing** means `verify` takes an empty `parameterPayload` and needs no
+LINK approval or per-call fee.
+
+`contracts/src/oracles/ChainlinkStreamsEquityOracle.sol` implements this behind the existing
+`IEquityOracle`: a trusted `updater` (the agent, or a Chainlink Automation upkeep) submits a fresh
+verified report each cycle via `updateReport(payload)`; the contract decodes v11, scales `mid` to
+WAD, and stores it with the market status. `priceWad(feedId)` returns the last price, with
+`updatedAt = 0` whenever the market is not in a tradeable state (Regular always; Pre/Post only if the
+owner enables `allowExtendedHours`; never Overnight/Closed/Unknown) — so the **existing** adapter
+freshness guard and pool `marketOpen()` refuse to trade/enter/exit while closed, with NO change to
+either, and NAV keeps reading the last price. Staleness is a second, independent guard if the updater
+stalls. 11 unit tests (decode → scale → market-status fold → staleness) pass against a mock verifier.
+
+The agent is the natural updater: it already runs a loop, so it fetches the Data Streams report
+off-chain (with the project's Streams credentials) and calls `updateReport` before trading each cycle.
+
+**Still to lock at mainnet (immutables / live values, confirm on a fork):**
+- Live X Layer `VerifierProxy` address; per-asset **stream (feed) IDs** for NVDA/TSLA/AAPL (there are
+  phase-specific streams: RegularHours / ExtendedHours / OvernightHours — v1 uses RegularHours).
+- Each feed's `mid` **decimals** (8 or 18) for `registerFeed`.
+- Re-confirm the exact **v11 field order/types** against Chainlink's canonical StreamsLib (the struct
+  in the contract is transcribed from the docs; the unit suite proves the LOGIC, not the wire format).
+- The **xStock EVM token addresses** on X Layer (the search-returned `2uV5…A3gK` is the SOLANA token;
+  X Layer needs the `0x…` addresses) and the **xStock/USD₮0 (or via USDG) v3 pool + fee tier** for the
+  adapter's `router`/`poolFee`. Note: the RWA-incentive list already referenced USDG-NVDAx / USDC-TSLAx
+  v3 pools on X Layer, so on-chain xStock liquidity exists — pull the addresses from the pool/explorer.
+
+## Other before-mainnet items
+
+- Fork-test the equity stack (pool + adapter + real oracle) vs live X Layer.
 - Address Kensho M2 (feed-retirement exit freeze → `setMarketClock`) and M3 (adapter-oracle
   migration path). Full external Kensho fleet. Web opt-in "at-risk" surface + terms/disclaimers.
