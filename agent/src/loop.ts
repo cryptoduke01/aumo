@@ -22,6 +22,7 @@ function printReport(
   plan: Plan,
   exec: MoveResult[] | null,
   fingerprint: string,
+  executing: boolean,
 ) {
   const d = snap.vault.decimals;
   const s = snap.vault.symbol;
@@ -108,8 +109,11 @@ function printReport(
         }${r.error ? "  " + r.error : ""}`,
       );
     }
+  } else if (executing) {
+    // Execute mode is on; there was simply nothing to send (a hold, or all moves vetoed).
+    console.log("\n Execute on. No moves to send this tick.");
   } else {
-    console.log("\n Dry-run (EXECUTE=0). No transactions sent.");
+    console.log("\n Dry-run. No transactions sent.");
   }
   console.log("──────────────────────────────────────────────\n");
 }
@@ -173,7 +177,7 @@ export async function tick(cfg: Config, opts: { dryRun?: boolean } = {}): Promis
     if (plan.moves.length > 0) exec = await execute(plan, walletClient, publicClient, cfg.vaultAddress);
   }
 
-  printReport(snap, plan, exec, fingerprint);
+  printReport(snap, plan, exec, fingerprint, willExecute);
   record(snap, plan, exec, { identity, policyFingerprint: fingerprint });
 }
 
