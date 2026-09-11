@@ -97,9 +97,14 @@ off-chain (with the project's Streams credentials) and calls `updateReport` befo
 - Re-confirm the exact **v11 field order/types** against Chainlink's canonical StreamsLib (the struct
   in the contract is transcribed from the docs; the unit suite proves the LOGIC, not the wire format).
 - The **xStock EVM token addresses** on X Layer (the search-returned `2uV5…A3gK` is the SOLANA token;
-  X Layer needs the `0x…` addresses) and the **xStock/USD₮0 (or via USDG) v3 pool + fee tier** for the
-  adapter's `router`/`poolFee`. Note: the RWA-incentive list already referenced USDG-NVDAx / USDC-TSLAx
-  v3 pools on X Layer, so on-chain xStock liquidity exists — pull the addresses from the pool/explorer.
+  X Layer needs the `0x…` addresses) and the routing. On-chain xStock liquidity on X Layer sits against
+  **USDG** (the RWA-incentive pools are USDG-NVDAx / USDG-AAPLx / USDC-TSLAx), and there is no direct
+  xStock/USD₮0 pool. So the mainnet route is one of: (a) a **USDG-based equity pool** trading USDG ->
+  xStock in one hop (deepest liquidity, least slippage; reuse Aumo's USDG on-ramp), or (b) a **USD₮0
+  pool** routing USD₮0 -> USDG -> xStock. The adapter is now **v3 path-agnostic** (`exactInput` with an
+  encoded buy/sell path), so either is a deploy-time choice with no code change — pull the xStock token
+  + pool addresses and fee tiers from the explorer and encode the path. On a multi-hop route, size
+  `slippageBps` to cover both hops.
 
 ## Other before-mainnet items
 

@@ -36,11 +36,25 @@ contract EquityAdapterTest is Test {
         stock.mint(address(router), 1_000_000e18);
 
         adapter = new EquityAdapter(
-            address(usdt0), address(stock), address(oracle), FEED, address(router), address(this), 3000, MAX_AGE, SLIP
+            address(usdt0),
+            address(stock),
+            address(oracle),
+            FEED,
+            address(router),
+            address(this),
+            _path(address(usdt0), address(stock)),
+            _path(address(stock), address(usdt0)),
+            MAX_AGE,
+            SLIP
         );
 
         usdt0.mint(address(this), 10_000e6);
         usdt0.approve(address(adapter), type(uint256).max);
+    }
+
+    /// @dev A single-hop v3 path token -> token at the 0.3% tier.
+    function _path(address a, address b) internal pure returns (bytes memory) {
+        return abi.encodePacked(a, uint24(3000), b);
     }
 
     function test_deposit_buys_stock_at_oracle_price() public {
@@ -101,17 +115,32 @@ contract EquityAdapterTest is Test {
     }
 
     function test_constructor_rejects_bad_config() public {
+        bytes memory buy = _path(address(usdt0), address(stock));
+        bytes memory sell = _path(address(stock), address(usdt0));
+
         vm.expectRevert(EquityAdapter.BadConfig.selector); // slippage >= 100%
         new EquityAdapter(
-            address(usdt0), address(stock), address(oracle), FEED, address(router), address(this), 3000, MAX_AGE, 10_000
+            address(usdt0), address(stock), address(oracle), FEED, address(router), address(this), buy, sell, MAX_AGE, 10_000
         );
         vm.expectRevert(EquityAdapter.BadConfig.selector); // maxAge 0
         new EquityAdapter(
-            address(usdt0), address(stock), address(oracle), FEED, address(router), address(this), 3000, 0, SLIP
+            address(usdt0), address(stock), address(oracle), FEED, address(router), address(this), buy, sell, 0, SLIP
         );
         vm.expectRevert(EquityAdapter.BadConfig.selector); // zero vault
         new EquityAdapter(
-            address(usdt0), address(stock), address(oracle), FEED, address(router), address(0), 3000, MAX_AGE, SLIP
+            address(usdt0), address(stock), address(oracle), FEED, address(router), address(0), buy, sell, MAX_AGE, SLIP
+        );
+        // buy path that does not end at the stock (wrong routing) is rejected
+        vm.expectRevert(EquityAdapter.BadConfig.selector);
+        new EquityAdapter(
+            address(usdt0), address(stock), address(oracle), FEED, address(router), address(this),
+            _path(address(usdt0), address(usdt0)), sell, MAX_AGE, SLIP
+        );
+        // malformed (too-short) path is rejected
+        vm.expectRevert(EquityAdapter.BadConfig.selector);
+        new EquityAdapter(
+            address(usdt0), address(stock), address(oracle), FEED, address(router), address(this),
+            abi.encodePacked(address(usdt0)), sell, MAX_AGE, SLIP
         );
     }
 }

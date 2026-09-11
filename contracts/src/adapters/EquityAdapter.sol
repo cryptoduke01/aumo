@@ -7,19 +7,19 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IVenueAdapter} from "../interfaces/IVenueAdapter.sol";
 import {IEquityOracle} from "../interfaces/IEquityOracle.sol";
 
-/// @dev Minimal slice of the Uniswap v3 SwapRouter02 used by this adapter.
+/// @dev Minimal slice of the Uniswap v3 SwapRouter02 used by this adapter. Path-based `exactInput`
+///      handles both a single direct pool and a multi-hop route (e.g. USD₮0 -> USDG -> xStock), so
+///      the same adapter works whether the base asset pairs with the xStock directly or has to be
+///      routed through USDG (X Layer's funnel stablecoin, where the tokenized-stock liquidity lives).
 interface ISwapRouter02 {
-    struct ExactInputSingleParams {
-        address tokenIn;
-        address tokenOut;
-        uint24 fee;
+    struct ExactInputParams {
+        bytes path;
         address recipient;
         uint256 amountIn;
         uint256 amountOutMinimum;
-        uint160 sqrtPriceLimitX96;
     }
 
-    function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut);
+    function exactInput(ExactInputParams calldata params) external payable returns (uint256 amountOut);
 }
 
 /// @title EquityAdapter
@@ -49,7 +49,12 @@ contract EquityAdapter is IVenueAdapter {
     ISwapRouter02 public immutable router; // Uniswap v3 SwapRouter02
     address public immutable vault; // the only permitted caller (the opt-in equity pool)
 
-    uint24 public immutable poolFee; // v3 fee tier for the stock/USD₮0 pool
+    // v3 swap paths (token,fee,token[,fee,token...]). `buyPath` routes base asset -> xStock and
+    // `sellPath` is its reverse (xStock -> base asset). Single hop is a one-pool path; multi-hop
+    // (e.g. USD₮0 -> USDG -> xStock) is the same struct with an extra hop. Set once at construction.
+    bytes public buyPath;
+    bytes public sellPath;
+
     uint256 public immutable maxAge; // seconds: older than this = market closed = refuse to trade
     uint256 public immutable slippageBps; // max acceptable slippage vs the oracle price (bps)
 
@@ -78,7 +83,8 @@ contract EquityAdapter is IVenueAdapter {
         bytes32 feedId_,
         address router_,
         address vault_,
-        uint24 poolFee_,
+        bytes memory buyPath_,
+        bytes memory sellPath_,
         uint256 maxAge_,
         uint256 slippageBps_
     ) {
@@ -86,13 +92,21 @@ contract EquityAdapter is IVenueAdapter {
             token_ == address(0) || stock_ == address(0) || oracle_ == address(0) || router_ == address(0)
                 || vault_ == address(0) || maxAge_ == 0 || slippageBps_ == 0 || slippageBps_ >= BPS
         ) revert BadConfig();
+        // The buy path must start at the base asset and end at the stock; the sell path is its mirror.
+        // This binds the routing to the exact tokens the pricing math uses, so a mis-encoded path (or
+        // one that would leave funds in the wrong token) can never be deployed.
+        if (!_wellFormed(buyPath_) || !_wellFormed(sellPath_)) revert BadConfig();
+        if (_firstToken(buyPath_) != token_ || _lastToken(buyPath_) != stock_) revert BadConfig();
+        if (_firstToken(sellPath_) != stock_ || _lastToken(sellPath_) != token_) revert BadConfig();
+
         token = IERC20(token_);
         stock = IERC20(stock_);
         oracle = IEquityOracle(oracle_);
         feedId = feedId_;
         router = ISwapRouter02(router_);
         vault = vault_;
-        poolFee = poolFee_;
+        buyPath = buyPath_;
+        sellPath = sellPath_;
         maxAge = maxAge_;
         slippageBps = slippageBps_;
         _tokenDec = IERC20Metadata(token_).decimals();
@@ -115,15 +129,12 @@ contract EquityAdapter is IVenueAdapter {
         uint256 minOut = (expStock * (BPS - slippageBps)) / BPS;
 
         token.forceApprove(address(router), amount);
-        router.exactInputSingle(
-            ISwapRouter02.ExactInputSingleParams({
-                tokenIn: address(token),
-                tokenOut: address(stock),
-                fee: poolFee,
+        router.exactInput(
+            ISwapRouter02.ExactInputParams({
+                path: buyPath,
                 recipient: address(this),
                 amountIn: amount,
-                amountOutMinimum: minOut,
-                sqrtPriceLimitX96: 0
+                amountOutMinimum: minOut
             })
         );
         token.forceApprove(address(router), 0); // never leave a standing allowance
@@ -155,15 +166,12 @@ contract EquityAdapter is IVenueAdapter {
         uint256 minUsdt = (_stockToToken(sellUnits, px) * (BPS - slippageBps)) / BPS;
 
         stock.forceApprove(address(router), sellUnits);
-        uint256 out = router.exactInputSingle(
-            ISwapRouter02.ExactInputSingleParams({
-                tokenIn: address(stock),
-                tokenOut: address(token),
-                fee: poolFee,
+        uint256 out = router.exactInput(
+            ISwapRouter02.ExactInputParams({
+                path: sellPath,
                 recipient: msg.sender, // straight back to the vault
                 amountIn: sellUnits,
-                amountOutMinimum: minUsdt,
-                sqrtPriceLimitX96: 0
+                amountOutMinimum: minUsdt
             })
         );
         stock.forceApprove(address(router), 0);
@@ -210,5 +218,28 @@ contract EquityAdapter is IVenueAdapter {
     function _stockToToken(uint256 stockUnits, uint256 pxWad) internal view returns (uint256) {
         uint256 usdWad = (stockUnits * pxWad) / (10 ** _stockDec);
         return (usdWad * (10 ** _tokenDec)) / WAD;
+    }
+
+    // ------------------------------------------------------------------ v3 path parsing (constructor)
+
+    /// @dev A Uniswap v3 path is `token (20) + [fee (3) + token (20)] * hops`. Well-formed means at
+    ///      least one hop and an exact number of whole hops, so the first/last 20 bytes are real
+    ///      token addresses and the router can walk it.
+    function _wellFormed(bytes memory path) private pure returns (bool) {
+        uint256 len = path.length;
+        return len >= 43 && (len - 20) % 23 == 0;
+    }
+
+    function _firstToken(bytes memory path) private pure returns (address a) {
+        assembly {
+            a := shr(96, mload(add(path, 0x20)))
+        }
+    }
+
+    function _lastToken(bytes memory path) private pure returns (address a) {
+        uint256 len = path.length;
+        assembly {
+            a := shr(96, mload(add(add(path, 0x20), sub(len, 20))))
+        }
     }
 }

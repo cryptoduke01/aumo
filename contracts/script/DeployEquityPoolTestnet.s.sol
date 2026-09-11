@@ -45,9 +45,14 @@ contract DeployEquityPoolTestnet is Script {
         stock.mint(address(router), 2_000_000e18);
 
         // --- the real feature: pool first, then bind the adapter's vault to it ---
+        // Testnet routes a single direct hop base -> stock. On mainnet, if the base asset does not
+        // pair with the xStock directly, this becomes a multi-hop path (e.g. USD₮0 -> USDG -> xStock)
+        // by encoding the extra hop here; the adapter handles either without a code change.
         EquityPool pool = new EquityPool(IERC20(TEST_USDT0), owner, address(oracle), FEED, MAX_AGE);
+        bytes memory buyPath = abi.encodePacked(TEST_USDT0, POOL_FEE, address(stock));
+        bytes memory sellPath = abi.encodePacked(address(stock), POOL_FEE, TEST_USDT0);
         EquityAdapter adapter = new EquityAdapter(
-            TEST_USDT0, address(stock), address(oracle), FEED, address(router), address(pool), POOL_FEE, MAX_AGE, SLIP
+            TEST_USDT0, address(stock), address(oracle), FEED, address(router), address(pool), buyPath, sellPath, MAX_AGE, SLIP
         );
 
         pool.setVenueAllowed(address(adapter), true);

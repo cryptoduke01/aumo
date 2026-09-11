@@ -44,7 +44,16 @@ contract EquityPoolTest is Test {
         // Pool first so we can bind the adapter's vault to it, then allowlist the adapter.
         pool = new EquityPool(IERC20(address(usdt0)), address(this), address(oracle), FEED, MAX_AGE);
         adapter = new EquityAdapter(
-            address(usdt0), address(stock), address(oracle), FEED, address(router), address(pool), 3000, MAX_AGE, SLIP
+            address(usdt0),
+            address(stock),
+            address(oracle),
+            FEED,
+            address(router),
+            address(pool),
+            abi.encodePacked(address(usdt0), uint24(3000), address(stock)),
+            abi.encodePacked(address(stock), uint24(3000), address(usdt0)),
+            MAX_AGE,
+            SLIP
         );
 
         pool.setVenueAllowed(address(adapter), true);
