@@ -89,6 +89,13 @@ stalls. 11 unit tests (decode → scale → market-status fold → staleness) pa
 
 The agent is the natural updater: it already runs a loop, so it fetches the Data Streams report
 off-chain (with the project's Streams credentials) and calls `updateReport` before trading each cycle.
+This feeder is BUILT: `agent/src/equity/streamsClient.ts` (HMAC-SHA256-signed Data Streams REST client
+— signing unit-tested in `test/streams-auth.test.ts`) + `agent/src/equity/oracleUpdater.ts` (fetch the
+latest report per feed and submit `updateReport`, refusing unless our key is the oracle's `updater`).
+Run it on mainnet with `npm run equity-oracle-update`, given env `STREAMS_API_URL` / `STREAMS_API_KEY`
+/ `STREAMS_API_SECRET` (the OKX/Chainlink onboarding), `EQUITY_STREAMS_ORACLE` (the oracle address),
+and `STREAMS_FEED_IDS` (the Data Streams feed IDs). Only the live network round trip is unverified;
+confirm it end to end on a fork before mainnet.
 
 **Still to lock at mainnet (immutables / live values, confirm on a fork):**
 - Live X Layer `VerifierProxy` address; per-asset **stream (feed) IDs** for NVDA/TSLA/AAPL (there are

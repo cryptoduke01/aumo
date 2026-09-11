@@ -17,7 +17,9 @@
     "equity-plan": "tsx src/equity/executor.ts plan",
     "equity-tick": "tsx src/equity/executor.ts tick",
     "equity-loop": "tsx src/equity/executor.ts loop",
-    "equity-feed": "tsx src/equity/feeder.ts"
+    "equity-feed": "tsx src/equity/feeder.ts",
+    "equity-oracle-update": "tsx src/equity/oracleUpdater.ts loop",
+    "equity-oracle-once": "tsx src/equity/oracleUpdater.ts once"
   },
   "engines": {
     "node": ">=20"

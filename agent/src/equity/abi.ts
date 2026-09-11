@@ -24,6 +24,14 @@ export const equityPoolAbi = parseAbi([
   "function deallocate(address venue, uint256 amount)",
 ]);
 
+/** ChainlinkStreamsEquityOracle — the mainnet oracle the agent (as `updater`) feeds each cycle. */
+export const streamsOracleAbi = parseAbi([
+  "function updateReport(bytes payload)",
+  "function updater() view returns (address)",
+  "function priceWad(bytes32 feedId) view returns (uint256 price, uint256 updatedAt)",
+  "function marketTradeable(bytes32 feedId) view returns (bool)",
+]);
+
 /** MockEquityOracle — testnet only. `set` writes a price (WAD) and publish time for a feed id. */
 export const mockOracleAbi = parseAbi([
   "function set(bytes32 id, uint256 priceWad, uint256 updatedAt)",
