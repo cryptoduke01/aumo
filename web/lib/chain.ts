@@ -75,6 +75,48 @@ if (isMainnet && !poolConfigured) {
   );
 }
 
+// --- Opt-in, AT-RISK equity pool (tokenized-stock exposure). A separate contract from the safe
+// pool, never mixed. Testnet points at the live soak deploy so the surface renders real data;
+// mainnet is zero until launch, and the surface shows a "coming soon" state instead. Override any of
+// these per-env with the matching NEXT_PUBLIC_EQUITY_* var.
+const EQUITY = {
+  testnet: {
+    pool: "0x912C2916e1284C5874692a611Dc8F9a7b5198eA4",
+    oracle: "0xA1e12A539dC6698De9a6a073E3e33b78B3bbD82B",
+    stock: "0xe18b3545be348a2a8da69Fe77Fa611E76759B305",
+  },
+  mainnet: { pool: ZERO, oracle: ZERO, stock: ZERO },
+} as const;
+
+export const EQUITY_POOL = (process.env.NEXT_PUBLIC_EQUITY_POOL ?? EQUITY[NET].pool) as `0x${string}`;
+export const EQUITY_ORACLE = (process.env.NEXT_PUBLIC_EQUITY_ORACLE ?? EQUITY[NET].oracle) as `0x${string}`;
+export const EQUITY_STOCK = (process.env.NEXT_PUBLIC_EQUITY_STOCK ?? EQUITY[NET].stock) as `0x${string}`;
+// Data Streams feed id (bytes32) for the equity. Testnet uses bytes32("NVDA"); mainnet is the real id.
+export const EQUITY_FEED_ID = (process.env.NEXT_PUBLIC_EQUITY_FEED_ID ??
+  "0x4e56444100000000000000000000000000000000000000000000000000000000") as `0x${string}`;
+export const EQUITY_SYMBOL = process.env.NEXT_PUBLIC_EQUITY_SYMBOL ?? "NVDAx";
+export const EQUITY_NAME = process.env.NEXT_PUBLIC_EQUITY_NAME ?? "NVIDIA";
+export const equityConfigured = EQUITY_POOL !== ZERO;
+
+// The equity pool's surface: the safe-pool reads plus the market-hours gate. Kept distinct from
+// poolAbi so the at-risk pool can never be driven through the safe-pool code paths by accident.
+export const equityPoolAbi = parseAbi([
+  "function asset() view returns (address)",
+  "function totalAssets() view returns (uint256)",
+  "function totalSupply() view returns (uint256)",
+  "function balanceOf(address) view returns (uint256)",
+  "function maxWithdraw(address) view returns (uint256)",
+  "function idleBalance() view returns (uint256)",
+  "function marketOpen() view returns (bool)",
+  "function deposit(uint256 assets, address receiver) returns (uint256)",
+  "function withdraw(uint256 assets, address receiver, address owner) returns (uint256)",
+  "function redeem(uint256 shares, address receiver, address owner) returns (uint256)",
+]);
+
+export const equityOracleAbi = parseAbi([
+  "function priceWad(bytes32 feedId) view returns (uint256 price, uint256 updatedAt)",
+]);
+
 export const poolAbi = parseAbi([
   "function asset() view returns (address)",
   "function decimals() view returns (uint8)",
