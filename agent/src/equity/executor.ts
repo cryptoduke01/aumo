@@ -46,6 +46,20 @@ function clients(cfg: EquityConfig): Clients {
 const fmt = (x: bigint, dec: number) =>
   (Number(x) / 10 ** dec).toLocaleString("en-US", { maximumFractionDigits: 2 });
 
+/** Retry a flaky read a few times with a short backoff (X Layer's public RPC blips on lagging nodes). */
+async function withRetry<T>(fn: () => Promise<T>, tries = 3, delayMs = 1500): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      last = err;
+      if (i < tries - 1) await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+  throw last;
+}
+
 /** The on-chain state the deploy decision depends on. Kept separate so the decision is pure/testable. */
 export interface EquityPoolView {
   allowed: boolean;
@@ -112,26 +126,33 @@ export async function equityTick(cfg: EquityConfig, opts: { dryRun?: boolean } =
   const { pc, wallet, agentAddr } = clients(cfg);
   const c = { address: cfg.pool, abi: equityPoolAbi } as const;
 
+  // X Layer's public RPC is load-balanced and occasionally returns an empty result on a lagging node
+  // (a read "reverts" spuriously). Retry the whole read batch a few times so a single blip never skips
+  // a soak tick; a genuinely down RPC still surfaces after the retries and the loop logs + waits.
   const [asset, agent, paused, marketOpen, idle, totalDeployed, nav, maxMove, perVenueCap, maxTotal] =
-    await Promise.all([
-      pc.readContract({ ...c, functionName: "asset" }),
-      pc.readContract({ ...c, functionName: "agent" }),
-      pc.readContract({ ...c, functionName: "paused" }),
-      pc.readContract({ ...c, functionName: "marketOpen" }),
-      pc.readContract({ ...c, functionName: "idleBalance" }),
-      pc.readContract({ ...c, functionName: "totalDeployed" }),
-      pc.readContract({ ...c, functionName: "totalAssets" }),
-      pc.readContract({ ...c, functionName: "maxMoveSize" }),
-      pc.readContract({ ...c, functionName: "perVenueCap" }),
-      pc.readContract({ ...c, functionName: "maxTotalDeployed" }),
-    ]);
+    await withRetry(() =>
+      Promise.all([
+        pc.readContract({ ...c, functionName: "asset" }),
+        pc.readContract({ ...c, functionName: "agent" }),
+        pc.readContract({ ...c, functionName: "paused" }),
+        pc.readContract({ ...c, functionName: "marketOpen" }),
+        pc.readContract({ ...c, functionName: "idleBalance" }),
+        pc.readContract({ ...c, functionName: "totalDeployed" }),
+        pc.readContract({ ...c, functionName: "totalAssets" }),
+        pc.readContract({ ...c, functionName: "maxMoveSize" }),
+        pc.readContract({ ...c, functionName: "perVenueCap" }),
+        pc.readContract({ ...c, functionName: "maxTotalDeployed" }),
+      ]),
+    );
 
-  const [dec, allowed, principal, liveBal] = await Promise.all([
-    pc.readContract({ address: asset as Address, abi: erc20Abi, functionName: "decimals" }),
-    pc.readContract({ ...c, functionName: "venueAllowed", args: [cfg.venue] }),
-    pc.readContract({ ...c, functionName: "allocated", args: [cfg.venue] }),
-    pc.readContract({ ...c, functionName: "venueBalance", args: [cfg.venue] }),
-  ]);
+  const [dec, allowed, principal, liveBal] = await withRetry(() =>
+    Promise.all([
+      pc.readContract({ address: asset as Address, abi: erc20Abi, functionName: "decimals" }),
+      pc.readContract({ ...c, functionName: "venueAllowed", args: [cfg.venue] }),
+      pc.readContract({ ...c, functionName: "allocated", args: [cfg.venue] }),
+      pc.readContract({ ...c, functionName: "venueBalance", args: [cfg.venue] }),
+    ]),
+  );
   const decimals = Number(dec);
   const exposure = liveBal > principal ? liveBal : principal; // cap basis the contract uses
 
