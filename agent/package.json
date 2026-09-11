@@ -13,7 +13,11 @@
     "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "backtest": "tsx scripts/backtest.ts",
-    "simulate-yield": "tsx scripts/simulate-yield.ts"
+    "simulate-yield": "tsx scripts/simulate-yield.ts",
+    "equity-plan": "tsx src/equity/executor.ts plan",
+    "equity-tick": "tsx src/equity/executor.ts tick",
+    "equity-loop": "tsx src/equity/executor.ts loop",
+    "equity-feed": "tsx src/equity/feeder.ts"
   },
   "engines": {
     "node": ">=20"

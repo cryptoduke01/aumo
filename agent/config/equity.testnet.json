@@ -1,0 +1,11 @@
+{
+  "note": "Opt-in equity feature on X Layer testnet, for the 3-day soak. Fill pool/venue/oracle/router from the DeployEquityPoolTestnet console output, then run `npm run equity-loop` (executor) and `npm run equity-feed` (testnet price/clock driver). Env vars EQUITY_POOL / EQUITY_VENUE / EQUITY_ORACLE / EQUITY_ROUTER override these. One equity pool == one xStock (v1): a deposit IS the chosen exposure; the executor only deploys idle into `venue` when the market is open, within the pool's caps.",
+  "chainId": 1952,
+  "pool": "",
+  "venue": "",
+  "venueName": "NVDAx",
+  "oracle": "",
+  "router": "",
+  "feedId": "NVDA",
+  "basePriceUsd": 180
+}
