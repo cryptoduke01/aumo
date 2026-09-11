@@ -52,16 +52,23 @@ contract ChainlinkStreamsEquityOracle is IEquityOracle, Ownable2Step {
         uint32 marketStatus;
     }
 
-    // 24/5 US equities marketStatus values.
+    // 24/5 US equities marketStatus values (0 Unknown / 5 Closed are never tradeable).
     uint32 private constant STATUS_PRE = 1;
     uint32 private constant STATUS_REGULAR = 2;
     uint32 private constant STATUS_POST = 3;
+    uint32 private constant STATUS_OVERNIGHT = 4;
 
     uint256 private constant WAD = 1e18;
 
     IVerifierProxy public verifierProxy; // Data Streams onchain verifier
     address public updater; // the only address permitted to submit reports (agent / Automation)
-    bool public allowExtendedHours; // if true, pre- and post-market also count as tradeable (never overnight)
+    // Trading window, dialable up from regular-hours-only toward the full 24/5 weekday coverage the
+    // equity streams provide. Regular hours are always tradeable. Extended = pre + post-market.
+    // Overnight (8pm-4am ET) is the thinnest session, so it is its own opt-in; even off, the adapter's
+    // slippage guard would refuse a bad overnight fill anyway. Weekends have no price at all (status
+    // Closed) and are never tradeable, by design — that is the market-hours freeze, not a gap.
+    bool public allowExtendedHours; // pre- and post-market
+    bool public allowOvernight; // overnight session
 
     struct Feed {
         bool active;
@@ -80,6 +87,7 @@ contract ChainlinkStreamsEquityOracle is IEquityOracle, Ownable2Step {
     event VerifierProxyUpdated(address indexed verifierProxy);
     event UpdaterUpdated(address indexed updater);
     event ExtendedHoursSet(bool allowed);
+    event OvernightSet(bool allowed);
     event FeedRegistered(bytes32 indexed feedId, uint8 decimals, bool active);
     event ReportStored(bytes32 indexed feedId, uint256 priceWad, uint32 observationsTimestamp, uint32 marketStatus);
 
@@ -112,6 +120,13 @@ contract ChainlinkStreamsEquityOracle is IEquityOracle, Ownable2Step {
     function setAllowExtendedHours(bool allowed) external onlyOwner {
         allowExtendedHours = allowed;
         emit ExtendedHoursSet(allowed);
+    }
+
+    /// @notice Opt the overnight session (8pm-4am ET) into the trading window. Thin-liquidity session;
+    ///         off by default. The adapter's slippage bound still governs any fill either way.
+    function setAllowOvernight(bool allowed) external onlyOwner {
+        allowOvernight = allowed;
+        emit OvernightSet(allowed);
     }
 
     /// @notice Register (or deactivate) a stream. `decimals` is the decimals of `mid` in that feed's
@@ -168,6 +183,7 @@ contract ChainlinkStreamsEquityOracle is IEquityOracle, Ownable2Step {
     function _tradeable(uint32 marketStatus) internal view returns (bool) {
         if (marketStatus == STATUS_REGULAR) return true;
         if (allowExtendedHours && (marketStatus == STATUS_PRE || marketStatus == STATUS_POST)) return true;
+        if (allowOvernight && marketStatus == STATUS_OVERNIGHT) return true;
         return false;
     }
 }

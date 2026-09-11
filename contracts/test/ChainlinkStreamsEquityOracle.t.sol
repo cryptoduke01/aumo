@@ -102,10 +102,31 @@ contract ChainlinkStreamsEquityOracleTest is Test {
         (, uint256 uOn) = oracle.priceWad(FEED);
         assertEq(uOn, ts, "post-market tradeable once extended hours enabled");
 
-        // Overnight stays closed even with extended hours on.
+        // Overnight has its own flag; extended hours alone does not open it.
         _submit(100e18, ts, OVERNIGHT);
         (, uint256 uNight) = oracle.priceWad(FEED);
-        assertEq(uNight, 0, "overnight never tradeable");
+        assertEq(uNight, 0, "overnight needs its own opt-in");
+    }
+
+    function test_overnight_gated_by_its_own_flag() public {
+        uint32 ts = uint32(block.timestamp);
+        _submit(100e18, ts, OVERNIGHT);
+        (, uint256 uOff) = oracle.priceWad(FEED);
+        assertEq(uOff, 0, "overnight not tradeable by default");
+
+        oracle.setAllowOvernight(true);
+        _submit(100e18, ts, OVERNIGHT);
+        (, uint256 uOn) = oracle.priceWad(FEED);
+        assertEq(uOn, ts, "overnight tradeable once enabled (full 24/5 weekday window)");
+
+        // Weekend/closed and unknown are never tradeable, even with every session enabled.
+        oracle.setAllowExtendedHours(true);
+        _submit(100e18, ts, CLOSED);
+        (, uint256 uClosed) = oracle.priceWad(FEED);
+        assertEq(uClosed, 0, "weekend/closed never tradeable");
+        _submit(100e18, ts, UNKNOWN);
+        (, uint256 uUnknown) = oracle.priceWad(FEED);
+        assertEq(uUnknown, 0, "unknown never tradeable");
     }
 
     function test_price_scales_from_feed_decimals() public {
