@@ -260,32 +260,45 @@ export default function StocksPage() {
             const live = liveStocks.some((l) => l.pool === s.pool);
             const idx = liveStocks.findIndex((l) => l.pool === s.pool);
             const isSel = selected?.pool === s.pool && live;
+            const open = live ? openOf(idx) : undefined;
             return (
               <button
                 key={s.symbol}
                 type="button"
                 disabled={!live}
                 onClick={() => { if (live) { setSelected(s); setAmount(""); setAck(false); reset(); } }}
-                className={`chamfer flex flex-col gap-2 border p-3.5 text-left transition-colors ${
+                className={`chamfer group flex flex-col gap-3 border p-4 text-left transition-[transform,border-color,background-color] ${
                   isSel
-                    ? "border-primary/60 bg-card-2"
+                    ? "border-primary/70 bg-card-2 ring-1 ring-primary/30"
                     : live
-                      ? "border-border bg-card hover:border-primary/40"
-                      : "border-border/60 bg-card opacity-55"
-                } ${live ? "cursor-pointer" : "cursor-default"}`}
-                style={{ ["--cut" as string]: "10px" }}
+                      ? "cursor-pointer border-border bg-card hover:-translate-y-0.5 hover:border-primary/50 hover:bg-card-2"
+                      : "cursor-default border-border/70 bg-card"
+                }`}
+                style={{ ["--cut" as string]: "12px" }}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">{s.symbol}</span>
+                <div className="flex items-start justify-between">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/brand/stocks/${s.symbol.replace(/x$/, "")}.png`}
+                    alt={s.name}
+                    className={`size-11 rounded-xl border border-border/50 object-cover shadow-sm ${live ? "" : "opacity-90"}`}
+                  />
                   {live ? (
-                    openOf(idx) === false ? <Dot tone="muted" /> : <Dot tone="positive" />
+                    open === false ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card-2 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"><Dot tone="muted" /> Closed</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-positive/30 bg-positive/10 px-2 py-0.5 text-[10px] font-medium text-positive"><Dot tone="positive" /> Live</span>
+                    )
                   ) : (
-                    <span className="text-[10px] uppercase tracking-wide text-faint">soon</span>
+                    <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-faint">Soon</span>
                   )}
                 </div>
-                <span className="truncate text-xs text-muted-foreground">{s.name}</span>
-                <span className="tnum text-sm font-medium text-foreground">
-                  {live ? usd(priceOf(idx)) : "—"}
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-semibold tracking-tight text-foreground">{s.symbol}</span>
+                  <span className="truncate text-xs text-muted-foreground">{s.name}</span>
+                </div>
+                <span className="tnum mt-auto text-base font-medium text-foreground">
+                  {live ? usd(priceOf(idx)) : <span className="text-sm text-faint">Coming soon</span>}
                 </span>
               </button>
             );
@@ -299,13 +312,21 @@ export default function StocksPage() {
           <div className="flex flex-col gap-6">
             <Panel className="flex flex-col gap-4 p-5">
               <div className="flex items-start justify-between">
-                <div>
-                  <Label>Your position · {selected.symbol}</Label>
-                  <div className="mt-1.5 text-3xl font-medium text-foreground">
-                    <Num value={num(position)} currency />
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {marketClosed ? "Redeemable when the market reopens" : "USDT0 redeemable at the current price"}
+                <div className="flex items-start gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/brand/stocks/${selected.symbol.replace(/x$/, "")}.png`}
+                    alt={selected.name}
+                    className="mt-0.5 size-10 rounded-xl border border-border/50 shadow-sm"
+                  />
+                  <div>
+                    <Label>Your position · {selected.symbol}</Label>
+                    <div className="mt-1.5 text-3xl font-medium text-foreground">
+                      <Num value={num(position)} currency />
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {marketClosed ? "Redeemable when the market reopens" : "USDT0 redeemable at the current price"}
+                    </div>
                   </div>
                 </div>
                 {marketOpen === undefined ? null : marketOpen ? (
