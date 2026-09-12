@@ -119,30 +119,38 @@ export default function VaultPage() {
     let cancelled = false;
     (async () => {
       setRealizing(true);
+      // Returns true if the withdraw simulates, false on a genuine CONTRACT revert, and THROWS on an
+      // RPC/network error so the probe can bail cleanly instead of misreading a laggy node as a revert.
       const ok = async (amt: bigint): Promise<boolean> => {
         if (amt <= 0n) return true;
         try {
           await publicClient.simulateContract({ address: POOL, abi: poolAbi, functionName: "withdraw", args: [amt, address, address], account: address });
           return true;
-        } catch {
-          return false;
+        } catch (e) {
+          const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
+          if (msg.includes("revert") || msg.includes("exceeds balance") || msg.includes("insufficient")) return false;
+          throw e; // inconclusive (RPC/timeout) — don't treat as a revert
         }
       };
-      let result = position;
-      if (!(await ok(position))) {
-        // binary-search to ~$1 precision; each probe simulates the full venue unwind
-        let lo = 0n;
-        let hi = position;
-        for (let i = 0; i < 20 && hi - lo > 1_000_000n; i++) {
-          const mid = (lo + hi) / 2n;
-          if (await ok(mid)) lo = mid;
-          else hi = mid;
+      try {
+        let result = position;
+        if (!(await ok(position))) {
+          let lo = 0n;
+          let hi = position;
+          // coarse binary search (~$2 precision) to keep the number of on-chain probes small
+          for (let i = 0; i < 8 && hi - lo > 2_000_000n; i++) {
+            const mid = (lo + hi) / 2n;
+            if (await ok(mid)) lo = mid;
+            else hi = mid;
+          }
+          result = lo;
         }
-        result = lo;
-      }
-      if (!cancelled) {
-        setRealizableMax(result);
-        setRealizing(false);
+        if (!cancelled) setRealizableMax(result);
+      } catch {
+        // RPC couldn't resolve it — fall back to the marked max; the submit-time guard is the backstop.
+        if (!cancelled) setRealizableMax(position);
+      } finally {
+        if (!cancelled) setRealizing(false);
       }
     })();
     return () => {
@@ -329,7 +337,7 @@ export default function VaultPage() {
   const needsApproval = tab === "deposit" && (activeAllowance ?? 0n) < amountWei;
   const busy = isPending || receipt.isLoading;
 
-  function submit() {
+  async function submit() {
     // On the wrong network the button switches instead of firing a transaction on the wrong chain.
     if (wrongChain) {
       switchChain({ chainId: activeChain.id });
@@ -352,6 +360,23 @@ export default function VaultPage() {
         doDeposit(amountWei);
       }
     } else {
+      // Backstop: part of the pool sits in Pendle (fixed-term), which realizes slightly under its
+      // marked value before maturity, so a withdraw that dips into it reverts. Simulate first and
+      // explain plainly, instead of firing a transaction that reverts in the wallet.
+      if (publicClient) {
+        try {
+          await publicClient.simulateContract({ address: POOL, abi: poolAbi, functionName: "withdraw", args: [amountWei, address, address], account: address });
+        } catch (e) {
+          const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
+          if (msg.includes("revert") || msg.includes("exceeds balance") || msg.includes("insufficient")) {
+            toast.error(
+              "That amount isn't directly withdrawable right now — part of the pool is in Pendle, a fixed-term venue that realizes slightly under its marked value before maturity (Oct 29). Try a smaller amount; the rest frees up as the agent rebalances or at maturity.",
+            );
+            return;
+          }
+          // Inconclusive RPC error: let it proceed; the wallet will surface any genuine problem.
+        }
+      }
       pending.current = { action: "withdraw", amountWei };
       writeContract({ address: POOL, abi: poolAbi, functionName: "withdraw", args: [amountWei, address, address], chainId: activeChain.id });
     }
