@@ -46,6 +46,7 @@
       "address": "0x127644F456Fc63C7226E7f4F2Ce4F169A1165C65",
       "name": "Pendle PT-USDG (fixed, Oct 2026)",
       "kind": "rwa",
+      "term": true,
       "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
       "apyBps": 305,
       "tvlUsd": 3500000,

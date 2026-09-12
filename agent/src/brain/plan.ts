@@ -11,6 +11,7 @@ import {
   ROTATION_ROUNDTRIP_BPS,
   HARD_PEG_BREAK_BPS,
   MAX_UNDERLYING_CONCENTRATION,
+  MAX_TERM_CONCENTRATION,
 } from "./critic.js";
 
 const SECONDS_PER_YEAR = 31_536_000;
@@ -214,6 +215,49 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
     retreatingNow.add(src.v.address.toLowerCase());
   }
 
+  // Fixed-term (on-demand-liquidity) cap. Term venues (Pendle PT and the like) can't be exited at face
+  // before maturity, but this pool promises on-demand redemption — so hold their COMBINED exposure to
+  // MAX_TERM_CONCENTRATION of the pool, keeping the rest in liquid venues + idle that can always cover
+  // a withdrawal. Trim an over-cap term position here (like the underlying trim) and gate new term
+  // deploys below via termHeadroom. Without this, the pool could sit majority-in-Pendle and block exits.
+  const termCap = (portfolioBig * BigInt(Math.round(MAX_TERM_CONCENTRATION * 10000))) / 10000n;
+  const isTerm = (v: { term?: boolean }): boolean => v.term === true;
+  let termExposure = 0n;
+  for (const v of snap.venues) {
+    if (!isTerm(v)) continue;
+    termExposure += v.liveBalance > v.allocatedPrincipal ? v.liveBalance : v.allocatedPrincipal;
+  }
+  if (termExposure > termCap) {
+    const src = snap.venues
+      .filter((v) => isTerm(v) && v.liveBalance > 0n && !retreatingNow.has(v.address.toLowerCase()))
+      .map((v) => ({ v, r: riskByAddr.get(v.address.toLowerCase()) }))
+      .filter((x) => x.r)
+      .sort((a, b) => a.r!.riskAdjustedApyBps - b.r!.riskAdjustedApyBps)[0];
+    if (src && src.r) {
+      let trim = termExposure - termCap;
+      if (trim > src.v.liveBalance) trim = src.v.liveBalance;
+      if (trim > vault.maxMoveSize) trim = vault.maxMoveSize;
+      if (trim >= minMove) {
+        const sharePct = portfolioBig > 0n ? (Number(termExposure) / Number(portfolioBig)) * 100 : 0;
+        moves.push({
+          venue: src.v.address,
+          venueName: src.v.name,
+          action: "deallocate",
+          amount: trim,
+          reasonTag: "diversify:term".slice(0, 31),
+          rationale: `Liquidity: fixed-term venues hold ~${sharePct.toFixed(0)}% of the pool, over the ${(
+            MAX_TERM_CONCENTRATION * 100
+          ).toFixed(0)}% cap for assets not redeemable at face on demand. Trimming ${src.v.name} back toward the cap so ordinary withdrawals stay covered by the liquid venues.`,
+          band: src.r.band,
+          riskScore: src.r.riskScore,
+          riskAdjustedApyBps: src.r.riskAdjustedApyBps,
+        });
+        termExposure -= trim;
+        retreatingNow.add(src.v.address.toLowerCase());
+      }
+    }
+  }
+
   const eligible = snap.venues
     .filter((v) => v.allowed && !deny.has(v.address.toLowerCase()) && v.pegDeviationBps <= HARD_PEG_BREAK_BPS)
     .map((v) => ({ v, r: riskByAddr.get(v.address.toLowerCase())! }))
@@ -249,17 +293,21 @@ export function buildPlan(snap: MarketSnapshot, opts: PlanOpts): Plan {
     const gk = groupKey(v);
     const gExp = gk ? (groupExposure.get(gk) ?? 0n) : 0n;
     const underlyingHeadroom = gk ? (underlyingCap > gExp ? underlyingCap - gExp : 0n) : null;
+    // Fixed-term venues also can't push combined term exposure past the on-demand-liquidity cap.
+    const termHeadroom = isTerm(v) ? (termCap > termExposure ? termCap - termExposure : 0n) : null;
 
     let size = budget;
     if (size > vault.maxMoveSize) size = vault.maxMoveSize;
     if (size > perVenueHeadroom) size = perVenueHeadroom;
     if (size > concHeadroom) size = concHeadroom;
     if (underlyingHeadroom !== null && size > underlyingHeadroom) size = underlyingHeadroom;
+    if (termHeadroom !== null && size > termHeadroom) size = termHeadroom;
     if (v.liquidityUsd > 0 && size > liqHeadroom) size = liqHeadroom;
     if (size < minMove) continue; // don't propose a dust deploy that reverts on the venue's swap floor
 
     budget -= size;
     if (gk) groupExposure.set(gk, gExp + size);
+    if (isTerm(v)) termExposure += size;
     moves.push({
       venue: v.address,
       venueName: v.name,

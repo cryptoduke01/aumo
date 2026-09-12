@@ -41,6 +41,13 @@ export const ROTATION_ROUNDTRIP_BPS = 50;
 // one issuer's dollar. The planner trims any over-cap underlying back toward this bound and blocks
 // new deploys/rotations that would breach it, so diversification is enforced, not merely scored.
 export const MAX_UNDERLYING_CONCENTRATION = 0.8;
+// Max share of the pool that may sit in FIXED-TERM venues — ones that can't be exited at face on
+// demand before a maturity date (e.g. Pendle PT, redeemable 1:1 only at maturity; pre-maturity you
+// can only sell at a market price). This pool promises on-demand redemption, so the illiquid slice
+// must stay small enough that ordinary withdrawals are always covered by the liquid venues + idle.
+// The planner trims any over-cap fixed-term exposure and blocks new deploys past this bound. (This
+// is the guardrail whose absence let the pool sit ~60% in Pendle, blocking large withdrawals.)
+export const MAX_TERM_CONCENTRATION = 0.25;
 // Depeg circuit breaker: the hard peg-deviation threshold (bps) past which the agent forces an
 // immediate, full exit from an RWA venue, independent of the graduated risk band. A dollar-pegged
 // RWA that has slipped 1% is a red alert, not a slow-scoring input, so the agent gets out now rather
