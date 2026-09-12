@@ -32,6 +32,7 @@ import { Num } from "@/components/num";
 import { Orb } from "@/components/orb";
 import { DepositModal } from "@/components/deposit-modal";
 import { BridgeIn } from "@/components/bridge-in";
+import { Select } from "@/components/select";
 import { BRIDGE_ENABLED } from "@/lib/bridge";
 import { useRouter } from "next/navigation";
 import { txUrl, getReceipts, pct } from "@/lib/agent";
@@ -185,11 +186,14 @@ export default function VaultPage() {
         const snap = r[0]?.snapshot;
         if (!snap) return;
         const totalBase = Number(snap.vault.idle) + Number(snap.vault.totalDeployed);
+        // Guard the empty-pool artifact: below ~$1 the pool is effectively empty and the liveBalance/
+        // totalBase ratios are noise (this is what showed 162%). And a blended stablecoin yield can't
+        // plausibly exceed ~30% — anything past that is distortion, so show nothing rather than garbage.
         const blended =
-          totalBase > 0
+          totalBase > 1_000_000
             ? snap.venues.reduce((a, v) => a + Number(v.liveBalance) * v.apyBps, 0) / totalBase
             : 0;
-        setPoolApyBps(Math.round(blended));
+        setPoolApyBps(blended <= 3000 ? Math.round(blended) : null);
       })
       .catch(() => {});
     return () => ctrl.abort();
@@ -539,28 +543,19 @@ export default function VaultPage() {
           {tab === "deposit" && usdgOffered ? (
             <div className="mb-4 flex flex-col gap-1.5">
               <Label>Deposit with</Label>
-              <div className="flex rounded-lg border border-border p-1">
-                {(["USDT0", "USDG"] as const).map((a) => (
-                  <button
-                    key={a}
-                    onClick={() => {
-                      setDepositAsset(a);
-                      setAmount("");
-                      reset();
-                    }}
-                    className={`flex-1 rounded-md px-3 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                      depositAsset === a ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {a}
-                  </button>
-                ))}
-              </div>
-              {isUsdg ? (
-                <span className="text-xs text-faint">
-                  USDG is swapped to USDT0 in one transaction, then deposited. Shares are yours.
-                </span>
-              ) : null}
+              <Select
+                ariaLabel="Deposit token"
+                value={depositAsset}
+                onChange={(v) => {
+                  setDepositAsset(v as "USDT0" | "USDG");
+                  setAmount("");
+                  reset();
+                }}
+                options={[
+                  { value: "USDT0", label: "USDT0", logo: "/brand/usdt0.jpg", sub: "USD₮0 on X Layer" },
+                  { value: "USDG", label: "USDG", logo: "/brand/usdg.png", sub: "swapped to USDT0, then deposited" },
+                ]}
+              />
             </div>
           ) : null}
 
@@ -585,14 +580,9 @@ export default function VaultPage() {
                 aria-label={`${tab} amount in ${isUsdg ? "USDG" : "USDT0"}`}
               />
               <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                {isUsdg ? (
-                  "USDG"
-                ) : (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/brand/usdt0.jpg" alt="" className="size-4 rounded-full" /> USDT0
-                  </>
-                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={isUsdg ? "/brand/usdg.png" : "/brand/usdt0.jpg"} alt="" className="size-5 rounded-full border border-border/50" />{" "}
+                {isUsdg ? "USDG" : "USDT0"}
               </span>
             </div>
           </div>

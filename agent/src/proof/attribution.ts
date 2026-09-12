@@ -129,9 +129,17 @@ export function computeAttribution(decimals = 6, file = RECEIPTS_FILE): Attribut
   // Not a fair read yet (window too short / deposit entry costs still dominate): report null so the UI
   // shows "building track record" instead of a misleading number.
   const ready = elapsedMs >= MIN_REPORT_MS;
-  const realizedYieldBps = ready ? (lastPps.pps / firstPps.pps - 1) * 10_000 : null;
+  // Distortion guard: if the pool was emptied and refilled, a price-per-share sample taken while it was
+  // near-empty (only the virtual-share offset backing it) makes the ratio blow up — the source of the
+  // absurd "+35530%" reading. A stablecoin treasury pool's realized return can't plausibly exceed a
+  // sane band, so treat an out-of-band ratio (or a non-positive start) as "not a fair read yet" and
+  // report null — the UI then shows "building track record" instead of a garbage number.
+  const MAX_PLAUSIBLE_REALIZED_BPS = 5_000; // ±50% realized-since-tracking is far beyond any real stable yield
+  const rawRealized = ready && firstPps.pps > 0 ? (lastPps.pps / firstPps.pps - 1) * 10_000 : null;
+  const realizedYieldBps =
+    rawRealized !== null && Math.abs(rawRealized) <= MAX_PLAUSIBLE_REALIZED_BPS ? rawRealized : null;
   const annualizedBps =
-    ready && realizedYieldBps !== null && elapsedMs >= MIN_ANNUALIZE_MS
+    realizedYieldBps !== null && elapsedMs >= MIN_ANNUALIZE_MS
       ? realizedYieldBps * (YEAR_MS / elapsedMs)
       : null;
 

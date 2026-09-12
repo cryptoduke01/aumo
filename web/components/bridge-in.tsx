@@ -13,6 +13,7 @@ import { formatEther, formatUnits, parseUnits, type Address } from "viem";
 import { toast } from "sonner";
 import { Panel, Label } from "@/components/ui";
 import { Orb } from "@/components/orb";
+import { Select } from "@/components/select";
 import {
   BRIDGE_CHAINS,
   BRIDGE_CHAIN_LIST,
@@ -278,28 +279,37 @@ export function BridgeIn() {
         {direction === "in" ? "Bring USDT0 from another chain onto X Layer." : "From X Layer to another chain."}
       </p>
 
-      {/* chain picker */}
-      <div className="mt-3 flex flex-col gap-1.5">
-        <Label>{direction === "in" ? "From" : "To"}</Label>
-        <div className="flex flex-wrap gap-2">
-          {BRIDGE_CHAIN_LIST.map((c) => (
-            <button
-              key={c.key}
-              onClick={() => {
-                if (direction === "in") setInKey(c.key);
-                else setOutKey(c.key);
-                setAmount("");
-                reset();
-              }}
-              className={`rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                pickedKey === c.key
-                  ? "border-primary/50 text-foreground"
-                  : "border-border text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {c.name}
-            </button>
-          ))}
+      {/* chain picker: From (dropdown) -> To (X Layer, fixed for inbound) */}
+      <div className="mt-3 flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label>From</Label>
+          <Select
+            ariaLabel="Source chain"
+            value={pickedKey}
+            onChange={(k) => {
+              if (direction === "in") setInKey(k);
+              else setOutKey(k);
+              setAmount("");
+              reset();
+            }}
+            options={BRIDGE_CHAIN_LIST.map((c) => ({
+              value: c.key,
+              label: c.name,
+              logo: `/brand/chains/${c.key}.jpg`,
+            }))}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>To</Label>
+          <div
+            className="chamfer flex items-center gap-2.5 border border-border bg-card-2/50 px-3.5 py-2.5"
+            style={{ ["--cut" as string]: "9px" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/chains/xlayer.jpg" alt="" className="size-6 shrink-0 rounded-full border border-border/50 object-cover" />
+            <span className="text-sm font-medium text-foreground">X Layer</span>
+            <span className="ml-auto text-[11px] uppercase tracking-wide text-faint">destination</span>
+          </div>
         </div>
       </div>
 
@@ -323,7 +333,10 @@ export function BridgeIn() {
             className="field-input tnum w-full min-w-0 bg-transparent text-lg font-medium outline-none placeholder:text-faint"
             aria-label={`Amount to bridge from ${src.name}`}
           />
-          <span className="shrink-0 text-xs font-medium text-muted-foreground">{symbol}</span>
+          <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/usdt0.jpg" alt="" className="size-5 rounded-full border border-border/50" /> {symbol}
+          </span>
         </div>
       </div>
 
