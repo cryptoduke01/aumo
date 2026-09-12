@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { formatUnits, parseUnits, parseAbi } from "viem";
 import {
   useAccount,
+  usePublicClient,
   useReadContract,
   useReadContracts,
   useSwitchChain,
@@ -100,7 +101,55 @@ export default function VaultPage() {
 
   const walletBal = reads.data?.[0]?.result as bigint | undefined;
   const allowance = reads.data?.[1]?.result as bigint | undefined;
-  const position = reads.data?.[2]?.result as bigint | undefined; // your redeemable USDT0
+  const position = reads.data?.[2]?.result as bigint | undefined; // maxWithdraw (marked NAV)
+
+  // maxWithdraw is the pool's MARKED value, which includes fixed-term venues (Pendle PT) at oracle
+  // NAV. Those can't be exited at face before maturity, so a withdrawal near the marked max reverts.
+  // Probe the chain for the HONEST number — the largest withdrawal that actually succeeds — so the
+  // "Max" button never overstates and no one ever submits a reverting withdraw. Withdraw tab only.
+  const publicClient = usePublicClient({ chainId: activeChain.id });
+  const [realizableMax, setRealizableMax] = useState<bigint | undefined>(undefined);
+  const [realizing, setRealizing] = useState(false);
+  useEffect(() => {
+    if (tab !== "withdraw" || !isConnected || wrongChain || !address || !publicClient || position === undefined || position === 0n) {
+      setRealizableMax(position);
+      setRealizing(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setRealizing(true);
+      const ok = async (amt: bigint): Promise<boolean> => {
+        if (amt <= 0n) return true;
+        try {
+          await publicClient.simulateContract({ address: POOL, abi: poolAbi, functionName: "withdraw", args: [amt, address, address], account: address });
+          return true;
+        } catch {
+          return false;
+        }
+      };
+      let result = position;
+      if (!(await ok(position))) {
+        // binary-search to ~$1 precision; each probe simulates the full venue unwind
+        let lo = 0n;
+        let hi = position;
+        for (let i = 0; i < 20 && hi - lo > 1_000_000n; i++) {
+          const mid = (lo + hi) / 2n;
+          if (await ok(mid)) lo = mid;
+          else hi = mid;
+        }
+        result = lo;
+      }
+      if (!cancelled) {
+        setRealizableMax(result);
+        setRealizing(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, isConnected, wrongChain, address, position, publicClient]);
 
   // USDG balance + its allowance to the ZAP, read only when USDG deposits are offered and selected.
   const usdgReads = useReadContracts({
@@ -270,8 +319,13 @@ export default function VaultPage() {
     }
   }, [amount]);
 
-  const max = tab === "deposit" ? activeBal : position;
+  const max = tab === "deposit" ? activeBal : (realizableMax ?? position);
   const overMax = max !== undefined && amountWei > max;
+  // How much of the position is currently locked in a fixed-term venue (marked NAV minus realizable).
+  const lockedAmount =
+    tab === "withdraw" && position !== undefined && realizableMax !== undefined && position > realizableMax
+      ? position - realizableMax
+      : 0n;
   const needsApproval = tab === "deposit" && (activeAllowance ?? 0n) < amountWei;
   const busy = isPending || receipt.isLoading;
 
@@ -312,7 +366,9 @@ export default function VaultPage() {
       : amountWei <= 0n
         ? "Enter an amount"
         : overMax
-          ? "Insufficient balance"
+          ? tab === "withdraw" && lockedAmount > 0n
+            ? `Only ${fmt(realizableMax)} available now`
+            : "Insufficient balance"
           : busy
             ? "Confirming…"
             : tab === "deposit"
@@ -488,10 +544,10 @@ export default function VaultPage() {
               <Label>Amount</Label>
               <button
                 className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
-                disabled={max === undefined}
+                disabled={max === undefined || realizing}
                 onClick={() => max !== undefined && setAmount(formatUnits(max, DEC))}
               >
-                Max {fmt(max)}
+                {tab === "withdraw" && realizing ? "Max …" : `Max ${fmt(max)}`}
               </button>
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-border bg-card-2 px-4 py-2.5 transition-colors focus-within:border-primary/50">
@@ -515,6 +571,14 @@ export default function VaultPage() {
               </span>
             </div>
           </div>
+
+          {tab === "withdraw" && lockedAmount > 0n ? (
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              <span className="text-foreground">{fmt(realizableMax)} USDT0 available to withdraw now.</span>{" "}
+              The remaining {fmt(lockedAmount)} is working in a fixed-term venue (Pendle PT) and becomes
+              redeemable at its maturity, Oct 29 2026.
+            </p>
+          ) : null}
 
           <div className="mt-5">
             {!isConnected ? (
