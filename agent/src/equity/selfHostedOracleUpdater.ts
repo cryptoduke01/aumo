@@ -36,7 +36,7 @@ interface UpdaterConfig {
   creds: FinnhubCreds;
 }
 
-function loadUpdaterConfig(): UpdaterConfig {
+export function loadUpdaterConfig(): UpdaterConfig {
   const oracle = process.env.SELF_HOSTED_EQUITY_ORACLE?.trim();
   if (!oracle) throw new Error("set SELF_HOSTED_EQUITY_ORACLE (the SelfHostedEquityOracle address)");
   const symbols = (process.env.EQUITY_SYMBOLS ?? "")

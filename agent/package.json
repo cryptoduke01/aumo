@@ -21,7 +21,8 @@
     "equity-oracle-update": "tsx src/equity/oracleUpdater.ts loop",
     "equity-oracle-once": "tsx src/equity/oracleUpdater.ts once",
     "equity-oracle-update-self": "tsx src/equity/selfHostedOracleUpdater.ts loop",
-    "equity-oracle-once-self": "tsx src/equity/selfHostedOracleUpdater.ts once"
+    "equity-oracle-once-self": "tsx src/equity/selfHostedOracleUpdater.ts once",
+    "stocks-agent": "tsx src/equity/run.ts"
   },
   "engines": {
     "node": ">=20"

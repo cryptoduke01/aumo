@@ -235,7 +235,7 @@ export default function StocksPage() {
           <Badge tone="negative">At-risk</Badge>
         </div>
         <span className="text-xs text-muted-foreground">
-          Opt-in, directional exposure to tokenized stocks, priced by Chainlink Data Streams. Each
+          Opt-in, directional exposure to tokenized stocks, priced by an independent market feed. Each
           stock is its own pool. Not capital preservation — your deposit&apos;s value moves with the
           stock, and trading freezes when the market is closed.
         </span>
@@ -476,8 +476,8 @@ export default function StocksPage() {
             on-chain caps, and you carry the price exposure you chose.
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Priced by Chainlink Data Streams, they trade only while the market is open and freeze
-            otherwise. The catalog runs live on testnet today.
+            Priced by an independent market feed, they trade only while the market is open and freeze
+            otherwise.
           </p>
         </Panel>
       )}
@@ -508,7 +508,7 @@ export default function StocksPage() {
               ["Price risk", "This is not capital preservation. The pool's value moves with the stock, and you can withdraw less than you deposited."],
               ["Market-hours freeze", "Stocks price only while the market is open. Deposits and withdrawals both pause when it's closed, including nights and weekends."],
               ["Spread and slippage", "Every buy and sell crosses a spread, so a quick in-and-out costs a little even if the price hasn't moved."],
-              ["Oracle dependency", "Pricing comes from an independent market feed. If that feed goes stale, the pool refuses to trade rather than transact on a blind price."],
+              ["Oracle dependency", "Prices come from a market feed Aumo runs itself for now, with on-chain guards; if it goes stale the pool refuses to trade rather than transact on a blind price. We will move to a decentralized feed as equity oracles mature on X Layer."],
               ["Not advice", "This is a tool for exposure you choose, not investment advice or a recommendation to buy any stock."],
             ].map(([title, body]) => (
               <li key={title} className="flex gap-3">
