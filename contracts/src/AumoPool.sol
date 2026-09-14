@@ -242,7 +242,11 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         nonReentrant
         returns (uint256)
     {
-        return super.redeem(shares, receiver, owner);
+        // Return the assets ACTUALLY transferred, not the marked preview: a lossy venue exit settles at
+        // realizable value (see {_withdraw}), so the caller must see what it truly received.
+        uint256 beforeBal = IERC20(asset()).balanceOf(receiver);
+        super.redeem(shares, receiver, owner);
+        return IERC20(asset()).balanceOf(receiver) - beforeBal;
     }
 
     /// @dev Before paying out a withdrawal, top up the idle balance by retreating from venues.
@@ -254,7 +258,14 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         uint256 shares
     ) internal override {
         _ensureIdle(assets);
-        super._withdraw(caller, receiver, owner, assets, shares);
+        // A lossy venue exit (an exit-swap cost, or a market discount on a fixed-term instrument)
+        // can realize slightly less than the marked `assets`. Rather than revert the whole redemption
+        // when the pool ends up a hair short, settle at realizable value: pay what the pool can
+        // actually cover. The exiting holder bears their own exit cost; remaining holders are never
+        // charged for it. A lossless venue always covers `assets` exactly, so this is a no-op there.
+        uint256 idle = idleBalance();
+        uint256 pay = assets <= idle ? assets : idle;
+        super._withdraw(caller, receiver, owner, pay, shares);
     }
 
     function _ensureIdle(uint256 assets) internal {
