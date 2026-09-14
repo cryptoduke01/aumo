@@ -41,6 +41,29 @@ Shared OKX settlement contracts seen in swaps (not needed by us): `0x092b82d830f
 - oracle = SelfHostedEquityOracle fed by Finnhub (feedId per underlying symbol).
 - size `slippageBps` for two hops and the per-stock depth (tighter is safe on the deep four).
 
+## DEPLOYED on X Layer mainnet (2026-09-14, block ~70650286)
+
+Shared oracle + the four launch pools, from `DeployStocksMainnet.s.sol` (owner 0x9471A4…96AE).
+
+- **SelfHostedEquityOracle:** `0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2`
+- **owner = agent = updater:** `0x9471A4ea01f51d01749D9E9696b973faf27a96AE` (EQUITY_AGENT was not set, so it defaulted to owner; repoint to a hot agent key before running the feeder/executor autonomously — see below).
+
+| Stock | EquityPool | EquityAdapter |
+|-------|------------|---------------|
+| NVDA  | `0x42ee28ADcA2323689f9c5c8f733B9F56fbb4F7aA` | `0x63D4787ee4f9398A2A22A06B9F0f0f9f1f53Ee94` |
+| AAPL  | `0xD66a4473C4b81397A090248d05179b7da04993d0` | `0xF78F84A4CE4A72802F4A1B672E1e4e1680226b9e` |
+| MSFT  | `0xEE9Cfb0D6847BbC546E0c11538816Ea1f3DAf870` | `0xD4b3CF075E6Fb749Cb6e2eCb2885B86AAC8b21D8` |
+| META  | `0xC70881EE201FB6979f90CF39A690D6816BB30463` | `0x87615aeB27Eb030F22526ac4277b6868485A5cf3` |
+
+Feeder/executor env (aligned lists):
+```
+EQUITY_SYMBOLS=NVDA,AAPL,MSFT,META
+EQUITY_POOLS=0x42ee28ADcA2323689f9c5c8f733B9F56fbb4F7aA,0xD66a4473C4b81397A090248d05179b7da04993d0,0xEE9Cfb0D6847BbC546E0c11538816Ea1f3DAf870,0xC70881EE201FB6979f90CF39A690D6816BB30463
+EQUITY_VENUES=0x63D4787ee4f9398A2A22A06B9F0f0f9f1f53Ee94,0xF78F84A4CE4A72802F4A1B672E1e4e1680226b9e,0xD4b3CF075E6Fb749Cb6e2eCb2885B86AAC8b21D8,0x87615aeB27Eb030F22526ac4277b6868485A5cf3
+SELF_HOSTED_EQUITY_ORACLE=0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2
+```
+Until the feeder submits the first prices, every pool reads market-closed and deposits are gated shut. That is expected; the first feeder cycle opens them.
+
 ## Before mainnet
 
 - Confirm USD₮0 `0x779ded…3736` is the same asset the live safe pool uses (it is the base for the equity pool too).

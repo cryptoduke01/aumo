@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { equityPoolAbi } from "./abi.js";
 import { erc20Abi } from "../chain/abi.js";
-import { loadEquityConfig, type EquityConfig } from "./config.js";
+import { loadEquityConfig, type EquityConfig, type StockVenue } from "./config.js";
 import type { Address } from "../types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -126,9 +126,13 @@ export interface EquityDecision {
  * the contract re-checks every guardrail. Normal exits are depositor redemptions; the executor never
  * force-sells. When the market is closed it holds (the pool already blocks entry/exit anyway).
  */
-export async function equityTick(cfg: EquityConfig, opts: { dryRun?: boolean } = {}): Promise<EquityDecision> {
+export async function equityTickOne(
+  cfg: EquityConfig,
+  sv: StockVenue,
+  opts: { dryRun?: boolean } = {},
+): Promise<EquityDecision> {
   const { pc, wallet, agentAddr } = clients(cfg);
-  const c = { address: cfg.pool, abi: equityPoolAbi } as const;
+  const c = { address: sv.pool, abi: equityPoolAbi } as const;
 
   const [asset, agent, paused, marketOpen, idle, totalDeployed, nav, maxMove, perVenueCap, maxTotal] =
     await readRetry(() =>
@@ -149,9 +153,9 @@ export async function equityTick(cfg: EquityConfig, opts: { dryRun?: boolean } =
   const [dec, allowed, principal, liveBal] = await readRetry(() =>
     Promise.all([
       pc.readContract({ address: asset as Address, abi: erc20Abi, functionName: "decimals" }),
-      pc.readContract({ ...c, functionName: "venueAllowed", args: [cfg.venue] }),
-      pc.readContract({ ...c, functionName: "allocated", args: [cfg.venue] }),
-      pc.readContract({ ...c, functionName: "venueBalance", args: [cfg.venue] }),
+      pc.readContract({ ...c, functionName: "venueAllowed", args: [sv.venue] }),
+      pc.readContract({ ...c, functionName: "allocated", args: [sv.venue] }),
+      pc.readContract({ ...c, functionName: "venueBalance", args: [sv.venue] }),
     ]),
   );
   const decimals = Number(dec);
@@ -193,10 +197,10 @@ export async function equityTick(cfg: EquityConfig, opts: { dryRun?: boolean } =
       const hash = await wallet.writeContract({
         account: wallet.account!,
         chain: wallet.chain,
-        address: cfg.pool,
+        address: sv.pool,
         abi: equityPoolAbi,
         functionName: "allocate",
-        args: [cfg.venue, deployable, stringToHex("equity-exposure", { size: 32 })],
+        args: [sv.venue, deployable, stringToHex("equity-exposure", { size: 32 })],
       });
       decision.hash = hash;
       const rcpt = await pc.waitForTransactionReceipt({ hash });
@@ -207,21 +211,21 @@ export async function equityTick(cfg: EquityConfig, opts: { dryRun?: boolean } =
     }
   }
 
-  printEquity(cfg, decision, decimals, willExecute);
+  printEquity(sv, decision, decimals, willExecute);
   try {
     mkdirSync(dirname(RECEIPTS), { recursive: true });
-    appendFileSync(RECEIPTS, JSON.stringify({ ...decision, idle: decision.idle.toString(), exposure: decision.exposure.toString(), totalDeployed: decision.totalDeployed.toString(), nav: decision.nav.toString(), deployable: decision.deployable.toString() }) + "\n");
+    appendFileSync(RECEIPTS, JSON.stringify({ symbol: sv.symbol, pool: sv.pool, ...decision, idle: decision.idle.toString(), exposure: decision.exposure.toString(), totalDeployed: decision.totalDeployed.toString(), nav: decision.nav.toString(), deployable: decision.deployable.toString() }) + "\n");
   } catch {
     // receipts are best-effort; never fail a cycle on a write error
   }
   return decision;
 }
 
-function printEquity(cfg: EquityConfig, d: EquityDecision, dec: number, executing: boolean) {
+function printEquity(sv: StockVenue, d: EquityDecision, dec: number, executing: boolean) {
   console.log("\n──────────────────────────────────────────────");
-  console.log(` Aumo equity · ${d.at}`);
+  console.log(` Aumo equity · ${sv.symbol} · ${d.at}`);
   console.log("──────────────────────────────────────────────");
-  console.log(` Pool ${cfg.pool}  (${cfg.venueName})`);
+  console.log(` Pool ${sv.pool}  (${sv.venueName})`);
   console.log(
     ` market ${d.marketOpen ? "OPEN" : "CLOSED"}${d.paused ? " · PAUSED" : ""} · idle ${fmt(d.idle, dec)} · exposure ${fmt(
       d.exposure,
@@ -235,20 +239,32 @@ function printEquity(cfg: EquityConfig, d: EquityDecision, dec: number, executin
   console.log("──────────────────────────────────────────────\n");
 }
 
-/** Repeat an equity tick every LOOP_INTERVAL_SECONDS. */
+/** Run one cycle across EVERY configured stock pool. A failure on one pool never blocks the others. */
+export async function equityTickAll(
+  cfg: EquityConfig,
+  opts: { dryRun?: boolean } = {},
+): Promise<EquityDecision[]> {
+  const out: EquityDecision[] = [];
+  for (const sv of cfg.pools) {
+    try {
+      out.push(await equityTickOne(cfg, sv, opts));
+    } catch (err) {
+      console.error(`equity tick error (${sv.symbol}):`, err instanceof Error ? err.message : err);
+    }
+  }
+  return out;
+}
+
+/** Repeat an all-pools cycle every LOOP_INTERVAL_SECONDS. */
 export async function equityLoop(cfg: EquityConfig): Promise<void> {
   console.log(
-    `Aumo equity executor · pool ${cfg.pool} · venue ${cfg.venueName} ${cfg.venue} · interval ${
+    `Aumo equity executor · ${cfg.pools.length} pool(s): ${cfg.pools.map((p) => p.symbol).join(",")} · interval ${
       cfg.loopIntervalMs / 1000
     }s · execute=${cfg.execute}`,
   );
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    try {
-      await equityTick(cfg);
-    } catch (err) {
-      console.error("equity tick error:", err instanceof Error ? err.message : err);
-    }
+    await equityTickAll(cfg);
     await new Promise((r) => setTimeout(r, cfg.loopIntervalMs));
   }
 }
@@ -256,7 +272,7 @@ export async function equityLoop(cfg: EquityConfig): Promise<void> {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const cmd = process.argv[2] ?? "plan";
   const cfg = loadEquityConfig();
-  (cmd === "loop" ? equityLoop(cfg) : equityTick(cfg, { dryRun: cmd === "plan" })).catch((err) => {
+  (cmd === "loop" ? equityLoop(cfg) : equityTickAll(cfg, { dryRun: cmd === "plan" })).catch((err) => {
     console.error(err instanceof Error ? err.stack ?? err.message : err);
     process.exit(1);
   });

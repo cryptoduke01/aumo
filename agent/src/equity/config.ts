@@ -20,6 +20,14 @@ function envOr(name: string, fallback: string): string {
  * editing the file. The equity pool is DIRECTIONAL and separate from the safe pool; nothing here
  * touches the yield loop.
  */
+/** One stock's pool + its allowlisted adapter (one pool == one xStock). */
+export interface StockVenue {
+  symbol: string; // underlying ticker, e.g. "NVDA"
+  pool: Address; // the EquityPool
+  venue: Address; // the allowlisted EquityAdapter
+  venueName: string; // for logs, e.g. "NVDAx"
+}
+
 export interface EquityConfig {
   chainId: number;
   chainName: string;
@@ -28,9 +36,13 @@ export interface EquityConfig {
   execute: boolean;
   loopIntervalMs: number;
 
-  pool: Address; // the EquityPool
-  venue: Address; // the single allowlisted EquityAdapter (one pool == one xStock, v1)
-  venueName: string; // for logs (e.g. "NVDAx")
+  // The executor drives EVERY pool in `pools` each cycle. Multi-stock mainnet fills it from aligned
+  // comma-separated env lists (EQUITY_SYMBOLS / EQUITY_POOLS / EQUITY_VENUES); the single-pool testnet
+  // path falls back to one entry from EQUITY_POOL / EQUITY_VENUE.
+  pools: StockVenue[];
+  pool: Address; // pools[0] — kept for the single-pool callers/tests
+  venue: Address; // pools[0].venue
+  venueName: string; // pools[0].venueName
 
   // Testnet soak only: the mocks the feeder drives to move NAV and open/close the market.
   oracle?: Address;
@@ -67,10 +79,38 @@ export function loadEquityConfig(): EquityConfig {
   const pk = process.env.AGENT_PRIVATE_KEY?.trim();
   const key = pk && pk.length > 0 ? ((pk.startsWith("0x") ? pk : `0x${pk}`) as Address) : undefined;
 
-  const pool = req("EQUITY_POOL", process.env.EQUITY_POOL ?? file.pool) as Address;
-  const venue = req("EQUITY_VENUE", process.env.EQUITY_VENUE ?? file.venue) as Address;
+  // Multi-stock (mainnet): aligned comma-separated lists. Falls back to the single testnet pool.
+  const symbols = (process.env.EQUITY_SYMBOLS ?? "").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+  const poolList = (process.env.EQUITY_POOLS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const venueList = (process.env.EQUITY_VENUES ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  let pools: StockVenue[];
+  if (poolList.length > 0) {
+    if (venueList.length !== poolList.length) {
+      throw new Error("equity config: EQUITY_POOLS and EQUITY_VENUES must be the same length");
+    }
+    pools = poolList.map((p, i) => ({
+      symbol: symbols[i] ?? `S${i}`,
+      pool: p as Address,
+      venue: venueList[i] as Address,
+      venueName: `${symbols[i] ?? "xStock"}x`,
+    }));
+  } else {
+    const pool = req("EQUITY_POOL", process.env.EQUITY_POOL ?? file.pool) as Address;
+    const venue = req("EQUITY_VENUE", process.env.EQUITY_VENUE ?? file.venue) as Address;
+    pools = [{
+      symbol: (process.env.EQUITY_FEED_ID ?? file.feedId ?? "NVDA").toUpperCase(),
+      pool,
+      venue,
+      venueName: process.env.EQUITY_VENUE_NAME ?? file.venueName ?? "xStock",
+    }];
+  }
+  const primary = pools[0];
+  if (!primary) throw new Error("equity config: no pools configured");
+  const pool = primary.pool;
+  const venue = primary.venue;
 
   return {
+    pools,
     chainId: Number(process.env.CHAIN_ID ?? file.chainId ?? 1952),
     chainName: process.env.CHAIN_NAME ?? "X Layer Testnet",
     rpcUrl: envOr("RPC_URL", "https://testrpc.xlayer.tech"),
@@ -79,7 +119,7 @@ export function loadEquityConfig(): EquityConfig {
     loopIntervalMs: Math.max(30, Number(process.env.LOOP_INTERVAL_SECONDS ?? 300)) * 1000,
     pool,
     venue,
-    venueName: process.env.EQUITY_VENUE_NAME ?? file.venueName ?? "xStock",
+    venueName: primary.venueName,
     oracle: (process.env.EQUITY_ORACLE ?? file.oracle) as Address | undefined,
     router: (process.env.EQUITY_ROUTER ?? file.router) as Address | undefined,
     feedId: process.env.EQUITY_FEED_ID ?? file.feedId ?? "NVDA",
