@@ -47,7 +47,7 @@ Two things we would rather tell you now than have you find later.
 
 Pricing. There is no decentralized price feed for equities on X Layer yet. Until there is, Aumo runs its own feed for stocks, with guards around it, and we say so on the product page. It is a deliberate first version, built so we can switch to a decentralized feed later without you lifting a finger.
 
-Liquidity. Onchain stock liquidity on X Layer is still thin. We would rather wait for a clean fill than route your deposit into a pool that hands you a bad price. That is the honest reason this says coming and not live.
+Routing. The stocks already exist onchain on X Layer with real depth behind them. What we are finishing is the routing that connects a deposit to that liquidity at a fair price. We would rather wire it properly than fill you at a bad one. That is the honest reason this says coming and not live.
 
 ## What is already built
 
