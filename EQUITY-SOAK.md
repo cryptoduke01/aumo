@@ -142,10 +142,32 @@ each also registered on the oracle). Deploy with `script/DeploySelfHostedEquityO
 catalog; set `EQUITY_UPDATER` to the feeder key). Only the live Finnhub round trip is unverified; confirm
 end to end on a fork before mainnet.
 
-**Still to lock at mainnet:** the **xStock EVM token addresses** + routing on X Layer (same open item as
-above — the pool/adapter path, USDG-based or USD₮0->USDG->xStock); a paid Finnhub tier for production
-reliability/SLA (free tier is fine for the large-cap catalog but has rate/coverage limits); and a decision
-on the deviation-breaker band per asset once a sane range is observed.
+**xStock token addresses on X Layer — RESOLVED (2026-09-14).** Pulled from Backed Finance's authoritative
+public API (`https://api.backed.fi/api/v2/public/assets`, paginate `?page=N`) and each verified on-chain
+via `cast` on `https://rpc.xlayer.tech` (chain 196): correct symbol, 18 decimals, live code. All EVM chains
+share one canonical CREATE2 address per xStock.
+
+| xStock  | X Layer address (chain 196) |
+|---------|-----------------------------|
+| NVDAx   | `0xc845b2894dbddd03858fd2d643b4ef725fe0849d` |
+| TSLAx   | `0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0` |
+| AAPLx   | `0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a` |
+| MSFTx   | `0x5621737f42dae558b81269fcb9e9e70c19aa6b35` |
+| AMZNx   | `0x3557ba345b01efa20a1bddc61f573bfd87195081` |
+| METAx   | `0x96702be57cd9777f835117a809c7124fe4ec989a` |
+| GOOGLx  | `0xe92f673ca36c5e2efd2de7628f815f84807e803f` |
+| COINx   | `0x364f210f430ec2448fc68a49203040f6124096f0` |
+
+Base/quote stablecoins on X Layer (both 6dp, verified): USDG `0x4ae46a509f6b1d9056937ba4500cb143933d2dc8`,
+USDC `0xb6ceceab302e2e4948951ee7843fc24e92933061`. xStock decimals 18 / stablecoin decimals 6 matches the
+adapter's base(6)/stock(18) math exactly (same as the testnet deploy).
+
+**Still to lock at mainnet:** the **DEX pool address + fee tier** for each xStock (the last thing the v3
+path-agnostic adapter needs to encode buy/sell paths — the RWA-incentive pools are Uniswap-v3-style
+USDG/xStock and USDC/xStock; find each via the v3 factory `getPool` on X Layer, then decide base=USDG
+(1 hop) vs base=USD₮0 routing USD₮0->USDG->xStock (2 hops, size slippage for both)); a paid Finnhub tier
+for production reliability/SLA (free tier is fine for the large-cap catalog but has rate/coverage limits);
+and a per-asset deviation-breaker band once a sane range is observed.
 
 ## Other before-mainnet items
 
