@@ -32,6 +32,20 @@ export const streamsOracleAbi = parseAbi([
   "function marketTradeable(bytes32 feedId) view returns (bool)",
 ]);
 
+/**
+ * SelfHostedEquityOracle — the self-sourced oracle the agent (as `updater`) feeds each cycle from a
+ * market-data API (Finnhub). `submitPrices` batches all xStock quotes into one tx; `lastObservation`
+ * lets the feeder skip a submission that is not newer (avoiding a doomed StaleObservation tx).
+ */
+export const selfHostedOracleAbi = parseAbi([
+  "function submitPrice(bytes32 feedId, uint256 pxWad, uint32 marketStatus, uint32 observationsTimestamp)",
+  "function submitPrices(bytes32[] feedIds, uint256[] pricesWad, uint32[] marketStatuses, uint32[] observationsTimestamps)",
+  "function updater() view returns (address)",
+  "function priceWad(bytes32 feedId) view returns (uint256 price, uint256 updatedAt)",
+  "function marketTradeable(bytes32 feedId) view returns (bool)",
+  "function lastObservation(bytes32 feedId) view returns (uint32 observationsTimestamp, uint32 marketStatus)",
+]);
+
 /** MockEquityOracle — testnet only. `set` writes a price (WAD) and publish time for a feed id. */
 export const mockOracleAbi = parseAbi([
   "function set(bytes32 id, uint256 priceWad, uint256 updatedAt)",

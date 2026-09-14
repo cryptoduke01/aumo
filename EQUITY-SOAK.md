@@ -113,6 +113,40 @@ confirm it end to end on a fork before mainnet.
   + pool addresses and fee tiers from the explorer and encode the path. On a multi-hop route, size
   `slippageBps` to cover both hops.
 
+## The v1 mainnet oracle (BUILT — `SelfHostedEquityOracle`)
+
+Chainlink Data Streams for **equities** is enterprise / Talk-to-Sales, not self-serve, and OKX has not
+yet opened a door. Rather than block Stocks on that, v1 ships a **self-hosted** oracle — the same path a
+peer on X Layer already runs in production (xira.surf, oracle `0xDe28a2…d41E`, self-sources quotes and
+posts its own on-chain attestations; confirmed with its author that the market-data source is **Finnhub**
+plus Yahoo quotes for coverage). This is a deliberate, migratable v1: consumers read the oracle-agnostic
+`IEquityOracle`, so swapping to Data Streams / Supra later is a single `setOracle` on the adapter, no
+depositor action.
+
+`contracts/src/oracles/SelfHostedEquityOracle.sol` implements `IEquityOracle` with the **same** market-
+status fold and staleness behaviour as the Chainlink oracle (so the adapter and pool are unchanged), but
+the trust root is our own `updater` key instead of a DON — **stated honestly and disclosed on the product
+page**. To bound what a bad feed or a compromised key can do while this is the source, the submit path
+enforces: a registered-feed allowlist, a **monotonic** observation timestamp (no replay/rollback), a
+future-skew bound, an absurd-price cap ($1M/share), and an owner-dialable **deviation circuit-breaker**
+(with a `forceResync` escape hatch for a legitimate large gap). `submitPrices` batches all xStock quotes
+into one tx; `lastObservation` lets the feeder skip a stale re-submit so a closed market costs no gas. 21
+unit tests pass (`test/SelfHostedEquityOracle.t.sol`).
+
+The feeder is BUILT: `agent/src/equity/finnhubClient.ts` (Finnhub REST client + pure helpers —
+`symbolToFeedId` / `priceToWad` / `sessionToStatus`, unit-pinned in `test/finnhub-feeder.test.ts`) +
+`agent/src/equity/selfHostedOracleUpdater.ts` (pull a quote + the US session per symbol, submit the batch,
+refusing unless our key is the oracle's `updater`). Run on mainnet with `npm run equity-oracle-update-self`,
+given env `FINNHUB_API_KEY`, `SELF_HOSTED_EQUITY_ORACLE`, and `EQUITY_SYMBOLS` (comma-separated US tickers,
+each also registered on the oracle). Deploy with `script/DeploySelfHostedEquityOracle.s.sol` (registers the
+catalog; set `EQUITY_UPDATER` to the feeder key). Only the live Finnhub round trip is unverified; confirm
+end to end on a fork before mainnet.
+
+**Still to lock at mainnet:** the **xStock EVM token addresses** + routing on X Layer (same open item as
+above — the pool/adapter path, USDG-based or USD₮0->USDG->xStock); a paid Finnhub tier for production
+reliability/SLA (free tier is fine for the large-cap catalog but has rate/coverage limits); and a decision
+on the deviation-breaker band per asset once a sane range is observed.
+
 ## Other before-mainnet items
 
 - Fork-test the equity stack (pool + adapter + real oracle) vs live X Layer.
