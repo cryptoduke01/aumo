@@ -120,13 +120,44 @@ const STOCKS_BY_NET: Record<"mainnet" | "testnet", StockConfig[]> = {
     soon("GOOGLx", "Alphabet"),
     soon("COINx", "Coinbase"),
   ],
+  // Live on X Layer mainnet (2026-09-14): the four liquidity-ready stocks, each its own pool, all
+  // priced by the shared self-hosted oracle. `stock` is the WRAPPED xStock (w<SYM>x) that carries the
+  // Uniswap liquidity the adapter routes through. The thinner four stay coming-soon until depth arrives.
   mainnet: [
-    soon("NVDAx", "NVIDIA"),
+    {
+      symbol: "NVDAx",
+      name: "NVIDIA",
+      feedId: "0x4e56444100000000000000000000000000000000000000000000000000000000",
+      pool: "0x42ee28ADcA2323689f9c5c8f733B9F56fbb4F7aA",
+      oracle: "0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2",
+      stock: "0xa8ddb5Cd96b5222AFe198316E9A57CAA642850D5",
+    },
+    {
+      symbol: "AAPLx",
+      name: "Apple",
+      feedId: "0x4141504c00000000000000000000000000000000000000000000000000000000",
+      pool: "0xD66a4473C4b81397A090248d05179b7da04993d0",
+      oracle: "0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2",
+      stock: "0x943BF64D566c32A2Bcd41AC92FB63C111cC9De8f",
+    },
+    {
+      symbol: "MSFTx",
+      name: "Microsoft",
+      feedId: "0x4d53465400000000000000000000000000000000000000000000000000000000",
+      pool: "0xEE9Cfb0D6847BbC546E0c11538816Ea1f3DAf870",
+      oracle: "0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2",
+      stock: "0x166Fbe68274b6a47e025F4ba17388c539f1fa1d0",
+    },
+    {
+      symbol: "METAx",
+      name: "Meta",
+      feedId: "0x4d45544100000000000000000000000000000000000000000000000000000000",
+      pool: "0xC70881EE201FB6979f90CF39A690D6816BB30463",
+      oracle: "0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2",
+      stock: "0xe840946FfEBCd66B7C4E95095effaFaDfa0D0e56",
+    },
     soon("TSLAx", "Tesla"),
-    soon("AAPLx", "Apple"),
-    soon("MSFTx", "Microsoft"),
     soon("AMZNx", "Amazon"),
-    soon("METAx", "Meta"),
     soon("GOOGLx", "Alphabet"),
     soon("COINx", "Coinbase"),
   ],
