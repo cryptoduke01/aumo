@@ -5,21 +5,29 @@ date: 2026-09-14
 banner: /brand/marketing/stocks-article-banner.png
 ---
 
-Aumo has always been one thing: a stablecoin treasury that runs itself. You deposit, and an autonomous agent finds the yield, moves the capital, and keeps moving it as conditions change. No dashboard to babysit, no rebalancing by hand.
+Aumo is an autonomous agent for real-world assets onchain. You deposit stablecoins, and the agent puts them to work in assets that exist in the real economy: treasuries, savings rates, and soon, equities. It reads where value is, moves capital there, and keeps moving it as conditions change. No dashboard to babysit, no rebalancing by hand.
 
-We are now pointing that same agent at something new. Tokenized stocks.
+Today that means yield. The treasury allocates across real-world yield sources on X Layer: tokenized T-bills, savings-rate vaults, and lending markets. Next it means something people have wanted onchain for years. Tokenized stocks.
 
-Soon you will be able to hold NVIDIA, Tesla, Apple, Microsoft, Amazon, Meta, Google, and Coinbase inside Aumo, onchain, on X Layer. Same agent, same custody-free design, different job.
+Soon you will be able to hold NVIDIA, Tesla, Apple, Microsoft, Amazon, Meta, Google, and Coinbase inside Aumo, onchain, on X Layer. Same agent, same custody-free design, a new kind of real-world asset.
 
-## This is not the yield vault
+## Why real-world assets, and why an agent
 
-We will say this part plainly, because the two products are opposites.
+Crypto yield used to mean farming emissions that evaporated by morning. Real-world assets changed that. A tokenized treasury pays what a treasury pays. A tokenized stock moves with the company behind it. The return comes from the real economy, not from a token printer.
 
-The treasury chases low-risk yield. It wants your balance to climb slowly and never drop. Stocks is the reverse. A stock position rises and falls with the stock. If NVIDIA falls 8 percent, so does your position. You are taking market exposure on purpose. That is the whole point, and it is why Stocks lives in its own at-risk pool, walled off from the treasury.
+The catch is that RWAs onchain are scattered. Different issuers, different redemption rules, different risks, spread across venues. Picking the right one and moving between them is work most people will not do every day. That is the job we built Aumo to do. An agent that reads the landscape and acts, so you hold one position and it handles the rest.
 
-If you want steady yield, stay in the treasury. If you want NVIDIA onchain without opening a brokerage account, this is that.
+## Two lanes, one engine
 
-## How it works
+Aumo runs real-world assets in two lanes, and it matters that you know which one you are in.
+
+The treasury is the safe lane. It chases low-risk yield and is built so your balance climbs slowly and rarely drops. Most people should start here.
+
+Stocks is the at-risk lane. A stock position rises and falls with the stock. If NVIDIA falls 8 percent, so does your position. You take market exposure on purpose. Because the risk is different, Stocks lives in its own pool, walled off from the treasury, with its own controls. Your safe balance is never exposed to a stock move you did not choose.
+
+Same agent, same rails, two clearly separated lanes.
+
+## How Stocks works
 
 - Deposit a stablecoin and pick a stock.
 - The agent buys the tokenized share (an xStock, backed one to one by the real equity) onchain and holds it for you.
@@ -29,11 +37,15 @@ If you want steady yield, stay in the treasury. If you want NVIDIA onchain witho
 
 No broker, no forms, no T+1 settlement. An onchain position your agent manages.
 
+## The start of the menu, not the end
+
+Stocks is one kind of real-world asset. It will not be the last. X Layer is turning into one of the deepest RWA hubs in crypto, with tokenized treasuries, credit funds, and corporate bonds arriving from serious issuers. Every one of those is a candidate the agent can learn to allocate into. The plan is straightforward: bring the real economy onchain, one asset class at a time, and let the agent do the driving.
+
 ## What we are not hiding
 
 Two things we would rather tell you now than have you find later.
 
-Pricing. There is no decentralized price feed for equities on X Layer yet. Until there is, Aumo runs its own feed for stocks, with guards around it, and we say so on the product page. It is a deliberate first version, and it is built so we can switch to a decentralized feed later without you lifting a finger.
+Pricing. There is no decentralized price feed for equities on X Layer yet. Until there is, Aumo runs its own feed for stocks, with guards around it, and we say so on the product page. It is a deliberate first version, built so we can switch to a decentralized feed later without you lifting a finger.
 
 Liquidity. Onchain stock liquidity on X Layer is still thin. We would rather wait for a clean fill than route your deposit into a pool that hands you a bad price. That is the honest reason this says coming and not live.
 
