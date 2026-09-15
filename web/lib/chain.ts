@@ -77,15 +77,15 @@ if (isMainnet && !poolConfigured) {
 
 // --- Opt-in, AT-RISK tokenized-stock pools. Each stock is its OWN pool (one pool == one stock) so
 // positions are priced by their own feed and never entangled — never mixed with the safe pool. The
-// catalog is the target menu; the real availability is the intersection of Chainlink Data Streams
-// equity feeds and X Layer xStock liquidity. A stock with a zero `pool` on the active network renders
-// as "coming soon"; on testnet the first stock points at the live soak deploy so the surface is real.
+// catalog is the target menu; real availability tracks X Layer xStock liquidity (pricing is a
+// self-hosted oracle Aumo runs). A stock with a zero `pool` on the active network renders as "coming
+// soon"; on testnet the first stock points at the live soak deploy so the surface is real.
 const ZERO32 = ("0x" + "00".repeat(32)) as `0x${string}`;
 
 export interface StockConfig {
   symbol: string; // xStock ticker (e.g. NVDAx)
   name: string; // company (e.g. NVIDIA)
-  feedId: `0x${string}`; // Data Streams feed id (bytes32)
+  feedId: `0x${string}`; // oracle feed id, bytes32(symbol)
   pool: `0x${string}`; // the at-risk pool for this stock
   oracle: `0x${string}`; // the equity oracle backing it
   stock: `0x${string}`; // the xStock token
@@ -174,6 +174,7 @@ export const equityPoolAbi = parseAbi([
   "function totalSupply() view returns (uint256)",
   "function balanceOf(address) view returns (uint256)",
   "function maxWithdraw(address) view returns (uint256)",
+  "function maxRedeem(address) view returns (uint256)",
   "function idleBalance() view returns (uint256)",
   "function marketOpen() view returns (bool)",
   "function deposit(uint256 assets, address receiver) returns (uint256)",

@@ -6,6 +6,7 @@ import {
   useAccount,
   useReadContract,
   useReadContracts,
+  useSimulateContract,
   useSwitchChain,
   useWaitForTransactionReceipt,
   useWriteContract,
@@ -70,7 +71,8 @@ export default function StocksPage() {
   });
   const priceOf = (i: number) => {
     const r = catalogReads.data?.[i * 2]?.result as [bigint, bigint] | undefined;
-    return r ? Number(r[0]) / 1e18 : undefined;
+    // Treat an unset/zero oracle price as unavailable ("-"), not a real "$0.00".
+    return r && r[0] > 0n ? Number(r[0]) / 1e18 : undefined;
   };
   const openOf = (i: number) => catalogReads.data?.[i * 2 + 1]?.result as boolean | undefined;
   const selIdx = selected ? liveStocks.findIndex((s) => s.pool === selected.pool) : -1;
@@ -93,17 +95,19 @@ export default function StocksPage() {
       { address: USDT0, abi: erc20Abi, functionName: "balanceOf", args: [address!] },
       { address: USDT0, abi: erc20Abi, functionName: "allowance", args: [address!, selected?.pool as `0x${string}`] },
       { address: selected?.pool, abi: equityPoolAbi, functionName: "maxWithdraw", args: [address!] },
+      { address: selected?.pool, abi: equityPoolAbi, functionName: "maxRedeem", args: [address!] },
     ],
     chainId: activeChain.id,
     query: { enabled: Boolean(address) && !wrongChain && Boolean(selected), refetchInterval: 12_000 },
   });
   const walletBal = reads.data?.[0]?.result as bigint | undefined;
   const allowance = reads.data?.[1]?.result as bigint | undefined;
-  const position = reads.data?.[2]?.result as bigint | undefined;
+  const position = reads.data?.[2]?.result as bigint | undefined; // marked NAV of the user's shares
+  const shares = reads.data?.[3]?.result as bigint | undefined; // the user's pool shares (maxRedeem)
 
   const { writeContract, data: hash, isPending, reset, error } = useWriteContract();
   const receipt = useWaitForTransactionReceipt({ hash });
-  const pending = useRef<{ action: "approve" | "deposit" | "withdraw"; amountWei: bigint } | null>(null);
+  const pending = useRef<{ action: "approve" | "deposit" | "withdraw"; amountWei: bigint; est?: bigint } | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelReset = () => {
     if (resetTimer.current) {
@@ -160,7 +164,13 @@ export default function StocksPage() {
     catalogReads.refetch();
     setAmount("");
     pending.current = null;
-    toast.success(p?.action === "deposit" ? "Deposit confirmed" : "Withdrawal confirmed", {
+    const msg =
+      p?.action === "deposit"
+        ? "Deposit confirmed"
+        : p?.est !== undefined
+          ? `Withdrawal confirmed — you received ≈ ${fmt(p.est)} USDT0`
+          : "Withdrawal confirmed";
+    toast.success(msg, {
       action: hash ? { label: "View", onClick: () => window.open(txUrl(hash), "_blank") } : undefined,
     });
     cancelReset();
@@ -186,6 +196,25 @@ export default function StocksPage() {
     }
   }, [amount]);
 
+  // Withdraw settles at REALIZABLE value on-chain: redeem the shares matching the requested amount (all
+  // shares for a full exit), so the pool returns what it can actually realize, not the marked figure.
+  const sharesToRedeem = useMemo(() => {
+    if (tab !== "withdraw" || !shares || !position || position === 0n || amountWei <= 0n) return 0n;
+    return amountWei >= position ? shares : (shares * amountWei) / position;
+  }, [tab, shares, position, amountWei]);
+
+  // Simulate the redeem to quote the amount actually received (net of the exit swap cost), so the UI
+  // never promises the marked value the pool won't fully deliver.
+  const withdrawSim = useSimulateContract({
+    address: selected?.pool,
+    abi: equityPoolAbi,
+    functionName: "redeem",
+    args: [sharesToRedeem, address as `0x${string}`, address as `0x${string}`],
+    chainId: activeChain.id,
+    query: { enabled: tab === "withdraw" && Boolean(address) && !wrongChain && sharesToRedeem > 0n && marketOpen === true },
+  });
+  const estOut = withdrawSim.data?.result as bigint | undefined;
+
   const max = tab === "deposit" ? walletBal : position;
   const overMax = max !== undefined && amountWei > max;
   const needsApproval = tab === "deposit" && (allowance ?? 0n) < amountWei;
@@ -207,8 +236,11 @@ export default function StocksPage() {
         doDeposit(amountWei);
       }
     } else {
-      pending.current = { action: "withdraw", amountWei };
-      writeContract({ address: selected.pool, abi: equityPoolAbi, functionName: "withdraw", args: [amountWei, address, address], chainId: activeChain.id });
+      if (sharesToRedeem <= 0n) return;
+      // Redeem the matching shares so the pool settles at realizable value (never reverts on a small
+      // shortfall, and returns what it actually pays), instead of a marked-value withdraw(assets).
+      pending.current = { action: "withdraw", amountWei, est: estOut };
+      writeContract({ address: selected.pool, abi: equityPoolAbi, functionName: "redeem", args: [sharesToRedeem, address, address], chainId: activeChain.id });
     }
   }
 
@@ -238,7 +270,7 @@ export default function StocksPage() {
           <Badge tone="negative">At-risk</Badge>
         </div>
         <span className="text-xs text-muted-foreground">
-          Opt-in, directional exposure to tokenized stocks, priced by an independent market feed. Each
+          Opt-in, directional exposure to tokenized stocks, priced by a market feed Aumo runs. Each
           stock is its own pool. Not capital preservation — your deposit&apos;s value moves with the
           stock, and trading freezes when the market is closed.
         </span>
@@ -322,7 +354,7 @@ export default function StocksPage() {
                       <Num value={num(position)} currency />
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {marketClosed ? "Redeemable when the market reopens" : "USDT0 redeemable at the current price"}
+                      {marketClosed ? "Redeemable when the market reopens" : "Marked value; redeems to USDT0 at the market price on exit"}
                     </div>
                   </div>
                 </div>
@@ -444,6 +476,13 @@ export default function StocksPage() {
               </div>
             </div>
 
+            {tab === "withdraw" && amountWei > 0n && !marketClosed ? (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                You receive {estOut !== undefined ? `≈ ${fmt(estOut)}` : "…"} USDT0. The exit sells the
+                stock at the market price, so a small spread applies and the final amount can differ.
+              </p>
+            ) : null}
+
             {tab === "deposit" && !marketClosed ? (
               <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-muted-foreground">
                 <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]" />
@@ -457,7 +496,7 @@ export default function StocksPage() {
               ) : (
                 <button
                   className={primaryBtn}
-                  disabled={wrongChain ? switching : busy || marketClosed || amountWei <= 0n || overMax || depositBlocked}
+                  disabled={wrongChain ? switching : busy || marketOpen !== true || amountWei <= 0n || overMax || depositBlocked}
                   onClick={submit}
                 >
                   {label}
@@ -487,7 +526,7 @@ export default function StocksPage() {
             on-chain caps, and you carry the price exposure you chose.
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Priced by an independent market feed, they trade only while the market is open and freeze
+            Priced by a market feed Aumo runs, they trade only while the market is open and freeze
             otherwise.
           </p>
         </Panel>
@@ -499,7 +538,7 @@ export default function StocksPage() {
           <ol className="flex flex-col gap-4">
             {[
               "Deposit USDT0 into a stock's pool. Each stock is its own pool, so your exposure is only ever to the one you chose.",
-              "The agent buys the tokenized stock through an on-chain swap, within hard caps the owner set. The pool now holds that price exposure, priced by an independent feed.",
+              "The agent buys the tokenized stock through an on-chain swap, within hard caps the owner set. The pool now holds that price exposure, priced by a market feed Aumo runs.",
               "Withdraw while the market is open: the stock is sold and you get USDT0 back at the current price, more or less than you put in. While the market is closed, entry and exit pause.",
             ].map((step, i) => (
               <li key={i} className="flex gap-3">
