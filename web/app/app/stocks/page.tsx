@@ -26,6 +26,7 @@ import { Panel, Label, Badge, Dot } from "@/components/ui";
 import { ConnectButton } from "@/components/wallet";
 import { Num } from "@/components/num";
 import { Orb } from "@/components/orb";
+import { PriceChartModal } from "@/components/price-chart-modal";
 import { txUrl } from "@/lib/agent";
 
 const DEC = 6;
@@ -52,6 +53,7 @@ export default function StocksPage() {
   }, [isConnected, wrongChain, walletChainId, switching, switchChain]);
 
   const [selected, setSelected] = useState<StockConfig | null>(liveStocks[0] ?? null);
+  const [chartOpen, setChartOpen] = useState(false);
   const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
   const [ack, setAck] = useState(false);
@@ -336,10 +338,22 @@ export default function StocksPage() {
                 )}
               </div>
               <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
-                <div className="flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() => setChartOpen(true)}
+                  className="group flex flex-col gap-1 rounded-md text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={`View ${selected.symbol} price chart`}
+                >
                   <Label>{selected.symbol} price</Label>
-                  <span className="tnum text-sm font-medium text-foreground">{usd(price)}</span>
-                </div>
+                  <span className="flex items-center gap-1.5">
+                    <span className="tnum text-sm font-medium text-foreground">{usd(price)}</span>
+                    <svg viewBox="0 0 24 24" className="size-3.5 text-muted-foreground transition-colors group-hover:text-primary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M3 3v18h18" />
+                      <path d="m19 9-5 5-4-4-3 3" />
+                    </svg>
+                    <span className="text-[10px] text-faint transition-colors group-hover:text-muted-foreground">chart</span>
+                  </span>
+                </button>
                 <div className="flex flex-col gap-1">
                   <Label>Pool NAV</Label>
                   <span className="text-sm font-medium text-foreground"><Num value={num(nav)} currency maximumFractionDigits={0} /></span>
@@ -521,6 +535,15 @@ export default function StocksPage() {
           </ul>
         </div>
       </section>
+      {selected ? (
+        <PriceChartModal
+          open={chartOpen}
+          symbol={selected.symbol}
+          name={selected.name}
+          logo={`/brand/stocks/${selected.symbol.replace(/x$/, "")}.png`}
+          onClose={() => setChartOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
