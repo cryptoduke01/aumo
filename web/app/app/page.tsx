@@ -23,6 +23,7 @@ import { Loader } from "@/components/loader";
 import { AskAumo } from "@/components/ask-aumo";
 import { VenueIcon } from "@/components/venue-icon";
 import { RiskAppetite } from "@/components/risk-appetite";
+import { StockStrip } from "@/components/stock-track";
 import { useAppBase } from "@/lib/use-app-base";
 
 const unit = (raw: string | number, dec: number) => Number(raw) / 10 ** dec;
@@ -269,6 +270,9 @@ export default function Dashboard() {
 
         {!mine && vault ? <GuardrailsCard vault={vault} identity={identity} dec={dec} /> : null}
       </div>
+
+      {/* Tokenized stocks: live price + Aumo's exposure per stock, at a glance. */}
+      <StockStrip activityHref={`${base}/activity#stocks`} />
 
       {mine ? (
         <div className="rounded-xl border border-border bg-card p-5">

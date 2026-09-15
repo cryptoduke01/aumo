@@ -29,6 +29,11 @@ export default function ActivityPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [view, setView] = useState<View>("agent");
   const [open, setOpen] = useState<string | null>(null);
+
+  // Deep-link: /activity#stocks opens the Stocks tab (used by the dashboard's stock strip).
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#stocks") setView("stocks");
+  }, []);
   const [paging, setPaging] = useState(false); // true once the user loads older pages → pause polling
   const [loadingMore, setLoadingMore] = useState(false);
 
