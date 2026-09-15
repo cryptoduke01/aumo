@@ -90,8 +90,11 @@ export async function fetchQuote(symbol: string, creds: FinnhubCreds): Promise<Q
   if (!Number.isFinite(price) || price <= 0) {
     throw new Error(`Finnhub quote for ${symbol} had no usable current price`);
   }
-  const t = Number(j?.t);
-  const observedAtSec = Number.isFinite(t) && t > 0 ? Math.floor(t) : Math.floor(Date.now() / 1000);
+  // Freshness = when WE fetched this live quote, NOT Finnhub's last-trade time `t`. In thin sessions
+  // (pre/post-market) `t` can be many hours old even though `c` is the current price, which would make
+  // the on-chain staleness guard read the price as stale and freeze the market. Market hours are
+  // decided by the session status, not this timestamp, so fetch-time is the correct freshness signal.
+  const observedAtSec = Math.floor(Date.now() / 1000);
   return { priceUsd: price, observedAtSec };
 }
 
