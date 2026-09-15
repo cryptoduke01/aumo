@@ -44,7 +44,11 @@ export function loadUpdaterConfig(): UpdaterConfig {
     .map((s) => s.trim().toUpperCase())
     .filter(Boolean);
   if (symbols.length === 0) throw new Error("set EQUITY_SYMBOLS (comma-separated US tickers, e.g. NVDA,TSLA,AAPL)");
-  const pk = process.env.AGENT_PRIVATE_KEY?.trim();
+  // Least-privilege: the price feeder can sign with a DEDICATED updater key (UPDATER_PRIVATE_KEY) that
+  // is separate from the agent/allocation key. Set the oracle's updater to that key's address; then a
+  // compromise of the agent key cannot post prices. Falls back to AGENT_PRIVATE_KEY when unset, so the
+  // single-key setup keeps working unchanged.
+  const pk = (process.env.UPDATER_PRIVATE_KEY ?? process.env.AGENT_PRIVATE_KEY)?.trim();
   const key = pk && pk.length > 0 ? ((pk.startsWith("0x") ? pk : `0x${pk}`) as Address) : undefined;
 
   return {
