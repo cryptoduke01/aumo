@@ -27,6 +27,7 @@ import { ConnectButton } from "@/components/wallet";
 import { Num } from "@/components/num";
 import { Orb } from "@/components/orb";
 import { PriceChartModal } from "@/components/price-chart-modal";
+import { StockRiskModal } from "@/components/stock-risk-modal";
 import { txUrl } from "@/lib/agent";
 
 const DEC = 6;
@@ -243,18 +244,12 @@ export default function StocksPage() {
         </span>
       </header>
 
-      <div className="rounded-lg border border-negative/40 bg-negative/5 px-4 py-3 text-sm leading-relaxed text-negative">
-        These pools hold tokenized stocks and <span className="font-medium">can lose value</span>. They
-        are separate from the safe USDT0 pool and not covered by its guardrails against loss. You bear
-        the full price risk of the stock you choose. Only deposit what you can afford to see fall.
-      </div>
-
       {/* Catalog */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <Label>Choose a stock</Label>
           <span className="text-xs text-faint">
-            More listed as Chainlink feeds and X Layer liquidity come online.
+            More list as X Layer liquidity deepens.
           </span>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -345,13 +340,15 @@ export default function StocksPage() {
                   aria-label={`View ${selected.symbol} price chart`}
                 >
                   <Label>{selected.symbol} price</Label>
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-2">
                     <span className="tnum text-sm font-medium text-foreground">{usd(price)}</span>
-                    <svg viewBox="0 0 24 24" className="size-3.5 text-muted-foreground transition-colors group-hover:text-primary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                      <path d="M3 3v18h18" />
-                      <path d="m19 9-5 5-4-4-3 3" />
-                    </svg>
-                    <span className="text-[10px] text-faint transition-colors group-hover:text-muted-foreground">chart</span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card-2 px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors group-hover:border-primary/50 group-hover:text-primary">
+                      <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <path d="M3 3v18h18" />
+                        <path d="m19 9-5 5-4-4-3 3" />
+                      </svg>
+                      View chart
+                    </span>
                   </span>
                 </button>
                 <div className="flex flex-col gap-1">
@@ -544,6 +541,7 @@ export default function StocksPage() {
           onClose={() => setChartOpen(false)}
         />
       ) : null}
+      <StockRiskModal />
     </div>
   );
 }
