@@ -7,8 +7,10 @@ import { Panel, Badge } from "@/components/ui";
 import { Loader } from "@/components/loader";
 import { DecisionReplay } from "@/components/decision-replay";
 import { AttributionPanel } from "@/components/attribution-panel";
+import { StockTrack } from "@/components/stock-track";
 
 type Filter = "all" | "moved" | "held";
+type View = "agent" | "stocks";
 
 function Stat({ label, value, accent }: { label: string; value: React.ReactNode; accent?: boolean }) {
   return (
@@ -25,6 +27,7 @@ export default function ActivityPage() {
   const [status, setStatus] = useState<Status | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  const [view, setView] = useState<View>("agent");
   const [open, setOpen] = useState<string | null>(null);
   const [paging, setPaging] = useState(false); // true once the user loads older pages → pause polling
   const [loadingMore, setLoadingMore] = useState(false);
@@ -96,10 +99,31 @@ export default function ActivityPage() {
       <header className="flex flex-col gap-1">
         <h1 className="text-xl font-medium tracking-tight">Activity</h1>
         <span className="text-sm text-muted-foreground">
-          Every decision the agent recorded. Replay the full reasoning chain and follow each move on-chain.
+          {view === "stocks"
+            ? "The tokenized stocks Aumo holds. Live price, the day's move, exposure and market status."
+            : "Every decision the agent recorded. Replay the full reasoning chain and follow each move on-chain."}
         </span>
       </header>
 
+      {/* view toggle: the agent's stablecoin decisions, or the live stock book */}
+      <div className="flex items-center gap-1 self-start rounded-lg border border-border p-1">
+        {(["agent", "stocks"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`rounded-md px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              view === v ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {v === "agent" ? "Agent decisions" : "Stocks"}
+          </button>
+        ))}
+      </div>
+
+      {view === "stocks" ? (
+        <StockTrack />
+      ) : (
+      <>
       {/* summary strip */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Decisions" value={records ? stats.total : "—"} />
@@ -235,6 +259,8 @@ export default function ActivityPage() {
           </button>
         </div>
       ) : null}
+      </>
+      )}
     </div>
   );
 }
