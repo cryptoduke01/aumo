@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { Address } from "../types.js";
+import { DEFAULT_SIGNAL, type SignalParams } from "./signal.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..", "..");
@@ -35,6 +36,13 @@ export interface EquityConfig {
   agentPrivateKey?: Address;
   execute: boolean;
   loopIntervalMs: number;
+
+  // Option A: agent-managed exposure. When `managed` is true (EQUITY_MANAGED=1) the executor runs the
+  // trend overlay (hold the stock while it trends, de-risk to idle when it breaks) instead of pure
+  // buy-and-hold. `signal` holds the (published, deterministic) rule parameters. DEFAULT OFF: a code
+  // deploy changes nothing until the flag is set, so the overlay goes live as one reversible flip.
+  managed: boolean;
+  signal: SignalParams;
 
   // The executor drives EVERY pool in `pools` each cycle. Multi-stock mainnet fills it from aligned
   // comma-separated env lists (EQUITY_SYMBOLS / EQUITY_POOLS / EQUITY_VENUES); the single-pool testnet
@@ -117,6 +125,13 @@ export function loadEquityConfig(): EquityConfig {
     agentPrivateKey: key,
     execute: (process.env.EXECUTE ?? "0") === "1",
     loopIntervalMs: Math.max(30, Number(process.env.LOOP_INTERVAL_SECONDS ?? 300)) * 1000,
+    managed: (process.env.EQUITY_MANAGED ?? "0") === "1",
+    signal: {
+      smaPeriod: Number(process.env.EQUITY_SMA_PERIOD ?? DEFAULT_SIGNAL.smaPeriod),
+      bufferBps: Number(process.env.EQUITY_TREND_BUFFER_BPS ?? DEFAULT_SIGNAL.bufferBps),
+      drawdownPct: Number(process.env.EQUITY_DRAWDOWN_PCT ?? DEFAULT_SIGNAL.drawdownPct),
+      lookback: Number(process.env.EQUITY_HIGH_LOOKBACK ?? DEFAULT_SIGNAL.lookback),
+    },
     pool,
     venue,
     venueName: primary.venueName,

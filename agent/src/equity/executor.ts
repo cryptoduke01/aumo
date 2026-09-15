@@ -14,6 +14,7 @@ import { dirname, join } from "node:path";
 import { equityPoolAbi } from "./abi.js";
 import { erc20Abi } from "../chain/abi.js";
 import { loadEquityConfig, type EquityConfig, type StockVenue } from "./config.js";
+import { trendSignal, type TrendSignal } from "./signal.js";
 import type { Address } from "../types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -111,9 +112,11 @@ export interface EquityDecision {
   exposure: bigint; // max(principal, live value) in the venue
   totalDeployed: bigint;
   nav: bigint; // pool totalAssets
-  deployable: bigint; // amount we'd allocate this cycle (0 = hold)
+  deployable: bigint; // amount we'd allocate this cycle (0 = none)
+  deallocate: bigint; // amount we'd retreat to idle this cycle (0 = none)
   reason: string;
-  action: "allocate" | "hold";
+  action: "allocate" | "deallocate" | "hold";
+  signal?: { target: "in" | "out"; sma: number; lastClose: number; drawdownPct: number };
   hash?: string;
   status?: "confirmed" | "reverted" | "error";
   error?: string;
@@ -172,7 +175,44 @@ export async function equityTickOne(
     perVenueCap,
     maxTotal,
   };
-  const { deployable, reason } = computeDeployable(view);
+  // Trend overlay (Option A). When managed, hold a target (in/out) from the published trend rule and
+  // reconcile the pool to it: buy when the target is in (within caps), sell to idle when it flips out.
+  // Off (or market closed) => the original buy-and-hold via computeDeployable. The de-risk sell is the
+  // pool's unmetered agent retreat; entry stays bounded by the deploy budget and caps.
+  const DUST = 1_000_000n; // $1 exposure floor: below this the pool counts as flat (out)
+  const currentlyIn = exposure > DUST;
+
+  let sig: TrendSignal | undefined;
+  if (cfg.managed && Boolean(marketOpen)) {
+    sig = await trendSignal(sv.symbol, currentlyIn, cfg.signal);
+  }
+
+  let action: "allocate" | "deallocate" | "hold" = "hold";
+  let deployable = 0n;
+  let deallocate = 0n;
+  let reason: string;
+
+  if (cfg.managed && sig) {
+    if (sig.target === "out") {
+      if (currentlyIn) {
+        action = "deallocate";
+        deallocate = exposure; // full retreat to idle
+        reason = `de-risk: ${sig.reason}`;
+      } else {
+        reason = `flat, trend out: ${sig.reason}`;
+      }
+    } else {
+      const d = computeDeployable(view);
+      deployable = d.deployable;
+      action = deployable > 0n ? "allocate" : "hold";
+      reason = deployable > 0n ? `participate: ${sig.reason}` : `in, ${d.reason}`;
+    }
+  } else {
+    const d = computeDeployable(view);
+    deployable = d.deployable;
+    action = deployable > 0n ? "allocate" : "hold";
+    reason = d.reason;
+  }
 
   const decision: EquityDecision = {
     at: new Date().toISOString(),
@@ -183,25 +223,38 @@ export async function equityTickOne(
     totalDeployed,
     nav,
     deployable,
+    deallocate,
     reason,
-    action: deployable > 0n ? "allocate" : "hold",
+    action,
+    signal: sig ? { target: sig.target, sma: sig.sma, lastClose: sig.lastClose, drawdownPct: sig.drawdownPct } : undefined,
   };
 
-  const willExecute = cfg.execute && !opts.dryRun && deployable > 0n;
+  const willBuy = cfg.execute && !opts.dryRun && action === "allocate" && deployable > 0n;
+  const willSell = cfg.execute && !opts.dryRun && action === "deallocate" && deallocate > 0n;
+  const willExecute = willBuy || willSell;
   if (willExecute) {
     if (!wallet || !agentAddr) throw new Error("EXECUTE=1 but AGENT_PRIVATE_KEY is not set");
     if (agentAddr.toLowerCase() !== (agent as string).toLowerCase()) {
       throw new Error(`key ${agentAddr} is not the equity pool agent ${agent}; refusing to send`);
     }
     try {
-      const hash = await wallet.writeContract({
-        account: wallet.account!,
-        chain: wallet.chain,
-        address: sv.pool,
-        abi: equityPoolAbi,
-        functionName: "allocate",
-        args: [sv.venue, deployable, stringToHex("equity-exposure", { size: 32 })],
-      });
+      const hash = willBuy
+        ? await wallet.writeContract({
+            account: wallet.account!,
+            chain: wallet.chain,
+            address: sv.pool,
+            abi: equityPoolAbi,
+            functionName: "allocate",
+            args: [sv.venue, deployable, stringToHex("equity-exposure", { size: 32 })],
+          })
+        : await wallet.writeContract({
+            account: wallet.account!,
+            chain: wallet.chain,
+            address: sv.pool,
+            abi: equityPoolAbi,
+            functionName: "deallocate",
+            args: [sv.venue, deallocate],
+          });
       decision.hash = hash;
       const rcpt = await pc.waitForTransactionReceipt({ hash });
       decision.status = rcpt.status === "success" ? "confirmed" : "reverted";
@@ -214,7 +267,7 @@ export async function equityTickOne(
   printEquity(sv, decision, decimals, willExecute);
   try {
     mkdirSync(dirname(RECEIPTS), { recursive: true });
-    appendFileSync(RECEIPTS, JSON.stringify({ symbol: sv.symbol, pool: sv.pool, ...decision, idle: decision.idle.toString(), exposure: decision.exposure.toString(), totalDeployed: decision.totalDeployed.toString(), nav: decision.nav.toString(), deployable: decision.deployable.toString() }) + "\n");
+    appendFileSync(RECEIPTS, JSON.stringify({ symbol: sv.symbol, pool: sv.pool, ...decision, idle: decision.idle.toString(), exposure: decision.exposure.toString(), totalDeployed: decision.totalDeployed.toString(), nav: decision.nav.toString(), deployable: decision.deployable.toString(), deallocate: decision.deallocate.toString() }) + "\n");
   } catch {
     // receipts are best-effort; never fail a cycle on a write error
   }
@@ -235,7 +288,7 @@ function printEquity(sv: StockVenue, d: EquityDecision, dec: number, executing: 
   console.log(`\n Decision: ${d.action.toUpperCase()} — ${d.reason}`);
   if (d.hash) console.log(`  ${(d.status ?? "sent").toUpperCase()}  ${d.hash}${d.error ? "  " + d.error : ""}`);
   else if (executing) console.log("  (executing)");
-  else if (d.action === "allocate") console.log("  Dry-run. No transaction sent.");
+  else if (d.action !== "hold") console.log("  Dry-run. No transaction sent.");
   console.log("──────────────────────────────────────────────\n");
 }
 
