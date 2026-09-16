@@ -166,6 +166,36 @@ const STOCKS_BY_NET: Record<"mainnet" | "testnet", StockConfig[]> = {
 export const STOCKS = STOCKS_BY_NET[NET];
 export const liveStocks = STOCKS.filter((s) => s.pool !== ZERO);
 
+// --- The DIVERSIFIED BASKET: ONE EquityPool holding an equal-weight basket of stocks via N adapters.
+// The agent only maintains equal weight (rebalances on drift); it does not time or pick. Diversification
+// is the cycle-proven drawdown reducer (~43% single-name -> ~32% basket over 5y incl. the 2022 bear).
+export interface BasketMember {
+  symbol: string; // xStock ticker, e.g. NVDAx
+  name: string; // company
+  venue: `0x${string}`; // the allowlisted EquityAdapter for this stock in the basket pool
+}
+export interface BasketConfig {
+  pool: `0x${string}`; // the basket EquityPool (ERC-4626, USDT0 in, aumoEQTY shares out)
+  oracle: `0x${string}`;
+  members: BasketMember[];
+}
+
+const BASKET_BY_NET: Record<"mainnet" | "testnet", BasketConfig | null> = {
+  testnet: null,
+  // Deployed 2026-09-17 (DeployBasketMainnet, chain 196). Reuses the shared self-hosted oracle.
+  mainnet: {
+    pool: "0x39Ce24bF143d4B5Ae16683Fb8e319c14E3E0A421",
+    oracle: "0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2",
+    members: [
+      { symbol: "NVDAx", name: "NVIDIA", venue: "0xf79F97E53AC79985889a678ea652DACdEf001ce1" },
+      { symbol: "AAPLx", name: "Apple", venue: "0x71860a56E3faF65130B8de14BD04fE5Eb57E2fea" },
+      { symbol: "MSFTx", name: "Microsoft", venue: "0x8A0b37905DB147c7dD0f02De1C198B839AFB1BD5" },
+      { symbol: "METAx", name: "Meta", venue: "0xD94235eFb4873071882957C87D21b5F2b0A61c70" },
+    ],
+  },
+};
+export const BASKET = BASKET_BY_NET[NET];
+
 // The equity pool's surface: the safe-pool reads plus the market-hours gate. Kept distinct from
 // poolAbi so the at-risk pool can never be driven through the safe-pool code paths by accident.
 export const equityPoolAbi = parseAbi([
@@ -176,6 +206,7 @@ export const equityPoolAbi = parseAbi([
   "function maxWithdraw(address) view returns (uint256)",
   "function maxRedeem(address) view returns (uint256)",
   "function idleBalance() view returns (uint256)",
+  "function venueBalance(address) view returns (uint256)",
   "function marketOpen() view returns (bool)",
   "function deposit(uint256 assets, address receiver) returns (uint256)",
   "function withdraw(uint256 assets, address receiver, address owner) returns (uint256)",

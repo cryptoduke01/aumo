@@ -18,6 +18,7 @@ const tabs = [
   { seg: "/vault", label: "Deposit" },
   { seg: "/venues", label: "Venues" },
   { seg: "/stocks", label: "Stocks" },
+  { seg: "/basket", label: "Basket" },
   { seg: "/activity", label: "Activity" },
 ];
 
