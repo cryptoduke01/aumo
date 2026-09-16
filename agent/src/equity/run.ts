@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { updateOracleLoop, loadUpdaterConfig } from "./selfHostedOracleUpdater.js";
 import { equityLoop } from "./executor.js";
+import { basketLoop } from "./basket.js";
 import { loadEquityConfig } from "./config.js";
 
 /**
@@ -14,10 +15,15 @@ import { loadEquityConfig } from "./config.js";
 async function main(): Promise<void> {
   const feederCfg = loadUpdaterConfig();
   const execCfg = loadEquityConfig();
+  const runBasket = execCfg.basketEnabled && !!execCfg.basket;
   console.log(
-    `Aumo stocks agent · feeder(${feederCfg.symbols.length} symbols) + executor(${execCfg.pools.length} pools) · execute=${execCfg.execute}`,
+    `Aumo stocks agent · feeder(${feederCfg.symbols.length} symbols) + executor(${execCfg.pools.length} pools)${
+      runBasket ? ` + basket(${execCfg.basket!.venues.length} venues)` : ""
+    } · execute=${execCfg.execute}`,
   );
-  await Promise.all([updateOracleLoop(feederCfg), equityLoop(execCfg)]);
+  const loops = [updateOracleLoop(feederCfg), equityLoop(execCfg)];
+  if (runBasket) loops.push(basketLoop(execCfg));
+  await Promise.all(loops);
 }
 
 main().catch((err) => {

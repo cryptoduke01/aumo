@@ -29,6 +29,14 @@ export interface StockVenue {
   venueName: string; // for logs, e.g. "NVDAx"
 }
 
+/** The diversified basket: ONE EquityPool holding N stocks via N allowlisted adapters. The agent only
+ *  maintains equal weight (rebalances on drift past bandBps); it does not time or pick. */
+export interface BasketConfig {
+  pool: Address; // the basket EquityPool
+  venues: { symbol: string; venue: Address }[]; // one adapter per stock in the basket
+  bandBps: number; // rebalance drift band, bps of the equal-weight target (default 500 = 5%)
+}
+
 export interface EquityConfig {
   chainId: number;
   chainName: string;
@@ -43,6 +51,11 @@ export interface EquityConfig {
   // deploy changes nothing until the flag is set, so the overlay goes live as one reversible flip.
   managed: boolean;
   signal: SignalParams;
+
+  // Diversified basket (default off). When basketEnabled and `basket` is configured, the agent also
+  // runs the equal-weight rebalance loop on the basket pool. Independent of the single-stock pools.
+  basketEnabled: boolean;
+  basket?: BasketConfig;
 
   // The executor drives EVERY pool in `pools` each cycle. Multi-stock mainnet fills it from aligned
   // comma-separated env lists (EQUITY_SYMBOLS / EQUITY_POOLS / EQUITY_VENUES); the single-pool testnet
@@ -117,6 +130,22 @@ export function loadEquityConfig(): EquityConfig {
   const pool = primary.pool;
   const venue = primary.venue;
 
+  // Basket: one pool (EQUITY_BASKET_POOL) + aligned adapters (EQUITY_BASKET_VENUES) + symbols
+  // (EQUITY_BASKET_SYMBOLS, falls back to EQUITY_SYMBOLS). Only runs when EQUITY_BASKET=1 and set.
+  const basketEnabled = (process.env.EQUITY_BASKET ?? "0") === "1";
+  const basketPool = process.env.EQUITY_BASKET_POOL?.trim();
+  const basketVenues = (process.env.EQUITY_BASKET_VENUES ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const basketSymbols = (process.env.EQUITY_BASKET_SYMBOLS ?? process.env.EQUITY_SYMBOLS ?? "")
+    .split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+  let basket: BasketConfig | undefined;
+  if (basketPool && basketVenues.length > 0) {
+    basket = {
+      pool: basketPool as Address,
+      venues: basketVenues.map((v, i) => ({ symbol: basketSymbols[i] ?? `S${i}`, venue: v as Address })),
+      bandBps: Math.max(50, Number(process.env.EQUITY_REBALANCE_BAND_BPS ?? 500)),
+    };
+  }
+
   return {
     pools,
     chainId: Number(process.env.CHAIN_ID ?? file.chainId ?? 1952),
@@ -132,6 +161,8 @@ export function loadEquityConfig(): EquityConfig {
       drawdownPct: Number(process.env.EQUITY_DRAWDOWN_PCT ?? DEFAULT_SIGNAL.drawdownPct),
       lookback: Number(process.env.EQUITY_HIGH_LOOKBACK ?? DEFAULT_SIGNAL.lookback),
     },
+    basketEnabled,
+    basket,
     pool,
     venue,
     venueName: primary.venueName,
