@@ -16,6 +16,7 @@ const toc = [
   ["risk", "The risk engine"],
   ["guardrails", "Guardrails & trust"],
   ["deposit", "Deposit & withdraw"],
+  ["stocks", "Tokenized stocks"],
   ["bridge", "Bridging in"],
   ["faq", "FAQ"],
 ];
@@ -222,6 +223,49 @@ export default function DocsPage() {
               {isMainnet
                 ? "Aumo is live on X Layer. You need USDT0 and a little OKB for gas."
                 : "Aumo is currently on X Layer testnet. You need testnet USDT0 and a little OKB for gas."}
+            </p>
+          </section>
+
+          <section id="stocks">
+            <h2>Tokenized stocks</h2>
+            <p className="lead">
+              Aumo also offers opt-in, at-risk exposure to tokenized US stocks on X Layer, separate
+              from the safe stablecoin pool and its guardrails. These pools hold directional price
+              exposure you choose. They are not capital preservation, and their value moves with the
+              stock.
+            </p>
+            <h3>How the pools work</h3>
+            <ul>
+              <li><strong>One pool per stock, plus a diversified basket.</strong> Each stock (NVIDIA, Apple, Microsoft, Meta) has its own isolated ERC-4626 pool; a separate basket pool holds all four equal-weight. You deposit USDT0 and receive shares.</li>
+              <li><strong>Priced onchain.</strong> A market feed Aumo runs posts each stock&apos;s price to an on-chain oracle, disclosed to depositors. Deposits, withdrawals, and NAV read from it.</li>
+              <li><strong>Market hours enforced by the contract.</strong> The pool freezes entry and exit when the US market is closed, so no one deposits or redeems at a stale weekend price. The underlying can&apos;t be traded then anyway.</li>
+              <li><strong>The same guardrails.</strong> The agent moves funds only into the stock&apos;s allowlisted venue, within per-move, per-venue, and total caps, and can never withdraw to an outside address. The owner never has custody.</li>
+            </ul>
+            <h3>What the agent does, and does not, do</h3>
+            <p>
+              On an individual stock pool the agent buys and holds the exposure you chose. It does not
+              time the market or pick stocks. We tested a trend rule that de-risks to cash when a stock
+              breaks its trend, and backtested it honestly: on single names it whipsaws, gives up
+              returns, and does not reliably reduce drawdown, so we removed it. There is no
+              market-timing rule.
+            </p>
+            <p>
+              The one thing that reliably reduces drawdown is diversification. Over the last five
+              years, including the 2022 selloff, holding an equal-weight basket of these four names cut
+              the maximum drawdown from about 43% on a single name to about 32%. That is what the
+              basket pool is for: one deposit, equal-weight exposure, and the agent&apos;s only job is
+              to keep the weights equal by rebalancing on drift. No timing, no stock-picking, and no
+              promise on drawdown.
+            </p>
+            <h3>Risk and exit</h3>
+            <p>
+              You own the price risk. A single stock&apos;s drawdown is unbounded, and no rule here
+              promises a maximum loss. Redemption depends on market hours and on the stock&apos;s
+              onchain liquidity: exit into a thin order book and you get a worse fill, and an
+              oracle-plus-slippage guard will block a sale that is far below fair value rather than
+              fill it at any price, so in a genuinely thin book an exit can be held back until price or
+              liquidity recovers. Each exiter bears their own exit cost; it is never pushed onto
+              holders who stay. Deposit only what you can afford to lose.
             </p>
           </section>
 
