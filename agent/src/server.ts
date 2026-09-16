@@ -9,6 +9,7 @@ import { makeChain } from "./chain/client.js";
 import { readDepositorPosition } from "./chain/vault.js";
 import { RECEIPTS_FILE } from "./act/receipts.js";
 import { computeAttribution } from "./proof/attribution.js";
+import { callModel, llmConfigured } from "./brain/llm.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Same env-resolved path the writer uses (RECEIPTS_DIR), so a persistent volume is read back correctly.
@@ -363,7 +364,7 @@ async function readYou(cfg: Config, address: Address, context: ReturnType<typeof
 }
 
 async function askAgent(cfg: Config, question: string, address?: string): Promise<string> {
-  if (!cfg.anthropicKey) return "My reasoning layer is offline right now, so I can only answer through the dashboard. Try again shortly.";
+  if (!llmConfigured(cfg)) return "My reasoning layer is offline right now, so I can only answer through the dashboard. Try again shortly.";
   const now = Date.now();
 
   // Cache only GENERIC (no-wallet) questions. A depositor's own position can change between ticks
@@ -381,21 +382,14 @@ async function askAgent(cfg: Config, question: string, address?: string): Promis
   const context = buildContext(cfg);
   const you = address && isAddress(address) ? await readYou(cfg, address as Address, context) : null;
   const grounding = you ? { ...context, you } : context;
-  const { default: Anthropic } = await import("@anthropic-ai/sdk");
-  const client = new Anthropic({ apiKey: cfg.anthropicKey });
   askCalls.count++;
-  const msg = await client.messages.create({
-    model: ASK_MODEL ?? cfg.model, // /ask can run a cheaper model than the money-path reasoning
-    max_tokens: 400,
+  const raw = await callModel(cfg, {
     system: ASK_SYSTEM,
-    messages: [
-      {
-        role: "user",
-        content: `My current state:\n\n${JSON.stringify(grounding, null, 2)}\n\nQuestion: ${question}`,
-      },
-    ],
+    maxTokens: 400,
+    model: ASK_MODEL ?? cfg.model, // /ask can run a cheaper model than the money-path reasoning
+    user: `My current state:\n\n${JSON.stringify(grounding, null, 2)}\n\nQuestion: ${question}`,
   });
-  const answer = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("\n").trim();
+  const answer = raw.trim();
   if (cacheable && answer) {
     if (askCache.size >= ASK_CACHE_MAX) askCache.delete(askCache.keys().next().value!); // evict oldest
     askCache.set(key, { answer, at: now });

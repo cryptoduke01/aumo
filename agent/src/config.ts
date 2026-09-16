@@ -46,6 +46,7 @@ export interface Config {
     signWith: Address; // the Turnkey account's ETH address (must equal on-chain agent())
   };
   anthropicKey?: string;
+  groqKey?: string; // when set, the reasoning layer uses Groq (OpenAI-compatible) instead of Anthropic
   model: string;
   appetite: RiskBand;
   maxConcentration: number;
@@ -92,7 +93,11 @@ export function loadConfig(): Config {
           }
         : undefined,
     anthropicKey: process.env.ANTHROPIC_API_KEY?.trim() || undefined,
-    model: process.env.AUMO_MODEL ?? "claude-sonnet-4-5",
+    groqKey: process.env.GROQ_API_KEY?.trim() || undefined,
+    // AUMO_MODEL wins; otherwise default to a Groq model when a Groq key is set, else the Claude default.
+    model:
+      process.env.AUMO_MODEL ??
+      (process.env.GROQ_API_KEY?.trim() ? "llama-3.3-70b-versatile" : "claude-sonnet-4-5"),
     appetite: bandFrom(process.env.RISK_APPETITE),
     maxConcentration: numEnv(process.env.MAX_CONCENTRATION, 0.6, 0.01, 1),
     loopIntervalMs: numEnv(process.env.LOOP_INTERVAL_SECONDS, 900, 30, 86_400) * 1000,

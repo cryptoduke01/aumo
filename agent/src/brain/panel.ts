@@ -5,6 +5,7 @@ import { buildPlan, type Plan } from "./plan.js";
 import { extractJson } from "./reason.js";
 import { computeMomentum } from "../risk/momentum.js";
 import { PANEL_SYSTEM } from "./prompt.js";
+import { callModel, llmConfigured } from "./llm.js";
 
 /**
  * The collective layer. Instead of one generalist model, Aumo convenes a PANEL of specialist agents,
@@ -109,17 +110,13 @@ function macroView(snap: MarketSnapshot, base: Plan) {
 
 async function consult(cfg: Config, role: string, view: unknown): Promise<RoleVerdict> {
   const abstain: RoleVerdict = { role, ok: false, concern: 0, vetoes: [], note: "abstained" };
-  if (!cfg.anthropicKey) return abstain;
+  if (!llmConfigured(cfg)) return abstain;
   try {
-    const { default: Anthropic } = await import("@anthropic-ai/sdk");
-    const client = new Anthropic({ apiKey: cfg.anthropicKey });
-    const msg = await client.messages.create({
-      model: cfg.model,
-      max_tokens: 400,
+    const text = await callModel(cfg, {
       system: PANEL_SYSTEM[role as keyof typeof PANEL_SYSTEM],
-      messages: [{ role: "user", content: `${JSON.stringify(view, null, 2)}\n\nRespond with the JSON object only.` }],
+      maxTokens: 400,
+      user: `${JSON.stringify(view, null, 2)}\n\nRespond with the JSON object only.`,
     });
-    const text = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("\n");
     const parsed = Verdict.parse(JSON.parse(extractJson(text)));
     return { role, ok: true, ...parsed };
   } catch {
@@ -138,7 +135,7 @@ export async function convenePanel(
   baseDeny: Set<string> = new Set(),
 ): Promise<Plan> {
   // No model or an idle vault: fall back to the deterministic base (already stress-constrained).
-  if (!cfg.anthropicKey || snap.vault.idle + snap.vault.totalDeployed === 0n) {
+  if (!llmConfigured(cfg) || snap.vault.idle + snap.vault.totalDeployed === 0n) {
     return { ...base, source: "risk-engine" };
   }
 

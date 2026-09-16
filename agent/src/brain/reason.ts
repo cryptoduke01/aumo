@@ -4,6 +4,7 @@ import type { MarketSnapshot, Regime, RiskBand } from "../types.js";
 import { buildPlan, type Plan } from "./plan.js";
 import { computeMomentum } from "../risk/momentum.js";
 import { SYSTEM_PROMPT } from "./prompt.js";
+import { callModel, llmConfigured } from "./llm.js";
 
 const REGIME_RANK: Record<Regime, number> = { defensive: 0, cautious: 1, calm: 2 };
 const BAND_RANK: Record<RiskBand, number> = { low: 0, moderate: 1, elevated: 2, high: 3 };
@@ -158,7 +159,7 @@ export async function reason(
   cfg: Config,
   baseDeny: Set<string> = new Set(),
 ): Promise<Plan> {
-  if (!cfg.anthropicKey) {
+  if (!llmConfigured(cfg)) {
     return { ...base, summary: `${base.summary} (deterministic risk engine; no LLM key set)` };
   }
 
@@ -176,24 +177,15 @@ export async function reason(
     reply = lastReply;
   } else {
     try {
-      const { default: Anthropic } = await import("@anthropic-ai/sdk");
-      const client = new Anthropic({ apiKey: cfg.anthropicKey });
-      const msg = await client.messages.create({
-        model: cfg.model,
-        max_tokens: 1024,
+      const text = await callModel(cfg, {
         system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: `Current state and the risk engine's candidate plan:\n\n${JSON.stringify(
-              modelView(snap, base),
-              null,
-              2,
-            )}\n\nRespond with the JSON object only.`,
-          },
-        ],
+        maxTokens: 1024,
+        user: `Current state and the risk engine's candidate plan:\n\n${JSON.stringify(
+          modelView(snap, base),
+          null,
+          2,
+        )}\n\nRespond with the JSON object only.`,
       });
-      const text = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("\n");
       reply = LlmReply.parse(JSON.parse(extractJson(text)));
       lastKey = key;
       lastReply = reply;
