@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { createPublicClient, http, isAddress, type Address } from "viem";
+import { createPublicClient, http, isAddress, parseAbi, type Address } from "viem";
 import type { Config } from "./config.js";
 import { buildIdentity } from "./identity.js";
 import { makeChain } from "./chain/client.js";
@@ -252,6 +252,7 @@ Three kinds of question, three sources of truth:
 - Product / strategy / "how do you work" / "where does yield come from" / "what would you use on mainnet": answer from the STRATEGY block. You DO know your strategy — explain it confidently. When on testnet, be honest that the current venues are mock stand-ins, but still explain what the real mainnet venues (Aave v3, USDG) are.
 - Live specifics — pool holdings, per-venue allocations, the latest decision: ground these in the "latest" state. If a specific number genuinely is not in the state, say so plainly rather than inventing it.
 - The person's OWN position — "what's mine?", "my share", "what am I earning": if a "you" block is present, it is the connected wallet read live on-chain. Answer directly from it — "redeemable" is their position in USDT0 (including accrued yield), "sharePct" is their percent of the pool, and "yourVenues" is their pro-rata slice of each venue. If "you.isDepositor" is false, tell them this wallet hasn't deposited yet. If there is NO "you" block at all, say you can't see their wallet from here and to connect a wallet / open the "My position" view — do not guess.
+- The person's STOCK and BASKET positions: if a "yourStocks" block is present it is the connected wallet's live holdings in the opt-in tokenized-stock pools and the diversified basket, read on-chain, where each "redeemable" is their value in USDT0 for that pool. Use it for "what about my stocks / my basket?". The safe stablecoin vault ("you") and these at-risk equity positions ("yourStocks") are SEPARATE: never conflate them. If "yourStocks.holdsAny" is false, say plainly they hold no stock or basket positions. If there is no "yourStocks" block at all, say you can't see their stock positions from here rather than claiming they have none.
 
 Rules: be concise (2 to 4 sentences), plain language, no hype. Do not leak internal field names or JSON keys (say "not yet approved for allocation", never "allowedOnChain: false"). Never give financial or investment advice, never predict prices, never claim to act outside your on-chain guardrails. If asked to do something you cannot (move funds off-chain, exceed a cap), explain plainly that you cannot and why.`;
 
@@ -363,6 +364,53 @@ async function readYou(cfg: Config, address: Address, context: ReturnType<typeof
   }
 }
 
+const equityMaxWithdrawAbi = parseAbi(["function maxWithdraw(address) view returns (uint256)"]);
+
+/**
+ * The connected wallet's positions in the tokenized-stock pools and the diversified basket, read live
+ * on-chain. Ask Aumo's safe-pool `you` block only covers the stablecoin vault, so without this a
+ * "what about my stocks?" question was answered blind. Pool addresses come from the same env the
+ * stocks agent uses (EQUITY_POOLS / EQUITY_SYMBOLS, EQUITY_BASKET_POOL). Read-only; never blocks.
+ */
+async function readYourEquity(cfg: Config, address: Address) {
+  try {
+    const syms = (process.env.EQUITY_SYMBOLS ?? "").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+    const pools = (process.env.EQUITY_POOLS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    const basketPool = process.env.EQUITY_BASKET_POOL?.trim();
+    if (pools.length === 0 && !basketPool) return null;
+
+    const pc = createPublicClient({ chain: makeChain(cfg), transport: http(cfg.rpcUrl) });
+    const toN = (v: bigint) => Number(v) / 1e6; // equity pools are USDT0-denominated (6dp)
+    const redeemable = (p: string) =>
+      pc.readContract({ address: p as Address, abi: equityMaxWithdrawAbi, functionName: "maxWithdraw", args: [address] }) as Promise<bigint>;
+
+    const stocks: { name: string; redeemable: number }[] = [];
+    for (let i = 0; i < pools.length; i++) {
+      try {
+        const w = await redeemable(pools[i]!);
+        if (w > 1_000n) stocks.push({ name: syms[i] ?? `stock ${i + 1}`, redeemable: Number(toN(w).toFixed(2)) });
+      } catch {
+        /* skip a single unreadable pool */
+      }
+    }
+    let basket: { redeemable: number } | null = null;
+    if (basketPool) {
+      try {
+        const w = await redeemable(basketPool);
+        if (w > 1_000n) basket = { redeemable: Number(toN(w).toFixed(2)) };
+      } catch {
+        /* skip */
+      }
+    }
+    if (stocks.length === 0 && !basket) {
+      return { holdsAny: false, note: "This wallet holds no positions in any stock pool or the diversified basket." };
+    }
+    return { holdsAny: true, stocks, basket };
+  } catch {
+    return null;
+  }
+}
+
 async function askAgent(cfg: Config, question: string, address?: string): Promise<string> {
   if (!llmConfigured(cfg)) return "My reasoning layer is offline right now, so I can only answer through the dashboard. Try again shortly.";
   const now = Date.now();
@@ -380,15 +428,27 @@ async function askAgent(cfg: Config, question: string, address?: string): Promis
   }
 
   const context = buildContext(cfg);
-  const you = address && isAddress(address) ? await readYou(cfg, address as Address, context) : null;
-  const grounding = you ? { ...context, you } : context;
+  const hasWallet = address && isAddress(address);
+  const you = hasWallet ? await readYou(cfg, address as Address, context) : null;
+  const yourStocks = hasWallet ? await readYourEquity(cfg, address as Address) : null;
+  const grounding = {
+    ...context,
+    ...(you ? { you } : {}),
+    ...(yourStocks ? { yourStocks } : {}),
+  };
   askCalls.count++;
-  const raw = await callModel(cfg, {
-    system: ASK_SYSTEM,
-    maxTokens: 400,
-    model: ASK_MODEL ?? cfg.model, // /ask can run a cheaper model than the money-path reasoning
-    user: `My current state:\n\n${JSON.stringify(grounding, null, 2)}\n\nQuestion: ${question}`,
-  });
+  let raw: string;
+  try {
+    raw = await callModel(cfg, {
+      system: ASK_SYSTEM,
+      maxTokens: 400,
+      model: ASK_MODEL ?? cfg.model, // /ask can run a cheaper model than the money-path reasoning
+      user: `My current state:\n\n${JSON.stringify(grounding, null, 2)}\n\nQuestion: ${question}`,
+    });
+  } catch {
+    // A model error (rate limit, timeout, provider hiccup) should read as "busy", not a raw error.
+    return "I'm fielding a lot of questions right now. Give me a minute and ask again, or explore the dashboard in the meantime.";
+  }
   const answer = raw.trim();
   if (cacheable && answer) {
     if (askCache.size >= ASK_CACHE_MAX) askCache.delete(askCache.keys().next().value!); // evict oldest
