@@ -83,6 +83,26 @@ to its transaction on-chain.
 <img src="docs/screens/activity.png" width="880" alt="Activity feed — every agent decision recorded with its full rationale and on-chain transaction" />
 </div>
 
+## Tokenized stocks and the diversified basket
+
+Aumo is built for real-world assets, and tokenized stocks are the latest. Alongside the safe
+stablecoin pool it runs opt-in, at-risk exposure to tokenized US stocks on X Layer — NVIDIA, Apple,
+Microsoft, and Meta — each in its own isolated pool, priced by an on-chain oracle Aumo runs, with US
+market hours enforced by the contract so no one enters or exits at a stale price. You deposit USDT0;
+the pool holds the directional exposure you chose. This is not capital preservation.
+
+On a single stock the agent buys and holds what you picked; it does not time or pick. We built a
+trend rule that de-risks on a break, backtested it over five years including the 2022 bear, and found
+it whipsaws and does not reliably cut drawdown on single names — so we removed it. The one thing that
+reliably reduces drawdown is diversification: over that window an equal-weight basket of the four cut
+maximum drawdown from about 43% on a single name to about 32%. So Aumo also runs a **diversified
+basket** — one deposit, equal weight across all four, the agent's only job being to keep the weights
+equal. Same guardrails, same provable receipts, no market-timing claim.
+
+Live on X Layer mainnet: basket pool `0x39Ce24bF143d4B5Ae16683Fb8e319c14E3E0A421`, four per-stock
+pools, and a shared equity oracle, all verifiable on [OKLink](https://www.oklink.com/xlayer). More in
+the [docs](https://aumo.finance/docs).
+
 ## Architecture
 
 | Package      | What it is                                                                        |
