@@ -72,6 +72,18 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     mapping(address => uint8) public riskAppetiteOf;
     uint8 public constant MAX_APPETITE = 3;
 
+    // --- Anti-dilution levy (owner-controlled; RETAINED BY THE POOL, never a protocol fee) ---
+    // A small entry/exit charge that STAYS IN THE POOL, so a joiner or leaver pays for the value their
+    // own action moves instead of socializing it onto the holders who stay. It closes two seams on a
+    // directional (equity) pool: (1) an exiting holder's swap slippage, which the realizable-settlement
+    // path would otherwise leave on remaining holders, and (2) a deposit-then-redeem round trip that
+    // skims the gap between a stale oracle mark and the live price. Both default to 0 — the safe stable
+    // pool needs neither (its venues are ~lossless and NAV is ~$1); the equity pools set them at deploy.
+    // Capped at MAX_FEE_BPS so the owner can never turn the levy into a real fee.
+    uint256 public entryFeeBps; // levy on deposit/mint, retained in the pool
+    uint256 public exitFeeBps; // levy on withdraw/redeem, retained in the pool
+    uint256 public constant MAX_FEE_BPS = 200; // hard ceiling (2%): owner can never exceed this
+
     uint256 private constant DUST = 1e3; // ~0.001 USDT0 (6dp): residual dust tolerated on prune
     uint256 private constant MAX_VENUES = 12; // bound the totalAssets loop (gas / DoS)
     // Over-ask margin when pulling from a venue to cover a withdrawal: comfortably above any sane
@@ -92,8 +104,10 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     event LossBudgetUpdated(uint256 maxEpochLoss, uint256 lossEpochLength);
     event DeployBudgetUpdated(uint256 maxEpochDeploy, uint256 deployEpochLength);
     event RiskAppetiteSet(address indexed depositor, uint8 tier);
+    event FeesUpdated(uint256 entryFeeBps, uint256 exitFeeBps);
 
     error InvalidAppetite();
+    error FeeTooHigh();
     error NotAgent();
     error ZeroAgent();
     error VenueNotAllowed();
@@ -197,6 +211,55 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     ///      profit and a victim's rounding loss is negligible.
     function _decimalsOffset() internal pure override returns (uint8) {
         return 6;
+    }
+
+    // ------------------------------------------------------------------ anti-dilution levy (retained)
+
+    uint256 private constant _FEE_BPS = 10_000;
+
+    /// @dev Levy charged ON TOP of `assets` (used where the amount excludes the levy). Rounds UP so the
+    ///      rounding wei always favors the pool (the remaining holders), never the joining/leaving one.
+    function _feeOnRaw(uint256 assets, uint256 bps) private pure returns (uint256) {
+        if (bps == 0) return 0;
+        return (assets * bps + _FEE_BPS - 1) / _FEE_BPS;
+    }
+
+    /// @dev Levy already INCLUDED in `assets` (used where the amount contains the levy). Rounds UP.
+    function _feeOnTotal(uint256 assets, uint256 bps) private pure returns (uint256) {
+        if (bps == 0) return 0;
+        uint256 denom = bps + _FEE_BPS;
+        return (assets * bps + denom - 1) / denom;
+    }
+
+    // Standard OZ ERC4626-fee preview math, with the levy retained in the pool (recipient == the pool
+    // itself), so no fee is ever transferred out: fewer shares are minted per deposit and more shares
+    // burned per withdrawal, and the difference accrues to every remaining holder pro-rata. With both
+    // rates 0 (the stable pool) these are exact pass-throughs to ERC4626.
+
+    function previewDeposit(uint256 assets) public view virtual override returns (uint256) {
+        uint256 fee = _feeOnTotal(assets, entryFeeBps);
+        return super.previewDeposit(assets - fee);
+    }
+
+    function previewMint(uint256 shares) public view virtual override returns (uint256) {
+        uint256 assets = super.previewMint(shares);
+        return assets + _feeOnRaw(assets, entryFeeBps);
+    }
+
+    function previewWithdraw(uint256 assets) public view virtual override returns (uint256) {
+        uint256 fee = _feeOnRaw(assets, exitFeeBps);
+        return super.previewWithdraw(assets + fee);
+    }
+
+    function previewRedeem(uint256 shares) public view virtual override returns (uint256) {
+        uint256 assets = super.previewRedeem(shares);
+        return assets - _feeOnTotal(assets, exitFeeBps);
+    }
+
+    /// @dev Max assets a holder can withdraw, NET of the exit levy, so the UI and agent never quote
+    ///      more than redeeming the whole balance actually returns.
+    function maxWithdraw(address owner) public view virtual override returns (uint256) {
+        return previewRedeem(balanceOf(owner));
     }
 
     // ------------------------------------------------------------------ user flows
@@ -425,6 +488,16 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     ///         round-trip loss the agent may cause within each `lossEpochLength_` window; setting
     ///         it opens a fresh window. Raising it is the escape hatch if a legitimate de-risk needs
     ///         to realize more loss than the current budget allows.
+    /// @notice Set the anti-dilution levy (entry/exit, in bps), retained by the pool. Capped at
+    ///         MAX_FEE_BPS so it can never become a real fee — it only makes a joiner/leaver bear the
+    ///         value their own action moves, compensating the holders who stay. Does not touch custody.
+    function setFees(uint256 entryFeeBps_, uint256 exitFeeBps_) external onlyOwner {
+        if (entryFeeBps_ > MAX_FEE_BPS || exitFeeBps_ > MAX_FEE_BPS) revert FeeTooHigh();
+        entryFeeBps = entryFeeBps_;
+        exitFeeBps = exitFeeBps_;
+        emit FeesUpdated(entryFeeBps_, exitFeeBps_);
+    }
+
     function setLossBudget(uint256 maxEpochLoss_, uint256 lossEpochLength_) external onlyOwner {
         if (lossEpochLength_ == 0) revert ZeroEpoch();
         maxEpochLoss = maxEpochLoss_;

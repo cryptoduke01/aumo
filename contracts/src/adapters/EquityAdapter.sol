@@ -195,6 +195,9 @@ contract EquityAdapter is IVenueAdapter {
         uint256 updatedAt;
         (px, updatedAt) = oracle.priceWad(feedId);
         if (px == 0) revert ZeroPrice();
+        // A future-dated observation (the oracle permits a small clock skew) is fresh, and subtracting
+        // it would underflow-panic; treat it as fresh, matching EquityPool.marketOpen().
+        if (updatedAt >= block.timestamp) return px;
         if (block.timestamp - updatedAt > maxAge) revert StalePrice();
     }
 

@@ -120,15 +120,16 @@ const STOCKS_BY_NET: Record<"mainnet" | "testnet", StockConfig[]> = {
     soon("GOOGLx", "Alphabet"),
     soon("COINx", "Coinbase"),
   ],
-  // Live on X Layer mainnet (2026-09-14): the four liquidity-ready stocks, each its own pool, all
-  // priced by the shared self-hosted oracle. `stock` is the WRAPPED xStock (w<SYM>x) that carries the
-  // Uniswap liquidity the adapter routes through. The thinner four stay coming-soon until depth arrives.
+  // Live on X Layer mainnet — HARDENED REDEPLOY 2026-09-21 (anti-dilution levy 25/50 bps, 5-min
+  // staleness window, future-dated-observation clamp). Each stock is its own pool, all priced by the
+  // shared self-hosted oracle 0x1759. `stock` is the WRAPPED xStock (w<SYM>x) carrying the Uniswap
+  // liquidity the adapter routes through. Supersedes the pre-hardening pools (0x42ee/0xD66a/0xEE9C/0xC708).
   mainnet: [
     {
       symbol: "NVDAx",
       name: "NVIDIA",
       feedId: "0x4e56444100000000000000000000000000000000000000000000000000000000",
-      pool: "0x42ee28ADcA2323689f9c5c8f733B9F56fbb4F7aA",
+      pool: "0x9781cD1f02045c072D7D1915a215c9E46b49E1dB",
       oracle: "0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2",
       stock: "0xa8ddb5Cd96b5222AFe198316E9A57CAA642850D5",
     },
@@ -136,7 +137,7 @@ const STOCKS_BY_NET: Record<"mainnet" | "testnet", StockConfig[]> = {
       symbol: "AAPLx",
       name: "Apple",
       feedId: "0x4141504c00000000000000000000000000000000000000000000000000000000",
-      pool: "0xD66a4473C4b81397A090248d05179b7da04993d0",
+      pool: "0xDcd9c0C948ebb4D63d88FA5EC8eDE571eF1BE523",
       oracle: "0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2",
       stock: "0x943BF64D566c32A2Bcd41AC92FB63C111cC9De8f",
     },
@@ -144,7 +145,7 @@ const STOCKS_BY_NET: Record<"mainnet" | "testnet", StockConfig[]> = {
       symbol: "MSFTx",
       name: "Microsoft",
       feedId: "0x4d53465400000000000000000000000000000000000000000000000000000000",
-      pool: "0xEE9Cfb0D6847BbC546E0c11538816Ea1f3DAf870",
+      pool: "0xbe0A87F49F424D3170804e29E5969a379Fe65626",
       oracle: "0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2",
       stock: "0x166Fbe68274b6a47e025F4ba17388c539f1fa1d0",
     },
@@ -152,7 +153,7 @@ const STOCKS_BY_NET: Record<"mainnet" | "testnet", StockConfig[]> = {
       symbol: "METAx",
       name: "Meta",
       feedId: "0x4d45544100000000000000000000000000000000000000000000000000000000",
-      pool: "0xC70881EE201FB6979f90CF39A690D6816BB30463",
+      pool: "0x47343D8a880c84aD1a6aD679FEdd0DC23fdA8BcC",
       oracle: "0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2",
       stock: "0xe840946FfEBCd66B7C4E95095effaFaDfa0D0e56",
     },
@@ -182,15 +183,16 @@ export interface BasketConfig {
 
 const BASKET_BY_NET: Record<"mainnet" | "testnet", BasketConfig | null> = {
   testnet: null,
-  // Deployed 2026-09-17 (DeployBasketMainnet, chain 196). Reuses the shared self-hosted oracle.
+  // HARDENED REDEPLOY 2026-09-21 (DeployBasketMainnet, chain 196): anti-dilution levy 25/50 bps,
+  // 5-min staleness, obs-clamp. Reuses the shared self-hosted oracle 0x1759. Supersedes 0x39Ce.
   mainnet: {
-    pool: "0x39Ce24bF143d4B5Ae16683Fb8e319c14E3E0A421",
+    pool: "0xFe01b81F5D22Ac3647424904f7DC7ecC9EA0358d",
     oracle: "0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2",
     members: [
-      { symbol: "NVDAx", name: "NVIDIA", venue: "0xf79F97E53AC79985889a678ea652DACdEf001ce1" },
-      { symbol: "AAPLx", name: "Apple", venue: "0x71860a56E3faF65130B8de14BD04fE5Eb57E2fea" },
-      { symbol: "MSFTx", name: "Microsoft", venue: "0x8A0b37905DB147c7dD0f02De1C198B839AFB1BD5" },
-      { symbol: "METAx", name: "Meta", venue: "0xD94235eFb4873071882957C87D21b5F2b0A61c70" },
+      { symbol: "NVDAx", name: "NVIDIA", venue: "0xfdf7eb2a1A4F734901efB03a6a026dBb17B1A3dC" },
+      { symbol: "AAPLx", name: "Apple", venue: "0x479e1A2B6A2B70599a3Ef3e89334cb2dcAf43f63" },
+      { symbol: "MSFTx", name: "Microsoft", venue: "0x5908B1143d69f363FEEc8bBc41cb73Ff26C8de40" },
+      { symbol: "METAx", name: "Meta", venue: "0xFC0F4b0C9C0CF785f822079EbFb789Dbeb7DdF49" },
     ],
   },
 };

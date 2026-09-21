@@ -30,8 +30,16 @@ contract DeployBasketMainnet is Script {
     // SELF_HOSTED_EQUITY_ORACLE if it is ever migrated.
     address constant ORACLE = 0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2;
 
-    uint256 constant MAX_AGE = 1 hours; // feed older than this = market closed = entry/exit frozen
+    // Staleness window = ~5x the 60s feeder cadence: a mark older than this fails entry/exit CLOSED,
+    // so a dead/lagging feeder can't keep pricing joins and exits off a stale mark for up to an hour
+    // (self-audit F-5 / the NAV-latency Medium). Tightened from 1h.
+    uint256 constant MAX_AGE = 300; // 5 minutes
     uint256 constant SLIP = 200; // 2% max slippage vs the oracle across both hops
+    // Anti-dilution levy (bps), RETAINED BY THE POOL — makes a joiner/leaver bear the value their own
+    // action moves (exit slippage + any stale-vs-live NAV gap) instead of socializing it onto the
+    // holders who stay (self-audit exit-slippage + NAV-latency Mediums). Owner-tunable post-deploy.
+    uint256 constant ENTRY_FEE_BPS = 25; // 0.25%
+    uint256 constant EXIT_FEE_BPS = 50; // 0.50%
     // Launch caps (USD₮0, 6dp), owner-tunable post-deploy. PER_VENUE_CAP > equal-weight target (NAV/4)
     // to leave rebalance headroom; MAX_TOTAL caps the whole basket.
     uint256 constant MAX_MOVE = 1_000e6;
@@ -81,6 +89,7 @@ contract DeployBasketMainnet is Script {
 
         pool.setPolicy(MAX_MOVE, PER_VENUE_CAP, MAX_TOTAL);
         pool.setDeployBudget(DEPLOY_BUDGET, DEPLOY_EPOCH);
+        pool.setFees(ENTRY_FEE_BPS, EXIT_FEE_BPS);
         pool.setAgent(agent);
 
         vm.stopBroadcast();
