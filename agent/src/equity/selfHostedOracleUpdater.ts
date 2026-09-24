@@ -10,6 +10,15 @@ import {
   symbolToFeedId,
   type FinnhubCreds,
 } from "./finnhubClient.js";
+import { fetchGoldUsd, goldMarketStatus, paxgyPriceUsd } from "./goldClient.js";
+
+// PAXGy (Paxos yield-bearing gold) is priced off-Finnhub: getRate() (gold terms, on-chain) x gold/USD.
+// When "PAXGY" is in EQUITY_SYMBOLS the feeder posts it to the same oracle as the stocks.
+const PAXGY_SYMBOL = "PAXGY";
+const PAXGY_ACCOUNTANT = "0x397e38359f169748a02bc11f98D4f451FE88C1fd" as Address; // getRate() (WAD)
+const accountantAbi = [
+  { type: "function", name: "getRate", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+] as const;
 
 /**
  * SELF-HOSTED oracle feeder. The agent is the SelfHostedEquityOracle `updater`: each cycle it pulls a
@@ -99,7 +108,27 @@ export async function updateOracleOnce(cfg: UpdaterConfig): Promise<void> {
   for (const symbol of cfg.symbols) {
     try {
       const feedId = symbolToFeedId(symbol);
-      const quote = await fetchQuote(symbol, cfg.creds);
+      // PAXGy: price = on-chain getRate() (gold) x gold/USD spot, with its own 24/5 metals session.
+      // Every other symbol is a Finnhub stock quote with the shared US-equity status.
+      let priceUsd: number;
+      let observedAtSec: number;
+      let statusForFeed: number;
+      if (symbol === PAXGY_SYMBOL) {
+        const rateWad = (await pc.readContract({
+          address: PAXGY_ACCOUNTANT,
+          abi: accountantAbi,
+          functionName: "getRate",
+        })) as bigint;
+        const goldUsd = await fetchGoldUsd();
+        priceUsd = paxgyPriceUsd(goldUsd, rateWad); // throws if either input is out of a sane band
+        observedAtSec = Math.floor(Date.now() / 1000);
+        statusForFeed = goldMarketStatus();
+      } else {
+        const quote = await fetchQuote(symbol, cfg.creds);
+        priceUsd = quote.priceUsd;
+        observedAtSec = quote.observedAtSec;
+        statusForFeed = status;
+      }
       // Skip anything not strictly newer than what is stored: the on-chain monotonic guard would reject
       // it, so sending it would only waste a reverted transaction.
       const [lastObs] = (await pc.readContract({
@@ -108,14 +137,14 @@ export async function updateOracleOnce(cfg: UpdaterConfig): Promise<void> {
         functionName: "lastObservation",
         args: [feedId],
       })) as [number, number];
-      if (quote.observedAtSec <= Number(lastObs)) {
+      if (observedAtSec <= Number(lastObs)) {
         console.log(`${new Date().toISOString()}  ${symbol}  no newer quote (last ${lastObs}) — skip`);
         continue;
       }
       feedIds.push(feedId);
-      pricesWad.push(priceToWad(quote.priceUsd));
-      statuses.push(status);
-      timestamps.push(quote.observedAtSec);
+      pricesWad.push(priceToWad(priceUsd));
+      statuses.push(statusForFeed);
+      timestamps.push(observedAtSec);
     } catch (err) {
       console.error(`${symbol}  quote failed:`, err instanceof Error ? err.message : err);
     }
