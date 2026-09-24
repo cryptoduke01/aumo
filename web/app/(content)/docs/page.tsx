@@ -264,8 +264,9 @@ export default function DocsPage() {
               onchain liquidity: exit into a thin order book and you get a worse fill, and an
               oracle-plus-slippage guard will block a sale that is far below fair value rather than
               fill it at any price, so in a genuinely thin book an exit can be held back until price or
-              liquidity recovers. Each exiter bears their own exit cost; it is never pushed onto
-              holders who stay. Deposit only what you can afford to lose.
+              liquidity recovers. A small anti-dilution levy (0.25% on entry, 0.50% on exit) stays in
+              the pool, so a joiner or leaver pays for the value their own move shifts and each exiter
+              bears their own exit cost, never the holders who stay. Deposit only what you can afford to lose.
             </p>
           </section>
 
