@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Ecosystem · Aumo",
   description:
-    "How Aumo, an autonomous AI treasury for stablecoins, brings idle dollar liquidity into X Layer's real-world-asset economy, deepens the protocols it earns in, and compounds the ecosystem it is built on.",
+    "How Aumo, an autonomous AI treasury for stablecoins, brings idle dollar liquidity into X Layer's real-world-asset economy, deepens the protocols it earns in, and compounds the ecosystem it is built on, now with opt-in pools for tokenized US stocks, a diversified basket, and tokenized gold.",
 };
 
 function Stat({ figure, label }: { figure: string; label: string }) {
@@ -20,7 +20,7 @@ export default function EcosystemPage() {
     <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
       <header className="border-b border-border/70 py-16">
         <span className="text-xs uppercase tracking-[0.14em] text-accent">
-          Ecosystem · Aumo · X Layer · August 2026
+          Ecosystem · Aumo · X Layer · September 2026
         </span>
         <h1 className="mt-3 text-balance text-4xl font-medium leading-[1.05] tracking-tight sm:text-[2.9rem]">
           An AI-RWA treasury that grows the ecosystem it earns in
@@ -54,7 +54,10 @@ export default function EcosystemPage() {
             every move guardrailed by a contract and provable on-chain. It is not a walled garden. Aumo
             routes external stablecoin liquidity into X Layer&apos;s own protocols, generates on-chain
             volume as it works, and is built as composable infrastructure that any new venue can plug
-            into. It does not extract from the ecosystem. It deepens it.
+            into. It does not extract from the ecosystem. It deepens it. For holders who want more than
+            preservation, Aumo also runs opt-in, at-risk pools for tokenized US stocks, a diversified
+            basket, and tokenized gold, each in its own isolated pool, which bring xStock and gold
+            liquidity onto X Layer&apos;s DEXs on the way in and out.
           </p>
         </div>
 
@@ -97,9 +100,11 @@ export default function EcosystemPage() {
           adverse scenarios, convenes a panel of specialist agents (peg, liquidity, macro), and passes
           the plan through an adversarial critic that can veto or hold. A language-model layer sits on
           top under a formal tighten-only property: it can make a plan more conservative but never
-          looser, and every guardrail is re-checked by the contract after it answers. Every decision
-          is written to a receipt anyone can replay. The full method, with the math and a deterministic
-          backtest, is in the <a href="/research">research note</a>.
+          looser, and every guardrail is re-checked by the contract after it answers. That layer, the
+          specialist panel, and the Ask Aumo endpoint are provider-pluggable, running on Groq
+          (OpenAI-compatible) or Anthropic by configuration, and the tighten-only bound holds whichever
+          one answers. Every decision is written to a receipt anyone can replay. The full method, with
+          the math and a deterministic backtest, is in the <a href="/research">research note</a>.
         </p>
 
         <h2 id="s4">4. The RWA is real, and it is on X Layer</h2>
@@ -129,6 +134,39 @@ export default function EcosystemPage() {
           on a Treasury-backed dollar, with a defined maturity. It is what a cautious mandate wants,
           and it is now native to X Layer.
         </p>
+        <p>
+          Beyond the safe pool, Aumo now offers opt-in exposure to tokenized real-world assets that
+          carry price risk, each in its own isolated pool, separate from the preservation-first treasury
+          and clearly labelled as at-risk:
+        </p>
+        <ul>
+          <li>
+            <strong>Tokenized US stocks</strong>: four isolated pools (NVIDIA, Apple, Microsoft, Meta).
+            Each takes USDT0 and routes it to the wrapped xStock through Uniswap v3, priced by an
+            on-chain equity oracle Aumo runs and discloses, with US market hours enforced by the
+            contract so no one enters or exits at a stale price.
+          </li>
+          <li>
+            <strong>A diversified basket</strong>: one pool holds all four stocks equal-weight through
+            four adapters, and the agent&apos;s only job is to keep the weights equal by rebalancing on
+            drift. Diversification is the one thing that reliably reduced drawdown in backtest, and
+            there is no market-timing rule. The reasoning is in the{" "}
+            <a href="/research">research note</a>.
+          </li>
+          <li>
+            <strong>Tokenized gold</strong>: an opt-in pool holds PAXGy, Paxos&apos; yield-bearing
+            tokenized gold, which tracks the gold price while its gold entitlement grows over time.
+            USDT0 is routed through USDG to PAXGy on Uniswap v3, priced from PAXGy&apos;s on-chain gold
+            rate combined with a gold feed Aumo runs.
+          </li>
+        </ul>
+        <p>
+          These pools deepen the same X Layer venues from a new direction: xStock and PAXGy liquidity
+          trades through Uniswap v3 on the way in and out, and USDG stays the funnel the routing flows
+          through. They are not capital preservation, and their value moves with the underlying, so they
+          sit apart from the treasury with their own guardrails and a small anti-dilution levy retained
+          by the pool.
+        </p>
 
         <h2 id="s5">5. How Aumo grows X Layer</h2>
         <p>
@@ -143,8 +181,9 @@ export default function EcosystemPage() {
           </li>
           <li>
             <strong>It generates on-chain volume.</strong> Allocating into the RWA and fixed-yield legs
-            routes USDT0 and USDG through X Layer&apos;s DEXs on the way in and out. Aumo&apos;s
-            activity is DEX activity.
+            routes USDT0 and USDG through X Layer&apos;s DEXs on the way in and out, and the opt-in
+            stock, basket, and gold pools add wrapped-xStock and PAXGy volume through Uniswap v3 on top.
+            Aumo&apos;s activity is DEX activity.
           </li>
           <li>
             <strong>It is composable infrastructure, not a silo.</strong> Venues are reached through a
@@ -196,6 +235,13 @@ export default function EcosystemPage() {
           contracts, and the pool is covered by 72 tests including a stateful invariant suite. Launch
           is deliberate by design: the pool deploys paused with conservative caps, and go-live is a
           verified unpause.
+        </p>
+        <p>
+          The opt-in real-world-asset pools are live on X Layer mainnet as well: four tokenized-stock
+          pools, the equal-weight basket, and the tokenized-gold pool, all in their hardened form after
+          an internal security pass proved and fixed two issues before they opened to deposits. Across
+          the safe pool and these, the agent has made around 3,000 on-chain decisions to date, each one
+          written to a receipt anyone can replay.
         </p>
 
         <h2 id="s8">8. The compounding thesis</h2>

@@ -5,7 +5,7 @@ import { isMainnet } from "@/lib/chain";
 export const metadata: Metadata = {
   title: "Whitepaper · Aumo",
   description:
-    "Aumo: an autonomous, guardrailed treasury agent for risk-adjusted stablecoin yield across lending and real-world-asset-backed venues on X Layer.",
+    "Aumo: an autonomous, guardrailed treasury agent for risk-adjusted stablecoin yield across lending and real-world-asset-backed venues on X Layer, with opt-in pools for tokenized US stocks, a diversified basket, and tokenized gold.",
 };
 
 export default function WhitepaperPage() {
@@ -14,7 +14,7 @@ export default function WhitepaperPage() {
       <header className="relative border-b border-border/70 py-16">
         <DitherMark className="pointer-events-none absolute right-0 top-12 hidden size-40 text-foreground/[0.12] sm:block" />
         <span className="text-xs uppercase tracking-[0.14em] text-accent">
-          Whitepaper · v0.5 · 2026
+          Whitepaper · v0.6 · 2026
         </span>
         <h1 className="relative mt-3 text-4xl font-medium tracking-tight sm:text-5xl">
           Aumo: a guardrailed treasury agent
@@ -33,7 +33,10 @@ export default function WhitepaperPage() {
           on your behalf. Aumo is an autonomous agent that does the work. It scores
           venues, allocates capital, and rebalances with the market, while the
           authority to move funds is bounded by a contract rather than by good
-          intentions. The agent optimises. The chain constrains.
+          intentions. The agent optimises. The chain constrains. The same design now
+          extends beyond the safe stablecoin pool into opt-in, at-risk pools for
+          tokenized US stocks, a diversified basket, and tokenized gold, each in its own
+          isolated pool under the identical guardrails (Section 9).
         </p>
 
         <h2>1. Motivation</h2>
@@ -108,6 +111,15 @@ export default function WhitepaperPage() {
           add a venue, or increase exposure beyond what the engine already
           sanctioned. The model advises within a box it cannot open.
         </p>
+        <p>
+          Because the safety is a property of the kernel and not of any one model, the
+          reasoning pass is provider-pluggable. The same tighten-only layer, the
+          specialist panel it convenes, and the Ask Aumo endpoint run on Groq
+          (OpenAI-compatible) or Anthropic, selected by configuration. Swapping the
+          provider changes only how conservatively a plan may be tightened, never
+          whether it can be loosened, because the contract re-checks every guardrail
+          after the model answers regardless of which model that was.
+        </p>
 
         <h2>6. Execution and proofs</h2>
         <p>
@@ -134,21 +146,75 @@ export default function WhitepaperPage() {
           so a compromised or misbehaving agent cannot steal funds. The assumptions
           that remain are the venues themselves (a venue can lose money on its own
           terms), the correctness of the contracts, and the security of the owner
-          key that sets policy and allowlists. Aumo is experimental and has not
+          key that sets policy and allowlists. The real-world-asset pools (Section 9)
+          add two disclosed assumptions of the same class: a self-hosted price oracle
+          whose feeder key is the source of truth until it is migrated to a network
+          feed, and the freeze and pause powers the token issuers (Paxos and the
+          xStock issuers) retain over the underlying. Aumo is experimental and has not
           completed a formal third-party audit.
         </p>
 
-        <h2>9. Roadmap</h2>
+        <h2>9. Real-world-asset pools</h2>
+        <p>
+          Alongside the safe stablecoin pool, Aumo runs opt-in pools for tokenized US
+          stocks, a diversified basket, and tokenized gold. Each is a separate isolated
+          ERC-4626 pool that takes USDT0. These pools deliberately hold directional
+          price exposure the depositor chose, so they are not capital preservation and
+          their share value moves with the underlying. They reuse the safe pool&apos;s
+          whole trust model unchanged (the owner sets policy, an allowlisted agent moves
+          funds only within hard caps, and the owner never has custody) and add three
+          equity-specific behaviours: US market hours enforced by the contract on both
+          entry and exit, so no one transacts at a stale price; an oracle-derived
+          minimum out on every swap, so a manipulated pool reverts rather than filling
+          far from fair value; and redemption at realizable value.
+        </p>
+        <p>
+          Four isolated pools track NVIDIA, Apple, Microsoft, and Meta. Each routes
+          USDT0 to the wrapped xStock through Uniswap v3, priced by an on-chain equity
+          oracle Aumo operates and discloses. On a single-stock pool the agent buys and
+          holds the exposure the depositor chose. It does not time the market. A fifth
+          pool holds all four equal-weight through four adapters, and the agent&apos;s
+          only job is to keep the weights equal by rebalancing on drift within a band.
+          The basket exists because diversification is the one thing that reliably
+          reduced drawdown in a five-year backtest, while a trend-timing overlay we
+          tested on single names whipsawed and did not reliably help, so we removed it.
+          The figures and method are in the <a href="/research">research note</a>.
+        </p>
+        <p>
+          A separate opt-in pool holds PAXGy, Paxos&apos; yield-bearing tokenized gold.
+          It tracks the gold price, and its gold entitlement grows over time, so a
+          holder earns a yield denominated in gold on top of the price exposure. Aumo
+          prices it from PAXGy&apos;s on-chain gold rate combined with a gold price feed
+          it runs, and routes USDT0 through USDG to PAXGy on Uniswap v3. Gold moves in
+          dollar terms, so this too is not capital preservation.
+        </p>
+        <p>
+          The equity and gold oracle is self-hosted for now: a feeder Aumo runs posts
+          prices through a single trusted key, disclosed to depositors, with the
+          consumer contracts reading through an oracle-agnostic interface so a later
+          move to a verified network feed is a single owner call and no depositor
+          action. Before these pools opened to deposits, a multi-agent internal security
+          pass proved two Medium-severity issues with fork proof-of-concepts
+          (exit-slippage socialization and a NAV-latency skim) and fixed both with a
+          tighter oracle staleness window and an anti-dilution levy retained by the pool
+          (25 basis points on entry, 50 on exit), so a joiner or leaver bears the value
+          their own action moves rather than the holders who stay. The levy is capped in
+          the contract so it can never become a fee. The hardened pools were redeployed
+          to X Layer mainnet before accepting deposits.
+        </p>
+
+        <h2>10. Roadmap</h2>
         <ul>
           <li>Deepen the reasoning layer with temporal awareness and scenario simulation.</li>
-          <li>Expand the venue set toward genuinely composable tokenized real-world assets.</li>
-          <li>Formal third-party audit of the deployed contracts. Mainnet went live on X Layer on August 13, 2026, starting from a deliberately small pool under conservative caps that widen as the audit and on-chain track record mature.</li>
+          <li>Migrate the self-hosted equity and gold oracle to a verified network feed through the oracle-agnostic interface, with no depositor action required.</li>
+          <li>Broaden the real-world-asset surface. The tokenized-stock pools, the diversified basket, and the tokenized-gold pool are live on X Layer mainnet; further names and asset classes follow as their on-chain liquidity supports it.</li>
+          <li>Formal third-party audit of the deployed contracts. Mainnet went live on X Layer on August 13, 2026, starting from a deliberately small pool under conservative caps that widen as the audit and on-chain track record mature; the equity pools were opened only after an internal security pass and a hardened redeploy.</li>
           <li>Depositor-configurable risk appetite within the contract&apos;s hard bounds.</li>
         </ul>
 
         <hr />
 
-        <h2>10. Disclaimer</h2>
+        <h2>11. Disclaimer</h2>
         <p>
           {isMainnet
             ? "This document describes software running on X Layer mainnet. It is "
