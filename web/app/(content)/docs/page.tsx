@@ -257,6 +257,15 @@ export default function DocsPage() {
               to keep the weights equal by rebalancing on drift. No timing, no stock-picking, and no
               promise on drawdown.
             </p>
+            <h3>Tokenized gold</h3>
+            <p>
+              The newest pool holds PAXGy, Paxos&apos; yield-bearing tokenized gold. It tracks the gold
+              price, and its gold entitlement grows over time, so you earn a yield denominated in gold on
+              top of the price exposure. Aumo prices it from PAXGy&apos;s on-chain gold rate combined with
+              a gold feed it runs, routes USDT0 through USDG to PAXGy, and applies the same guardrails and
+              anti-dilution levy as the stock pools. Gold moves in dollar terms, so this is also not
+              capital preservation.
+            </p>
             <h3>Risk and exit</h3>
             <p>
               You own the price risk. A single stock&apos;s drawdown is unbounded, and no rule here

@@ -83,25 +83,37 @@ to its transaction on-chain.
 <img src="docs/screens/activity.png" width="880" alt="Activity feed — every agent decision recorded with its full rationale and on-chain transaction" />
 </div>
 
-## Tokenized stocks and the diversified basket
+## Tokenized stocks, a diversified basket, and gold
 
-Aumo is built for real-world assets, and tokenized stocks are the latest. Alongside the safe
-stablecoin pool it runs opt-in, at-risk exposure to tokenized US stocks on X Layer — NVIDIA, Apple,
-Microsoft, and Meta — each in its own isolated pool, priced by an on-chain oracle Aumo runs, with US
-market hours enforced by the contract so no one enters or exits at a stale price. You deposit USDT0;
-the pool holds the directional exposure you chose. This is not capital preservation.
+Aumo is built for real-world assets. Alongside the safe stablecoin pool it runs opt-in, at-risk
+exposure to tokenized US stocks on X Layer (NVIDIA, Apple, Microsoft, and Meta), each in its own
+isolated pool, priced by an on-chain oracle Aumo runs, with US market hours enforced by the contract
+so no one enters or exits at a stale price. You deposit USDT0; the pool holds the directional
+exposure you chose. This is not capital preservation.
 
 On a single stock the agent buys and holds what you picked; it does not time or pick. We built a
 trend rule that de-risks on a break, backtested it over five years including the 2022 bear, and found
-it whipsaws and does not reliably cut drawdown on single names — so we removed it. The one thing that
+it whipsaws and does not reliably cut drawdown on single names, so we removed it. The one thing that
 reliably reduces drawdown is diversification: over that window an equal-weight basket of the four cut
 maximum drawdown from about 43% on a single name to about 32%. So Aumo also runs a **diversified
-basket** — one deposit, equal weight across all four, the agent's only job being to keep the weights
+basket**: one deposit, equal weight across all four, the agent's only job being to keep the weights
 equal. Same guardrails, same provable receipts, no market-timing claim.
 
-Live on X Layer mainnet: basket pool `0x39Ce24bF143d4B5Ae16683Fb8e319c14E3E0A421`, four per-stock
-pools, and a shared equity oracle, all verifiable on [OKLink](https://www.oklink.com/xlayer). More in
-the [docs](https://aumo.finance/docs).
+Newest is **tokenized gold**. Aumo runs an opt-in pool holding PAXGy, Paxos' yield-bearing tokenized
+gold: it tracks the gold price, and its gold entitlement grows over time, so a holder earns a yield
+denominated in gold. It is priced from PAXGy's on-chain gold rate combined with a gold price feed Aumo
+runs, in its own isolated pool with the same guardrails. Gold moves in dollar terms, so this too is
+not capital preservation.
+
+Each equity and gold pool carries a small anti-dilution levy retained by the pool, so anyone joining
+or exiting bears the value their own action moves and never the holders who stay. The pools were
+security-audited and hardened before opening to deposits.
+
+Live on X Layer mainnet: the four per-stock pools, the diversified basket pool
+`0xFe01b81F5D22Ac3647424904f7DC7ecC9EA0358d`, the gold pool
+`0xf1833C4eAEb42df6D9eE33ea090055cf690cee56`, and a shared equity oracle
+`0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2`, all verifiable on
+[OKLink](https://www.oklink.com/xlayer). More in the [docs](https://aumo.finance/docs).
 
 ## Architecture
 
@@ -157,7 +169,7 @@ mainnet, fork tests before deploy, review before shipping money-code. See [SECUR
 
 ## Built with
 
-Solidity · Foundry · TypeScript · viem · Next.js · X Layer · USDT0 · Aave · USDG · Pendle · Uniswap v3 · Turnkey TEE
+Solidity · Foundry · TypeScript · viem · Next.js · X Layer · USDT0 · Aave · USDG · Pendle · Uniswap v3 · xStocks · PAXGy · Turnkey TEE
 
 ## License
 
