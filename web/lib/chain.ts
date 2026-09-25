@@ -198,6 +198,33 @@ const BASKET_BY_NET: Record<"mainnet" | "testnet", BasketConfig | null> = {
 };
 export const BASKET = BASKET_BY_NET[NET];
 
+// --- GOLD: an opt-in, at-risk pool holding PAXGy (Paxos yield-bearing tokenized gold). Same isolated,
+// levy-hardened EquityPool as the stocks; NOT the safe pool (gold's USD value moves). Priced by the
+// shared self-hosted oracle, where the feeder posts a PAXGY price = on-chain getRate() x gold/USD.
+// Deployed 2026-09-25 (DeployGoldMainnet, chain 196).
+export interface GoldConfig {
+  symbol: string; // PAXGy
+  name: string; // PAX Gold
+  feedId: `0x${string}`;
+  pool: `0x${string}`;
+  adapter: `0x${string}`;
+  oracle: `0x${string}`;
+  stock: `0x${string}`; // the PAXGy token
+}
+const GOLD_BY_NET: Record<"mainnet" | "testnet", GoldConfig | null> = {
+  testnet: null,
+  mainnet: {
+    symbol: "PAXGy",
+    name: "PAX Gold",
+    feedId: "0x5041584759000000000000000000000000000000000000000000000000000000",
+    pool: "0xf1833C4eAEb42df6D9eE33ea090055cf690cee56",
+    adapter: "0x6c3Dca1AA96010683bB0e7A0AEb80AbC2e4c25bF",
+    oracle: "0x1759B50019C988F3eF4Cc0F4879d80EdaD2Ec4D2",
+    stock: "0x6c6494Fd9962eB98B94ffA48F6679058F820700e",
+  },
+};
+export const GOLD = GOLD_BY_NET[NET];
+
 // The equity pool's surface: the safe-pool reads plus the market-hours gate. Kept distinct from
 // poolAbi so the at-risk pool can never be driven through the safe-pool code paths by accident.
 export const equityPoolAbi = parseAbi([
