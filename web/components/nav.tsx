@@ -20,10 +20,11 @@ const tabs: Tab[] = [
   { seg: "/venues", label: "Venues" },
   {
     seg: "/stocks",
-    label: "Stocks",
+    label: "Markets",
     children: [
       { seg: "/stocks", label: "Individual stocks" },
       { seg: "/basket", label: "Diversified basket" },
+      { seg: "/gold", label: "Gold" },
     ],
   },
   { seg: "/activity", label: "Activity" },
