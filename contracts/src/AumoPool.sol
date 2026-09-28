@@ -89,6 +89,14 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     // Over-ask margin when pulling from a venue to cover a withdrawal: comfortably above any sane
     // swap floor so a single pull covers `need` without liquidating the whole (lossy) venue.
     uint256 private constant PULL_MARGIN_BPS = 300; // 3%
+    // Floor on realizable settlement. A lossy venue exit may leave a redemption a little short (swap
+    // spread, a fixed-term discount), and that residual settles at realizable value. But when a venue
+    // exit FAILS outright, the swallowed revert would otherwise pay only the idle balance (possibly
+    // zero) while burning the redeemer's shares in full, gifting their value to whoever redeems next.
+    // Any shortfall above this bound reverts the redemption instead, so the holder keeps their shares
+    // and can retry once the venue recovers. Sits above every adapter's worst legitimate exit cost
+    // (equity/gold 2% oracle floor; stable USDG 2% + Pendle 1%).
+    uint256 public constant MAX_EXIT_SHORTFALL_BPS = 500; // 5%
 
     address[] private _venues; // every venue ever allowlisted (for totalAssets summation)
     mapping(address => bool) private _inList;
@@ -126,6 +134,7 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
     error VenueHasValue();
     error TooManyVenues();
     error NotSelf();
+    error ExitShortfall(uint256 owed, uint256 payout);
 
     modifier onlyAgent() {
         if (msg.sender != agent) revert NotAgent();
@@ -328,6 +337,13 @@ contract AumoPool is ERC4626, Ownable2Step, Pausable, ReentrancyGuard {
         // charged for it. A lossless venue always covers `assets` exactly, so this is a no-op there.
         uint256 idle = idleBalance();
         uint256 pay = assets <= idle ? assets : idle;
+        // ...but only within MAX_EXIT_SHORTFALL_BPS (dust always tolerated): past that, a venue exit
+        // failed rather than slipped, and burning the full share count for a fraction would hand the
+        // redeemer's value to the holders who stay. Revert so they keep their shares.
+        uint256 shortfall = assets - pay;
+        if (shortfall > DUST && shortfall * 10_000 > assets * MAX_EXIT_SHORTFALL_BPS) {
+            revert ExitShortfall(assets, pay);
+        }
         super._withdraw(caller, receiver, owner, pay, shares);
     }
 
