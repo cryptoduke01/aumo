@@ -1,0 +1,163 @@
+/* Public /stocks page on the site system (tokens from globals, shapes from site.module.css). */
+.band {
+  padding: 2.5rem var(--gutter) 3.5rem;
+  border-bottom: 1px solid var(--s-page-line);
+}
+.bandHead {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.tickers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0;
+  margin: 2.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--s-page-line);
+  border-left: 1px solid var(--s-page-line);
+}
+.tickers li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 0.8rem;
+  padding: 1.2rem;
+  border-right: 1px solid var(--s-page-line);
+  border-bottom: 1px solid var(--s-page-line);
+}
+.tickers li > span:last-child {
+  grid-column: 2;
+}
+.soon {
+  opacity: 0.45;
+}
+.tickerLogo {
+  grid-row: span 2;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+}
+.ticker {
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+}
+.how {
+  padding: clamp(4rem, 8vw, 7rem) var(--gutter);
+  color: var(--s-alt-fg);
+  background: var(--s-alt);
+}
+.howTitle {
+  max-width: 24ch;
+  margin: 1.6rem 0 0;
+  font-size: clamp(2rem, 3.6vw, 3.6rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+.howGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1.5rem, 3vw, 3rem);
+  margin-top: clamp(2.5rem, 5vw, 4.5rem);
+}
+.howItem {
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--s-alt-line);
+}
+.howItem h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.howItem p {
+  margin: 0.8rem 0 0;
+  color: var(--s-alt-muted);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+}
+.risk {
+  max-width: 44rem;
+  margin: clamp(2.5rem, 5vw, 4rem) 0 0;
+  color: var(--s-alt-muted);
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.6;
+}
+.closing {
+  padding: 0 var(--gutter) 7rem;
+  background: var(--s-alt);
+}
+.banner {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-items: end;
+  max-width: 80rem;
+  min-height: clamp(20rem, 34vw, 28rem);
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 0.9rem;
+  color: var(--s-page-fg);
+  background: var(--s-page);
+}
+.banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.62));
+}
+:global([data-theme="light"]) .banner::before {
+  background: linear-gradient(rgba(241, 238, 229, 0), rgba(241, 238, 229, 0.7));
+}
+.onlyDark,
+.onlyLight {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+.onlyLight {
+  display: none;
+}
+:global([data-theme="light"]) .onlyDark {
+  display: none;
+}
+:global([data-theme="light"]) .onlyLight {
+  display: block;
+}
+.bannerImg {
+  object-fit: cover;
+  object-position: center 60%;
+}
+.bannerContent {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: clamp(1.75rem, 3vw, 3rem);
+}
+.bannerTitle {
+  max-width: 14ch;
+  margin: 0;
+  font-size: clamp(2.2rem, 4vw, 4.2rem);
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+@media (max-width: 900px) {
+  .howGrid {
+    grid-template-columns: 1fr;
+  }
+  .bannerContent {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

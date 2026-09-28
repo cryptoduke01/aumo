@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { isMainnet } from "@/lib/chain";
+import { PageHero } from "@/components/site/page-hero";
 
 export const metadata: Metadata = {
   title: "Terms · Aumo",
@@ -8,16 +9,10 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
+    <>
+      <PageHero eyebrow="Legal" title="Terms of Service" meta="Last updated 9 August 2026" />
     <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
-      <header className="border-b border-border/70 py-16">
-        <span className="text-xs uppercase tracking-[0.14em] text-accent">
-          Legal
-        </span>
-        <h1 className="mt-3 text-4xl font-medium tracking-tight sm:text-5xl">
-          Terms of Service
-        </h1>
-        <p className="mt-4 text-xs text-faint">Last updated 9 August 2026</p>
-      </header>
+      
 
       <article className="prose py-14">
         <p className="lead">
@@ -101,5 +96,6 @@ export default function TermsPage() {
         </p>
       </article>
     </div>
+    </>
   );
 }

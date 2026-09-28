@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { DitherMark } from "@/components/dither-mark";
 import { LpFlow } from "@/components/lp-flow";
+import { PageHero } from "@/components/site/page-hero";
 
 export const metadata: Metadata = {
   title: "Internals · Aumo",
@@ -37,17 +37,15 @@ function Eq({ children }: { children: ReactNode }) {
 
 export default function InternalsPage() {
   return (
+    <>
+      <PageHero
+        eyebrow="Internals"
+        title="How Aumo actually works"
+        lead="No marketing gloss down here. This is the real machinery: how the agent thinks, where your money goes, and the math behind every move. Everything maps to code you can read and transactions you can check."
+        image="/visuals/note-security.jpg"
+      />
     <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
-      <header className="relative border-b border-border/70 py-16">
-        <DitherMark className="pointer-events-none absolute right-0 top-12 hidden size-40 text-foreground/[0.12] sm:block" />
-        <span className="text-xs uppercase tracking-[0.14em] text-accent">Internals · the nerd page</span>
-        <h1 className="relative mt-3 text-4xl font-medium tracking-tight sm:text-5xl">How Aumo actually works</h1>
-        <p className="relative mt-4 text-muted-foreground">
-          No marketing gloss down here. This is the real machinery: how the agent thinks, where your money
-          goes, and the math behind every move. Poke at it. Everything maps to code you can read and
-          transactions you can check.
-        </p>
-      </header>
+      
 
       <div className="flex flex-col gap-10 py-14">
         {/* Interactive centerpiece: the LP flow, click-through. */}
@@ -306,5 +304,6 @@ export default function InternalsPage() {
         </section>
       </div>
     </div>
+    </>
   );
 }

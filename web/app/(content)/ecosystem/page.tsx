@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHero, Byline, Abstract } from "@/components/site/page-hero";
 
 export const metadata: Metadata = {
   title: "Ecosystem · Aumo",
@@ -17,39 +18,17 @@ function Stat({ figure, label }: { figure: string; label: string }) {
 
 export default function EcosystemPage() {
   return (
+    <>
+      <PageHero
+        eyebrow="Ecosystem, September 2026"
+        title="An AI-RWA treasury that grows the ecosystem it earns in"
+        image="/visuals/horizon.jpg"
+      />
     <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
-      <header className="border-b border-border/70 py-16">
-        <span className="text-xs uppercase tracking-[0.14em] text-accent">
-          Ecosystem · Aumo · X Layer · September 2026
-        </span>
-        <h1 className="mt-3 text-balance text-4xl font-medium leading-[1.05] tracking-tight sm:text-[2.9rem]">
-          An AI-RWA treasury that grows the ecosystem it earns in
-        </h1>
-
-        <div className="mt-8 flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/duke.jpg"
-            alt="Duke"
-            className="size-11 rounded-full border border-border object-cover"
-          />
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-foreground">Duke</span>
-            <a
-              href="https://x.com/dukedotsol"
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              @dukedotsol · Aumo · X Layer
-            </a>
-          </div>
-        </div>
-
-        <div className="mt-8 rounded-xl border border-border bg-surface/60 p-5">
-          <span className="text-[11px] uppercase tracking-[0.14em] text-faint">In one paragraph</span>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Aumo is an autonomous treasury for stablecoins on X Layer. You hand it idle dollars; an AI
+      <header className="pb-4">
+        <Byline />
+        <Abstract label="In one paragraph">
+          Aumo is an autonomous treasury for stablecoins on X Layer. You hand it idle dollars; an AI
             agent puts them to work in real-world-asset and lending yield, preservation first, with
             every move guardrailed by a contract and provable on-chain. It is not a walled garden. Aumo
             routes external stablecoin liquidity into X Layer&apos;s own protocols, generates on-chain
@@ -58,9 +37,7 @@ export default function EcosystemPage() {
             preservation, Aumo also runs opt-in, at-risk pools for tokenized US stocks, a diversified
             basket, and tokenized gold, each in its own isolated pool, which bring xStock and gold
             liquidity onto X Layer&apos;s DEXs on the way in and out.
-          </p>
-        </div>
-
+        </Abstract>
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat figure="3" label="Real yield venues, fork-proven on live X Layer" />
           <Stat figure="1 adapter" label="To onboard any new X Layer venue" />
@@ -256,5 +233,6 @@ export default function EcosystemPage() {
         </p>
       </article>
     </div>
+    </>
   );
 }

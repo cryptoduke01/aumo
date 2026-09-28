@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { DitherField } from "@/components/dither-field";
 import { DitherMark } from "@/components/dither-mark";
+import { PageHero } from "@/components/site/page-hero";
 
 export const metadata: Metadata = {
   title: "Tokenomics · Aumo",
@@ -67,38 +67,19 @@ function DitheredDonut({ size = 300 }: { size?: number }) {
   );
 }
 
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/[0.06] px-3 py-1 text-xs font-medium text-accent">
-      {children}
-    </span>
-  );
-}
-
 const cut = { ["--cut" as string]: "14px" };
 
 export default function TokenomicsPage() {
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 pb-24 sm:px-8">
-      {/* Hero */}
-      <header className="relative isolate overflow-hidden rounded-2xl border border-border/70 bg-card px-6 py-16 sm:px-12 sm:py-20">
-        <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.5]">
-          <DitherField cell={3} coreY={0.62} intensity={0.7} />
-        </div>
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-card to-transparent" />
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs uppercase tracking-[0.18em] text-accent">Tokenomics · $AUMO</span>
-          <Chip>Fair launch on Ignix</Chip>
-          <span className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">Draft, being finalized</span>
-        </div>
-        <h1 className="mt-5 max-w-2xl text-balance text-4xl font-medium leading-[1.05] tracking-tight sm:text-6xl">
-          The token of a <span className="text-accent">live</span> RWA agent
-        </h1>
-        <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">
-          $AUMO funds Aumo&apos;s next stage, rewards early holders with real access, and grows into fee
-          accrual and governance. Not a meme, and not a claim on the vault&apos;s yield. A token with a job.
-        </p>
-      </header>
+    <>
+      <PageHero
+        eyebrow="Tokenomics, $AUMO (draft, being finalized)"
+        title="The token of a live RWA agent"
+        lead="$AUMO funds Aumo's next stage, rewards early holders with real access, and grows into fee accrual and governance. Not a meme, and not a claim on the vault's yield. A token with a job."
+        image="/visuals/note-gold.jpg"
+      />
+    <div className="mx-auto w-full max-w-6xl px-5 pb-24 pt-12 sm:px-8">
+
 
       {/* Token details */}
       <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -106,7 +87,7 @@ export default function TokenomicsPage() {
           ["Ticker", "$AUMO"],
           ["Chain", "X Layer · ERC-20"],
           ["Supply", "1,000,000,000"],
-          ["Launch", "Ignix · fair launch"],
+          ["Launch", "Fair launch on X Layer"],
         ].map(([label, value]) => (
           <div key={label} className="chamfer border border-border bg-card p-5" style={cut}>
             <span className="text-xs font-medium text-muted-foreground">{label}</span>
@@ -218,7 +199,7 @@ export default function TokenomicsPage() {
         <h2 className="border-b border-border pb-4 text-2xl font-medium tracking-tight">Roadmap</h2>
         <ol className="mt-8 space-y-0">
           {[
-            ["Launch", "Fair launch on Ignix. Treasury and liquidity seeded, audit commissioned."],
+            ["Launch", "Fair launch on X Layer. Treasury and liquidity seeded, audit commissioned."],
             ["Near-term", "Holder fee discount and early access live. External audit published."],
             ["Mid-term", "Curation staking for venue vetting. Performance fee turned on and routed to the treasury buyback."],
             ["Long-term", "Policy levers handed to $AUMO governance as the protocol decentralizes."],
@@ -250,5 +231,6 @@ export default function TokenomicsPage() {
         </p>
       </section>
     </div>
+    </>
   );
 }

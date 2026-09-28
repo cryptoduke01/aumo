@@ -18,7 +18,7 @@ import { activeChain } from "@/lib/chain";
 import { short, addrUrl } from "@/lib/agent";
 
 const btn =
-  "inline-flex items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm font-medium transition-[transform,color,border-color] hover:border-foreground/40 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "chamfer inline-flex min-h-[2.35rem] items-center gap-2 border border-transparent bg-foreground px-4 text-sm font-medium text-background [--cut:10px] transition-[transform,opacity] hover:opacity-85 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 // Prefer EIP-6963-discovered wallets; fall back to the generic injected connector
 // only when nothing specific was found. Dedupe by name.
@@ -79,7 +79,7 @@ export function ConnectButton() {
 
   if (isConnected && chainId !== activeChain.id) {
     return (
-      <button className={`${btn} border-negative/50 text-negative`} onClick={() => switchChain({ chainId: activeChain.id })}>
+      <button className={`${btn} !bg-[color-mix(in_srgb,var(--negative)_18%,transparent)] !text-negative`} onClick={() => switchChain({ chainId: activeChain.id })}>
         Switch to {activeChain.name}
       </button>
     );

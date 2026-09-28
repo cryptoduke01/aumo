@@ -45,7 +45,7 @@ export function AttributionPanel() {
     <Panel className="p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] uppercase tracking-wide text-faint">Realized yield</span>
+          <span className="text-xs text-faint">Realized yield</span>
           <span className="text-sm text-muted-foreground">
             Price-per-share growth, net of every move. Not a projection.
           </span>
@@ -59,7 +59,7 @@ export function AttributionPanel() {
 
       <div className="mt-4 flex flex-wrap items-end gap-x-10 gap-y-4">
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] uppercase tracking-wide text-faint">Since tracking began</span>
+          <span className="text-xs text-faint">Since tracking began</span>
           {hasRealized ? (
             <span className={`text-3xl font-medium tnum ${up ? "text-accent" : "text-foreground"}`}>
               {up ? "+" : ""}
@@ -77,7 +77,7 @@ export function AttributionPanel() {
 
         {a.annualizedBps !== null && up ? (
           <div className="flex flex-col gap-1">
-            <span className="text-[11px] uppercase tracking-wide text-faint">Annualized</span>
+            <span className="text-xs text-faint">Annualized</span>
             <span className="text-3xl font-medium tnum text-foreground">
               {pct(a.annualizedBps)}
             </span>
@@ -86,7 +86,7 @@ export function AttributionPanel() {
         ) : null}
 
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] uppercase tracking-wide text-faint">Yield earned</span>
+          <span className="text-xs text-faint">Yield earned</span>
           <span className="text-3xl font-medium tnum text-foreground">{usd(a.totalAccrued)}</span>
           <span className="text-xs text-faint">currently accrued across venues</span>
         </div>
@@ -94,7 +94,7 @@ export function AttributionPanel() {
 
       {a.perVenue.length > 0 ? (
         <div className="mt-5 flex flex-col gap-2.5 border-t border-border pt-4">
-          <span className="text-[11px] uppercase tracking-wide text-faint">Where it came from</span>
+          <span className="text-xs text-faint">Where it came from</span>
           {a.perVenue.map((v) => (
             <div key={v.address} className="flex flex-col gap-1">
               <div className="flex items-baseline justify-between text-sm">

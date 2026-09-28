@@ -47,19 +47,19 @@ export function AppNav() {
     });
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-6 px-5 py-3.5 sm:px-8">
-        <Link href="/" className="shrink-0">
-          <AumoWordmark markClass="size-[1.15em] text-primary" />
+    <header className="sticky top-0 z-40 border-b border-[var(--s-page-line)] bg-[var(--s-glass)] backdrop-blur-[14px]">
+      <div className="grid min-h-[4.75rem] grid-cols-[1fr_auto] items-center gap-6 px-5 sm:px-9 md:grid-cols-[minmax(10rem,1fr)_auto_minmax(10rem,1fr)]">
+        <Link href="/" className="shrink-0 justify-self-start text-[1.15rem]">
+          <AumoWordmark markClass="size-[1.05em]" />
         </Link>
 
-        <nav className="hidden flex-1 items-center justify-center gap-7 md:flex">
+        <nav className="hidden items-center justify-center gap-8 md:flex">
           {tabs.map((t) => {
             const active = tabActive(t);
             const indicator = active && (
               <motion.span
                 layoutId="app-tab-indicator"
-                className="absolute inset-x-0 -bottom-[15px] h-px bg-foreground"
+                className="absolute inset-x-0 -bottom-1.5 h-px bg-primary"
                 transition={{ type: "spring", stiffness: 400, damping: 32 }}
               />
             );
@@ -67,7 +67,7 @@ export function AppNav() {
               return (
                 <div key={t.seg} className="group relative py-1">
                   <span
-                    className={`inline-flex cursor-default items-center gap-1 text-sm ${
+                    className={`inline-flex cursor-default items-center gap-1 text-[0.97rem] ${
                       active ? "text-foreground" : "text-muted-foreground transition-colors group-hover:text-foreground"
                     }`}
                   >
@@ -79,12 +79,12 @@ export function AppNav() {
                   {indicator}
                   {/* hover dropdown; pt-3 keeps the hover target continuous with the trigger */}
                   <div className="invisible absolute left-1/2 top-full z-50 -translate-x-1/2 pt-3 opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100">
-                    <div className="flex min-w-[190px] flex-col rounded-lg border border-border bg-background p-1 shadow-lg">
+                    <div className="flex min-w-[230px] flex-col rounded-2xl border border-border bg-background p-1.5 shadow-[0_1.5rem_3rem_rgba(0,0,0,0.25)]">
                       {t.children.map((c) => (
                         <Link
                           key={c.seg}
                           href={hrefFor(c.seg)}
-                          className={`rounded-md px-3 py-2 text-sm transition-colors ${
+                          className={`rounded-xl px-3.5 py-2.5 text-[0.95rem] transition-colors ${
                             isActive(c.seg) ? "bg-card-2 text-foreground" : "text-muted-foreground hover:bg-card-2/50 hover:text-foreground"
                           }`}
                         >
@@ -97,7 +97,7 @@ export function AppNav() {
               );
             }
             return (
-              <Link key={t.seg} href={hrefFor(t.seg)} className="relative py-1 text-sm">
+              <Link key={t.seg} href={hrefFor(t.seg)} className="relative py-1 text-[0.97rem]">
                 <span className={active ? "text-foreground" : "text-muted-foreground transition-colors hover:text-foreground"}>
                   {t.label}
                 </span>
@@ -107,7 +107,7 @@ export function AppNav() {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="flex items-center gap-3 justify-self-end">
           <ThemeToggle />
           <div className="hidden md:block">
             <ConnectButton />
@@ -132,7 +132,7 @@ export function AppNav() {
                 if (t.children) {
                   return (
                     <div key={t.seg} className="border-b border-border/60 py-3 last:border-0">
-                      <span className="text-xs uppercase tracking-wide text-faint">{t.label}</span>
+                      <span className="text-sm text-faint">{t.label}</span>
                       <div className="mt-1 flex flex-col">
                         {t.children.map((c) => (
                           <Link

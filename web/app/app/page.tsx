@@ -91,7 +91,7 @@ export default function Dashboard() {
   if (error && !identity) return <ErrorState message={error} onRetry={() => load()} />;
   if (!identity || !records)
     return (
-      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+      <div className="mx-auto w-full max-w-[84rem] px-5 pb-20 sm:px-9">
         <Loader label="Reaching the agent" />
       </div>
     );
@@ -157,7 +157,7 @@ export default function Dashboard() {
   const positionKnown = !positionRead.isLoading;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6">
+    <div className="mx-auto flex w-full max-w-[84rem] flex-1 flex-col gap-5 px-5 pb-20 sm:px-9">
       <Header identity={identity} view={view} setView={setView} isConnected={isConnected} />
 
       {/* metrics */}
@@ -316,9 +316,9 @@ function Header({
 }) {
   const mine = view === "mine" && isConnected;
   return (
-    <header className="flex flex-col gap-2 border-b border-border pb-5">
+    <header className="app-header">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <h1 className="text-xl font-medium tracking-tight">Overview</h1>
+        <h1 className="app-title">Overview</h1>
         {isConnected ? (
           // Toggle between the public pool view and a private view of just the connected wallet.
           <div className="inline-flex items-center rounded-full border border-border p-0.5 text-[11px]">
@@ -341,7 +341,7 @@ function Header({
           </span>
         )}
       </div>
-      <span className="text-sm text-muted-foreground">
+      <span className="app-lead">
         {mine
           ? "Your private view: your deposit, your share, and what it's earning."
           : `Live on ${identity.chainName}. Public on-chain state; only your own deposit needs a wallet.`}
@@ -423,7 +423,7 @@ function Decision({ rec, dec }: { rec: DecisionRecord; dec: number }) {
       ) : null}
       {plan.panel ? (
         <div className="mt-4 rounded-lg border border-border bg-card-2 p-4">
-          <span className="text-[11px] uppercase tracking-[0.12em] text-faint">Reasoning panel</span>
+          <span className="text-xs text-faint">Reasoning panel</span>
           <ul className="mt-3 flex flex-col gap-2.5">
             {plan.panel.verdicts.map((v) => (
               <li key={v.role} className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
@@ -542,7 +542,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
       <AumoMark className="size-6 text-foreground" />
       <p className="text-sm text-foreground">Couldn&apos;t reach the Aumo agent.</p>
       <p className="tnum text-xs text-muted-foreground">{message}</p>
-      <button onClick={onRetry} className="rounded-lg border border-border px-4 py-2 text-sm hover:border-foreground/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Retry</button>
+      <button onClick={onRetry} className="chamfer bg-foreground px-4 py-2 text-sm font-medium text-background [--cut:9px] hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Retry</button>
     </div>
   );
 }

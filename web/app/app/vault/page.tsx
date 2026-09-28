@@ -409,7 +409,7 @@ export default function VaultPage() {
               : "Withdraw";
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
+    <div className="mx-auto flex w-full max-w-[84rem] flex-1 flex-col gap-6 px-5 pb-20 sm:px-9">
       <DepositModal
         open={depositDone !== null}
         amount={depositDone ?? ""}
@@ -420,9 +420,9 @@ export default function VaultPage() {
           router.push("/app");
         }}
       />
-      <header className="flex flex-col gap-1 border-b border-border pb-6">
-        <h1 className="text-xl font-medium tracking-tight">Deposit</h1>
-        <span className="text-xs text-muted-foreground">
+      <header className="app-header">
+        <h1 className="app-title">Deposit</h1>
+        <span className="app-lead">
           Deposit USDT0 into the pool for shares. The agent puts the pooled balance to work; yield
           accrues to every depositor.
         </span>

@@ -263,13 +263,13 @@ export default function StocksPage() {
                   : "Withdraw";
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
-      <header className="flex flex-col gap-2 border-b border-border pb-6">
+    <div className="mx-auto flex w-full max-w-[84rem] flex-1 flex-col gap-6 px-5 pb-20 sm:px-9">
+      <header className="app-header">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-medium tracking-tight">Stocks</h1>
+          <h1 className="app-title">Stocks</h1>
           <Badge tone="negative">At-risk</Badge>
         </div>
-        <span className="text-xs text-muted-foreground">
+        <span className="app-lead">
           Opt-in, directional exposure to tokenized stocks, priced by a market feed Aumo runs. Each
           stock is its own pool. Not capital preservation — your deposit&apos;s value moves with the
           stock, and trading freezes when the market is closed.
@@ -319,7 +319,7 @@ export default function StocksPage() {
                       <span className="inline-flex items-center gap-1 rounded-full border border-positive/30 bg-positive/10 px-2 py-0.5 text-[10px] font-medium text-positive"><Dot tone="positive" /> Live</span>
                     )
                   ) : (
-                    <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-faint">Soon</span>
+                    <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-faint">Soon</span>
                   )}
                 </div>
                 <div className="flex flex-col gap-0.5">

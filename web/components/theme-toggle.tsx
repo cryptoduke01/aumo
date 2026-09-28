@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 // Theme control as a contrast mark - a disc split ink/paper, the brand's own
 // light/dark duality - not the stock sun-moon pill. Persists the choice and tells
 // the canvas field to re-read its colour so the atmosphere flips with the theme.
-export function ThemeToggle() {
+export function ThemeToggle({ className = "" }: { className?: string }) {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export function ThemeToggle() {
       onClick={toggle}
       aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
       title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-      className="inline-flex size-8 items-center justify-center text-foreground transition-colors hover:text-muted-foreground"
+      className={`inline-flex size-8 items-center justify-center text-foreground transition-opacity hover:opacity-70 ${className}`}
     >
       <svg viewBox="0 0 20 20" className="size-[1.05rem]" aria-hidden="true">
         <circle

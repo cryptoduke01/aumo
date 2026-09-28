@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { AsciiMark } from "@/components/ascii-mark";
 import { isMainnet } from "@/lib/chain";
+import { PageHero } from "@/components/site/page-hero";
 
 export const metadata: Metadata = {
   title: "Docs · Aumo",
@@ -23,29 +23,20 @@ const toc = [
 
 export default function DocsPage() {
   return (
+    <>
+      <PageHero
+        eyebrow="Documentation"
+        title="How Aumo works"
+        lead="A treasury agent that puts idle stablecoins to work in the best risk-adjusted yield across on-chain lending and real-world-asset-backed dollars, inside limits enforced on-chain, and proves every move."
+        image="/visuals/pool-stable.jpg"
+      />
     <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
-      <header className="flex flex-col gap-6 border-b border-border/70 py-16 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <span className="text-xs uppercase tracking-[0.14em] text-accent">
-            Documentation
-          </span>
-          <h1 className="mt-3 text-4xl font-medium tracking-tight sm:text-5xl">
-            How Aumo works
-          </h1>
-          <p className="mt-4 max-w-xl text-muted-foreground">
-            A treasury agent that puts idle stablecoins to work in
-            the best risk-adjusted yield across on-chain lending and
-            real-world-asset-backed dollars, inside limits enforced on-chain, and
-            proves every move.
-          </p>
-        </div>
-        <AsciiMark className="hidden shrink-0 sm:block" />
-      </header>
+      
 
       <div className="grid grid-cols-1 gap-12 py-14 lg:grid-cols-[200px_1fr] lg:gap-16">
         <aside className="hidden lg:block">
           <nav className="sticky top-24 flex flex-col gap-2.5">
-            <span className="mb-1 text-[10px] uppercase tracking-wider text-faint">
+            <span className="mb-2 text-sm text-faint">
               On this page
             </span>
             {toc.map(([id, label]) => (
@@ -323,5 +314,6 @@ export default function DocsPage() {
         </article>
       </div>
     </div>
+    </>
   );
 }

@@ -128,15 +128,15 @@ export function StockTrack() {
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="flex flex-col gap-1 rounded-lg border border-border bg-card p-4">
-          <span className="text-[11px] uppercase tracking-wide text-faint">Stock exposure</span>
+          <span className="text-xs text-faint">Stock exposure</span>
           <Num value={totalExposure} currency maximumFractionDigits={0} className="text-2xl font-medium" />
         </div>
         <div className="flex flex-col gap-1 rounded-lg border border-border bg-card p-4">
-          <span className="text-[11px] uppercase tracking-wide text-faint">Stocks live</span>
+          <span className="text-xs text-faint">Stocks live</span>
           <span className="text-2xl font-medium tnum text-foreground">{liveStocks.length}</span>
         </div>
         <div className="col-span-2 flex flex-col gap-1 rounded-lg border border-border bg-card p-4 sm:col-span-1">
-          <span className="text-[11px] uppercase tracking-wide text-faint">Market</span>
+          <span className="text-xs text-faint">Market</span>
           <span className="flex items-center gap-2 text-lg font-medium text-foreground">
             <Dot tone={anyOpen ? "positive" : "muted"} />
             {anyOpen ? "Open" : "Closed"}
@@ -176,13 +176,13 @@ export function StockTrack() {
 
                 <div className="flex items-center justify-between gap-6 sm:justify-end">
                   <div className="flex flex-col sm:items-end">
-                    <span className="text-[11px] uppercase tracking-wide text-faint">Aumo holds</span>
+                    <span className="text-xs text-faint">Aumo holds</span>
                     <span className="tnum text-sm text-foreground">
                       {r.nav === undefined ? "—" : `$${r.nav.toLocaleString("en-US", { maximumFractionDigits: 0 })}`}
                     </span>
                   </div>
                   <div className="flex flex-col sm:items-end">
-                    <span className="text-[11px] uppercase tracking-wide text-faint">Market</span>
+                    <span className="text-xs text-faint">Market</span>
                     <span className="flex items-center gap-1.5 text-sm text-foreground">
                       <Dot tone={r.open === false ? "muted" : "positive"} />
                       {r.open === false ? "Closed" : "Open"}
@@ -228,7 +228,7 @@ export function StockStrip({ activityHref }: { activityHref?: string }) {
           </span>
         </span>
         <span className="flex flex-col items-end">
-          <span className="text-[11px] uppercase tracking-wide text-faint">Exposure</span>
+          <span className="text-xs text-faint">Exposure</span>
           <Num value={totalExposure} currency maximumFractionDigits={0} className="tnum text-sm font-medium text-foreground" />
         </span>
       </div>

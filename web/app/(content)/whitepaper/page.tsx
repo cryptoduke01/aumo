@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { DitherMark } from "@/components/dither-mark";
 import { isMainnet } from "@/lib/chain";
+import { PageHero } from "@/components/site/page-hero";
 
 export const metadata: Metadata = {
   title: "Whitepaper · Aumo",
@@ -10,19 +10,15 @@ export const metadata: Metadata = {
 
 export default function WhitepaperPage() {
   return (
+    <>
+      <PageHero
+        eyebrow="Whitepaper, version 0.6"
+        title="Aumo: a guardrailed treasury agent"
+        lead="Autonomous, risk-adjusted stablecoin yield with custody kept on-chain."
+        image="/visuals/note-whitepaper.jpg"
+      />
     <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
-      <header className="relative border-b border-border/70 py-16">
-        <DitherMark className="pointer-events-none absolute right-0 top-12 hidden size-40 text-foreground/[0.12] sm:block" />
-        <span className="text-xs uppercase tracking-[0.14em] text-accent">
-          Whitepaper · v0.6 · 2026
-        </span>
-        <h1 className="relative mt-3 text-4xl font-medium tracking-tight sm:text-5xl">
-          Aumo: a guardrailed treasury agent
-        </h1>
-        <p className="relative mt-4 text-muted-foreground">
-          Autonomous, risk-adjusted stablecoin yield with custody kept on-chain.
-        </p>
-      </header>
+      
 
       <article className="prose py-14">
         <h2>Abstract</h2>
@@ -226,5 +222,6 @@ export default function WhitepaperPage() {
         </p>
       </article>
     </div>
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHero, Byline, Abstract } from "@/components/site/page-hero";
 
 export const metadata: Metadata = {
   title: "Research · Aumo",
@@ -16,39 +17,23 @@ function Eq({ children }: { children: React.ReactNode }) {
 
 export default function ResearchPage() {
   return (
+    <>
+      <PageHero
+        eyebrow="Research, September 2026"
+        title="A guardrailed, self-evolving reasoning agent for autonomous stablecoin treasury management"
+        image="/visuals/note-research.jpg"
+      />
     <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
-      <header className="border-b border-border/70 py-16">
-        <span className="text-xs uppercase tracking-[0.14em] text-accent">
-          Research · Aumo Labs · September 2026
-        </span>
-        <h1 className="mt-3 text-balance text-4xl font-medium leading-[1.05] tracking-tight sm:text-[2.9rem]">
-          A guardrailed, self-evolving reasoning agent for autonomous stablecoin treasury management
-        </h1>
-
-        <div className="mt-8 flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/duke.jpg"
-            alt="Duke"
-            className="size-11 rounded-full border border-border object-cover"
-          />
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-foreground">Duke</span>
-            <a
-              href="https://x.com/dukedotsol"
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              @dukedotsol · Aumo · X Layer
-            </a>
-          </div>
-        </div>
-
-        <div className="mt-8 rounded-xl border border-border bg-surface/60 p-5">
-          <span className="text-[11px] uppercase tracking-[0.14em] text-faint">Abstract</span>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Autonomous yield agents that maximize headline APY are fragile: they concentrate into the
+      <header className="pb-4">
+        <Byline />
+        <Abstract label="Abstract"
+          foot={<><p className="mt-3 mt-4 text-sm text-muted-foreground">
+            <span className="text-foreground">Keywords:</span> autonomous agents, agentic
+            reasoning, DeFi, risk-adjusted yield, real-world assets, tokenized equities, tokenized
+            gold, diversification, temporal awareness, scenario simulation, self-reflection,
+            tighten-only safety.
+          </p></>}>
+          Autonomous yield agents that maximize headline APY are fragile: they concentrate into the
             highest-paying venue precisely as it deteriorates, and take the loss when it breaks. We
             present Aumo, a treasury agent that manages a pooled ERC-4626 vault of stablecoins under
             guardrails enforced on-chain. Aumo decomposes venue risk into five bounded sub-scores,
@@ -69,14 +54,7 @@ export default function ResearchPage() {
             names, so we removed it; diversification did reduce it, with an equal-weight basket of four
             names cutting maximum drawdown from about 43% on a single name to about 32% over the same
             window. These are backtest results, approximate, not forward-looking guarantees.
-          </p>
-          <p className="mt-3 text-[11px] text-faint">
-            <span className="text-muted-foreground">Keywords:</span> autonomous agents, agentic
-            reasoning, DeFi, risk-adjusted yield, real-world assets, tokenized equities, tokenized
-            gold, diversification, temporal awareness, scenario simulation, self-reflection,
-            tighten-only safety.
-          </p>
-        </div>
+        </Abstract>
       </header>
 
       <article className="prose py-14">
@@ -396,5 +374,6 @@ export default function ResearchPage() {
         </p>
       </article>
     </div>
+    </>
   );
 }

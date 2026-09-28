@@ -9,7 +9,7 @@ export function Panel({
 }) {
   return (
     <section
-      className={`rounded-lg border border-border bg-card ${className}`}
+      className={`rounded-2xl border border-border bg-card ${className}`}
     >
       {children}
     </section>
@@ -18,7 +18,7 @@ export function Panel({
 
 export function Label({ children }: { children: ReactNode }) {
   return (
-    <span className="text-xs font-medium text-muted-foreground">{children}</span>
+    <span className="text-[0.82rem] font-medium text-muted-foreground">{children}</span>
   );
 }
 
@@ -34,7 +34,7 @@ export function Stat({
   return (
     <div className="flex flex-col gap-1.5 p-5">
       <Label>{label}</Label>
-      <span className="tnum text-2xl font-medium leading-none text-foreground">
+      <span className="tnum text-[1.9rem] font-medium leading-none tracking-[-0.035em] text-foreground">
         {value}
       </span>
       {sub ? <span className="text-xs text-muted-foreground">{sub}</span> : null}

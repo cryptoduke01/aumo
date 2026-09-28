@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHero } from "@/components/site/page-hero";
 
 export const metadata: Metadata = {
   title: "Brand · Aumo",
@@ -11,7 +12,7 @@ function Swatch({ name, hex, note, dark }: { name: string; hex: string; note: st
       <div className="h-24 w-full" style={{ background: hex }} />
       <div className={`flex flex-col gap-0.5 p-3 ${dark ? "" : ""}`}>
         <span className="text-sm font-medium text-foreground">{name}</span>
-        <span className="font-mono text-xs uppercase text-muted-foreground">{hex}</span>
+        <span className="tnum text-sm text-muted-foreground">{hex}</span>
         <span className="mt-1 text-xs text-faint">{note}</span>
       </div>
     </div>
@@ -31,17 +32,15 @@ function MarkTile({ bg, children, label }: { bg: string; label: string; children
 
 export default function BrandPage() {
   return (
+    <>
+      <PageHero
+        eyebrow="Brand"
+        title="The Aumo brand"
+        lead="A treasury should feel calm, exact, and trustworthy. The identity is deliberately restrained: one mark, a warm gold on ink, and a single confident typeface. Use it as shown."
+        image="/visuals/hero.jpg"
+      />
     <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
-      <header className="border-b border-border/70 py-16">
-        <span className="text-xs uppercase tracking-[0.14em] text-accent">Brand · Aumo</span>
-        <h1 className="mt-3 text-balance text-4xl font-medium leading-[1.05] tracking-tight sm:text-[2.9rem]">
-          The Aumo brand
-        </h1>
-        <p className="mt-5 max-w-xl text-muted-foreground">
-          A treasury should feel calm, exact, and trustworthy. The identity is deliberately restrained:
-          one mark, a warm gold on ink, and a single confident typeface. Use it as shown.
-        </p>
-      </header>
+      
 
       <article className="prose py-14">
         <h2 id="story">The story</h2>
@@ -125,5 +124,6 @@ export default function BrandPage() {
         </ul>
       </article>
     </div>
+    </>
   );
 }

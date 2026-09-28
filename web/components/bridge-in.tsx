@@ -308,7 +308,7 @@ export function BridgeIn() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/brand/chains/xlayer.jpg" alt="" className="size-6 shrink-0 rounded-full border border-border/50 object-cover" />
             <span className="text-sm font-medium text-foreground">X Layer</span>
-            <span className="ml-auto text-[11px] uppercase tracking-wide text-faint">destination</span>
+            <span className="ml-auto text-xs text-faint">destination</span>
           </div>
         </div>
       </div>

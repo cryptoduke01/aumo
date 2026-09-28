@@ -238,13 +238,13 @@ export default function GoldPage() {
                   : "Withdraw";
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
-      <header className="flex flex-col gap-2 border-b border-border pb-6">
+    <div className="mx-auto flex w-full max-w-[84rem] flex-1 flex-col gap-6 px-5 pb-20 sm:px-9">
+      <header className="app-header">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-medium tracking-tight">Gold</h1>
+          <h1 className="app-title">Gold</h1>
           <Badge tone="negative">At-risk</Badge>
         </div>
-        <span className="text-xs text-muted-foreground">
+        <span className="app-lead">
           Opt-in exposure to tokenized gold (PAXGy, Paxos&apos; yield-bearing gold), priced by an on-chain
           gold rate plus a gold/USD feed Aumo runs. Its own isolated pool, separate from the safe USDT0
           treasury. Not capital preservation — its value moves with the gold price.

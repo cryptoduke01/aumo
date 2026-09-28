@@ -207,10 +207,10 @@ export default function BasketPage() {
       : "Withdraw";
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-medium tracking-tight">Diversified basket</h1>
-        <span className="text-sm text-muted-foreground">
+    <div className="mx-auto flex w-full max-w-[58rem] flex-1 flex-col gap-6 px-5 pb-20 sm:px-9">
+      <header className="app-header">
+        <h1 className="app-title">Diversified basket</h1>
+        <span className="app-lead">
           One deposit, equal-weight exposure across {basket.members.length} stocks. The agent keeps the
           weights equal. Diversification cut max drawdown from about 43% on a single name to about 32%
           across the basket over the last 5 years, including the 2022 selloff. It is still at-risk

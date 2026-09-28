@@ -129,10 +129,10 @@ export default function VenuesPage() {
   }, [load]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
-      <header className="flex flex-col gap-1 border-b border-border pb-6">
-        <h1 className="text-xl font-medium tracking-tight">Venue passports</h1>
-        <span className="text-xs text-muted-foreground">
+    <div className="mx-auto flex w-full max-w-[84rem] flex-1 flex-col gap-6 px-5 pb-20 sm:px-9">
+      <header className="app-header">
+        <h1 className="app-title">Venue passports</h1>
+        <span className="app-lead">
           RWA liquidity needs more than yield. Every venue carries a trust profile the agent verifies
           on-chain before it allocates a dollar: peg, exit liquidity, protocol risk, custody. The AI
           reasons over it, the contract enforces it.
@@ -275,10 +275,10 @@ function VenuePassport({ venue, risk, dec }: { venue: VenueSnapshot; risk?: Venu
           <span className="tnum text-lg text-muted-foreground">{pct(venue.apyBps)}</span>
           <span className="text-faint">→</span>
           <span className="tnum text-lg text-accent">{risk ? pct(risk.riskAdjustedApyBps) : "-"}</span>
-          <span className="text-[10px] uppercase tracking-wider text-faint">risk-adj</span>
+          <span className="text-xs text-faint">risk-adj</span>
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-[10px] uppercase tracking-wider text-faint">Allocated now</span>
+          <span className="text-xs text-faint">Allocated now</span>
           <span className={`tnum text-sm font-medium ${allocated > 0 ? "text-accent" : "text-muted-foreground"}`}>
             {allocated > 0 ? `$${amount(venue.liveBalance, dec)}` : "$0"}
           </span>

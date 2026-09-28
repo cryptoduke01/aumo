@@ -36,7 +36,7 @@ export function Faq() {
   return (
     <section id="faq" className="border-t border-border/70">
       <div className="mx-auto w-full max-w-3xl px-5 py-24 sm:px-8">
-        <span className="text-xs uppercase tracking-[0.14em] text-accent">FAQ</span>
+        <span className="text-lg text-muted-foreground">FAQ</span>
         <h2 className="mt-3 text-balance text-2xl font-medium tracking-tight sm:text-3xl">
           The questions worth asking before you deposit.
         </h2>

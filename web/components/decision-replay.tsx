@@ -18,7 +18,7 @@ function Stage({ n, title, children }: { n: number; title: string; children: Rea
         {n}
       </span>
       <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-faint">{title}</span>
+        <span className="text-sm font-medium text-muted-foreground">{title}</span>
         {children}
       </div>
     </div>

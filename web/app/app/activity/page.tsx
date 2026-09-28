@@ -15,7 +15,7 @@ type View = "agent" | "stocks";
 function Stat({ label, value, accent }: { label: string; value: React.ReactNode; accent?: boolean }) {
   return (
     <div className="flex flex-col gap-1 rounded-lg border border-border bg-card p-4">
-      <span className="text-[11px] uppercase tracking-wide text-faint">{label}</span>
+      <span className="text-xs text-faint">{label}</span>
       <span className={`text-2xl font-medium tnum ${accent ? "text-accent" : "text-foreground"}`}>{value}</span>
     </div>
   );
@@ -100,10 +100,10 @@ export default function ActivityPage() {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-medium tracking-tight">Activity</h1>
-        <span className="text-sm text-muted-foreground">
+    <div className="mx-auto flex w-full max-w-[84rem] flex-1 flex-col gap-6 px-5 pb-20 sm:px-9">
+      <header className="app-header">
+        <h1 className="app-title">Activity</h1>
+        <span className="app-lead">
           {view === "stocks"
             ? "The tokenized stocks Aumo holds. Live price, the day's move, exposure and market status."
             : "Every decision the agent recorded. Replay the full reasoning chain and follow each move on-chain."}
