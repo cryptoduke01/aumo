@@ -14,9 +14,9 @@ type View = "agent" | "stocks";
 
 function Stat({ label, value, accent }: { label: string; value: React.ReactNode; accent?: boolean }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-border bg-card p-4">
-      <span className="text-xs text-faint">{label}</span>
-      <span className={`text-2xl font-medium tnum ${accent ? "text-accent" : "text-foreground"}`}>{value}</span>
+    <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-5">
+      <span className="text-[0.82rem] font-medium text-muted-foreground">{label}</span>
+      <span className={`text-[1.9rem] font-medium leading-none tracking-[-0.035em] tnum ${accent ? "text-accent" : "text-foreground"}`}>{value}</span>
     </div>
   );
 }
@@ -111,14 +111,12 @@ export default function ActivityPage() {
       </header>
 
       {/* view toggle: the agent's stablecoin decisions, or the live stock book */}
-      <div className="flex items-center gap-1 self-start rounded-lg border border-border p-1">
+      <div className="seg flex items-center self-start">
         {(["agent", "stocks"] as const).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
-            className={`rounded-md px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-              view === v ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
+            className="seg-item" data-active={view === v ? "" : undefined}
           >
             {v === "agent" ? "Agent decisions" : "Stocks"}
           </button>
@@ -153,14 +151,12 @@ export default function ActivityPage() {
             Export CSV
           </a>
         </div>
-        <div className="flex items-center gap-1 rounded-lg border border-border p-1">
+        <div className="seg flex items-center">
           {(["all", "moved", "held"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`rounded-md px-3 py-1 text-xs capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                filter === f ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
+              className="seg-item capitalize" data-active={filter === f ? "" : undefined}
             >
               {f === "moved" ? "Rebalanced" : f}
             </button>
@@ -191,7 +187,7 @@ export default function ActivityPage() {
                   {!last ? <span className="absolute top-8 bottom-0 w-px bg-border" aria-hidden /> : null}
                 </div>
 
-                <Panel className={`flex-1 p-5 transition-colors ${isOpen ? "border-accent/40" : "hover:border-border/80"}`}>
+                <div className={`flex-1 border-b py-6 transition-colors ${isOpen ? "border-accent/50" : "border-border"}`}>
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Badge tone="accent">{r.plan.source.startsWith("risk-engine+") ? "AI reasoning" : "Risk engine"}</Badge>
@@ -201,7 +197,7 @@ export default function ActivityPage() {
                     <span className="tnum text-xs text-muted-foreground">{timeAgo(r.takenAt)}</span>
                   </div>
 
-                  <p className="text-sm leading-relaxed text-foreground/90">{r.plan.summary}</p>
+                  <p className="max-w-[70ch] text-[1.05rem] leading-relaxed tracking-[-0.01em] text-foreground/90">{r.plan.summary}</p>
 
                   {moved ? (
                     <div className="mt-3 flex flex-col gap-1.5">
@@ -246,7 +242,7 @@ export default function ActivityPage() {
                       </motion.div>
                     ) : null}
                   </AnimatePresence>
-                </Panel>
+                </div>
               </li>
             );
           })}

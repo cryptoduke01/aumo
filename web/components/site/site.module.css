@@ -65,8 +65,19 @@
   font-weight: 500;
   letter-spacing: -0.005em;
   white-space: nowrap;
-  /* the Aumo shape: cut bottom-right corner, like the vault mark */
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+  /* the Aumo shape: cut bottom-right corner like the vault mark, corners softened */
+  border-radius: 6px;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - 10px - 2px),
+    calc(100% - 0.4px) calc(100% - 10px + 0.15px),
+    calc(100% - 1.4px) calc(100% - 10px + 1.4px),
+    calc(100% - 10px + 1.4px) calc(100% - 1.4px),
+    calc(100% - 10px + 0.15px) calc(100% - 0.4px),
+    calc(100% - 10px - 2px) 100%,
+    0 100%
+  );
   transition: background-color 0.18s, color 0.18s, opacity 0.18s;
 }
 .pill {

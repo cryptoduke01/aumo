@@ -8,5 +8,6 @@ export default function Image() {
   return renderOgImage(
     "Docs",
     "How Aumo works: deposit stablecoins, the agent puts them to work, and every guardrail is enforced on-chain.",
+    "public/visuals/pool-stable.jpg",
   );
 }

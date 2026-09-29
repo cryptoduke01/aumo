@@ -8,5 +8,6 @@ export default function Image() {
   return renderOgImage(
     "An AI-RWA treasury that grows the ecosystem it earns in",
     "How Aumo brings idle dollar liquidity into X Layer's real-world-asset economy, and deepens the protocols it earns in.",
+    "public/visuals/horizon.jpg",
   );
 }

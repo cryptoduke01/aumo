@@ -166,14 +166,12 @@ export function PriceChartModal({
 
             {/* ranges */}
             <div className="mt-4 flex items-center justify-between">
-              <div className="flex gap-1 rounded-lg border border-border bg-card-2 p-1">
+              <div className="seg flex">
                 {RANGES.map((r) => (
                   <button
                     key={r}
                     onClick={() => setRange(r)}
-                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                      range === r ? "bg-card text-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
+                    className="seg-item" data-active={range === r ? "" : undefined}
                   >
                     {r}
                   </button>

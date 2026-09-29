@@ -526,14 +526,12 @@ export default function VaultPage() {
 
         {/* Action */}
         <Panel className="flex flex-col p-5">
-          <div className="mb-5 flex rounded-lg border border-border p-1">
+          <div className="seg mb-5 flex">
             {(["deposit", "withdraw"] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => { setTab(t); setAmount(""); reset(); }}
-                className={`flex-1 rounded-md px-3 py-1.5 text-sm capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  tab === t ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
+                className="seg-item flex-1 capitalize" data-active={tab === t ? "" : undefined}
               >
                 {t}
               </button>
@@ -570,13 +568,13 @@ export default function VaultPage() {
                 {tab === "withdraw" && realizing ? "Max …" : `Max ${fmt(max)}`}
               </button>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-card-2 px-4 py-2.5 transition-colors focus-within:border-primary/50">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-card-2 px-4 py-4 transition-colors focus-within:border-primary/50">
               <input
                 inputMode="decimal"
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                className="field-input tnum w-full min-w-0 bg-transparent text-xl font-medium outline-none placeholder:text-faint"
+                className="field-input tnum w-full min-w-0 bg-transparent text-[2rem] font-medium leading-none tracking-[-0.035em] outline-none placeholder:text-faint"
                 aria-label={`${tab} amount in ${isUsdg ? "USDG" : "USDT0"}`}
               />
               <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">

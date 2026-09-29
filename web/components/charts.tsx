@@ -16,14 +16,14 @@ export function Donut({
   centerLabel?: string;
   centerSub?: string;
 }) {
-  const R = 40;
+  const R = 44;
   const C = 2 * Math.PI * R;
   const total = segments.reduce((a, s) => a + s.value, 0) || 1;
   let cum = 0;
   return (
     <div className={`relative ${className}`}>
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-        <circle cx={50} cy={50} r={R} fill="none" stroke="var(--surface-2)" strokeWidth={11} />
+        <circle cx={50} cy={50} r={R} fill="none" stroke="var(--surface-2)" strokeWidth={5} />
         {segments.map((s, i) => {
           const len = r3((s.value / total) * C);
           const off = r3(-cum);
@@ -36,7 +36,7 @@ export function Donut({
               r={R}
               fill="none"
               stroke={s.tone}
-              strokeWidth={11}
+              strokeWidth={5}
               strokeDasharray={`${len} ${r3(C - len)}`}
               strokeDashoffset={off}
               strokeLinecap="butt"

@@ -235,14 +235,12 @@ function ThemeSelect() {
     window.dispatchEvent(new Event("themechange"));
   };
   return (
-    <div className="inline-flex rounded-lg border border-border p-1">
+    <div className="seg flex">
       {(["dark", "light"] as const).map((t) => (
         <button
           key={t}
           onClick={() => set(t)}
-          className={`rounded-md px-4 py-1.5 text-sm capitalize transition-colors ${
-            theme === t ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
-          }`}
+          className="seg-item capitalize" data-active={theme === t ? "" : undefined}
         >
           {t}
         </button>

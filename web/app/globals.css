@@ -169,13 +169,20 @@ button:disabled {
 }
 
 /* The Aumo shape: the vault mark's cut bottom-right corner, used on every button and on the
-   bespoke panels. --cut sets the size of the cut (default 14px; buttons use ~10px). */
+   bespoke panels. --cut sets the size of the cut (default 14px; buttons use ~10px). The square
+   corners are softened with a small radius and the two cut vertices get a tiny fillet, so the
+   silhouette reads as machined rather than sharp. */
 .chamfer {
+  border-radius: 6px;
   clip-path: polygon(
     0 0,
     100% 0,
-    100% calc(100% - var(--cut)),
-    calc(100% - var(--cut)) 100%,
+    100% calc(100% - var(--cut) - 2px),
+    calc(100% - 0.4px) calc(100% - var(--cut) + 0.15px),
+    calc(100% - 1.4px) calc(100% - var(--cut) + 1.4px),
+    calc(100% - var(--cut) + 1.4px) calc(100% - 1.4px),
+    calc(100% - var(--cut) + 0.15px) calc(100% - 0.4px),
+    calc(100% - var(--cut) - 2px) 100%,
     0 100%
   );
 }
@@ -187,13 +194,62 @@ button:disabled {
 }
 .chamfer-edge,
 .chamfer-edge > * {
+  border-radius: 8px;
   clip-path: polygon(
     0 0,
     100% 0,
-    100% calc(100% - var(--cut)),
-    calc(100% - var(--cut)) 100%,
+    100% calc(100% - var(--cut) - 2px),
+    calc(100% - 0.4px) calc(100% - var(--cut) + 0.15px),
+    calc(100% - 1.4px) calc(100% - var(--cut) + 1.4px),
+    calc(100% - var(--cut) + 1.4px) calc(100% - 1.4px),
+    calc(100% - var(--cut) + 0.15px) calc(100% - 0.4px),
+    calc(100% - var(--cut) - 2px) 100%,
     0 100%
   );
+}
+
+/* Underline tabs (segmented choices in the app): the nav's language, a gold rule under the
+   active choice. */
+.seg {
+  gap: 1.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.seg-item {
+  position: relative;
+  padding: 0.55rem 0 0.75rem;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.18s;
+}
+.seg-item:hover,
+.seg-item[data-active] {
+  color: var(--foreground);
+}
+.seg-item::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--primary);
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.seg-item[data-active]::after {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+.seg-item:focus-visible {
+  outline: 1px solid var(--ring);
+  outline-offset: 3px;
 }
 
 /* App page chrome: big quiet title, muted lead, generous air above (Cencori scale). */

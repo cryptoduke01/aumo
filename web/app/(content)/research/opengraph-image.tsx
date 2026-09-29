@@ -8,5 +8,6 @@ export default function Image() {
   return renderOgImage(
     "Research",
     "A guardrailed, self-evolving reasoning agent for autonomous stablecoin treasury management.",
+    "public/visuals/note-research.jpg",
   );
 }

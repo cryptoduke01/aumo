@@ -436,7 +436,18 @@
   border: 0;
   color: var(--s-alt-fg);
   background: color-mix(in srgb, var(--s-alt-fg) 8%, transparent);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%);
+  border-radius: 6px;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - 9px - 2px),
+    calc(100% - 0.4px) calc(100% - 9px + 0.15px),
+    calc(100% - 1.4px) calc(100% - 9px + 1.4px),
+    calc(100% - 9px + 1.4px) calc(100% - 1.4px),
+    calc(100% - 9px + 0.15px) calc(100% - 0.4px),
+    calc(100% - 9px - 2px) 100%,
+    0 100%
+  );
   cursor: pointer;
   transition: background-color 0.18s, opacity 0.18s;
 }

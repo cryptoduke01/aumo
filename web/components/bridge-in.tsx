@@ -251,7 +251,7 @@ export function BridgeIn() {
 
       {/* direction — hidden while outbound is disabled; inbound is the only mode */}
       {OUTBOUND_ENABLED ? (
-        <div className="mt-4 flex rounded-lg border border-border p-1">
+        <div className="seg mt-4 flex">
           {(
             [
               ["in", "Bring in"],
@@ -265,9 +265,7 @@ export function BridgeIn() {
                 setAmount("");
                 reset();
               }}
-              className={`flex-1 rounded-md px-3 py-1.5 text-xs transition-colors ${
-                direction === d ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
+              className="seg-item flex-1" data-active={direction === d ? "" : undefined}
             >
               {lbl}
             </button>
@@ -330,7 +328,7 @@ export function BridgeIn() {
             placeholder="0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-            className="field-input tnum w-full min-w-0 bg-transparent text-lg font-medium outline-none placeholder:text-faint"
+            className="field-input tnum w-full min-w-0 bg-transparent text-[1.6rem] font-medium leading-none tracking-[-0.03em] outline-none placeholder:text-faint"
             aria-label={`Amount to bridge from ${src.name}`}
           />
           <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">

@@ -1,124 +1,50 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { AumoWordmark } from "@/components/mark";
+import { ArrowUpRight } from "@/components/site-header";
+import site from "@/components/site/site.module.css";
 
-// Standalone download page for the Aumo investor deck. Dark, on-brand, no site chrome —
-// a clean surface to hand a link to and download the PDF from. Not indexed.
+// Standalone page for the Aumo investor deck: no site chrome, a clean surface to hand a link to.
+// Follows the site theme. Not indexed.
 export const metadata: Metadata = {
-  title: "Aumo · Pitch deck",
-  description: "Download the Aumo investor pitch deck.",
+  title: "Aumo · Investor deck",
+  description: "The Aumo investor deck: eleven slides on the problem, the product, the proof and where we are.",
   robots: { index: false, follow: false },
 };
 
 const PDF = "/aumo-pitch-deck.pdf";
 
-// Brand tokens (dark-first) from brand.md — hardcoded so the page renders correctly
-// independent of the app's theme variables.
-const C = {
-  bg: "#0a0b0d",
-  card: "#101215",
-  fg: "#eae8e3",
-  muted: "#8a8f98",
-  border: "#1e2126",
-  gold: "#c8a96a",
-};
-
 export default function PitchPage() {
   return (
-    <main
-      style={{
-        minHeight: "100dvh",
-        background: C.bg,
-        color: C.fg,
-        fontFamily: "var(--font-montreal), 'Helvetica Neue', Arial, sans-serif",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "72px 24px 96px",
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: 960, display: "flex", flexDirection: "column", gap: 28 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/mark-gold.png" alt="Aumo" width={30} height={30} style={{ display: "block" }} />
-          <span style={{ fontWeight: 700, fontSize: 21, letterSpacing: "-0.02em" }}>Aumo</span>
-        </div>
+    <main className={`${site.site} min-h-dvh`}>
+      <div className="mx-auto flex w-full max-w-[84rem] flex-col px-[var(--gutter)] pb-24 pt-10">
+        <Link href="/" className="self-start text-[1.15rem]" aria-label="Aumo home">
+          <AumoWordmark markClass="size-[1.05em]" />
+        </Link>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 500,
-              textTransform: "uppercase",
-              letterSpacing: "0.22em",
-              color: C.gold,
-            }}
-          >
-            Investor deck
-          </span>
-          <h1 style={{ margin: 0, fontSize: 40, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.05 }}>
-            Aumo pitch deck
-          </h1>
-          <p style={{ margin: 0, fontSize: 18, lineHeight: 1.5, color: C.muted, maxWidth: "52ch" }}>
-            Autonomous treasury agent for stablecoins on X Layer. Ten slides on the problem, the product,
-            traction, the model, and the ask.
-          </p>
+        <div className="mt-20">
+          <p className={site.eyebrow}>Investor deck</p>
         </div>
+        <h1 className="mt-6 max-w-[16ch] text-balance text-[clamp(2.8rem,5.6vw,5.6rem)] font-medium leading-[0.95] tracking-[-0.055em]">
+          Aumo, in eleven slides.
+        </h1>
+        <p className="mt-6 max-w-[40rem] text-[1.08rem] font-normal leading-relaxed text-[var(--s-page-muted)]">
+          The problem, the product, the proof, how it stays safe, and where we are. Live on X Layer mainnet
+          with stablecoin yield and opt-in pools for tokenized stocks, a basket and gold.
+        </p>
 
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-          <a
-            href={PDF}
-            download
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 9,
-              background: C.gold,
-              color: "#0a0b0d",
-              fontWeight: 500,
-              fontSize: 15,
-              padding: "12px 20px",
-              borderRadius: 8,
-              textDecoration: "none",
-            }}
-          >
+        <div className="mt-9 flex flex-wrap items-center gap-3">
+          <a href={PDF} download className={site.pill}>
             Download PDF
           </a>
-          <a
-            href={PDF}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 9,
-              border: `1px solid ${C.border}`,
-              color: C.fg,
-              fontWeight: 500,
-              fontSize: 15,
-              padding: "12px 20px",
-              borderRadius: 8,
-              textDecoration: "none",
-            }}
-          >
+          <a href={PDF} target="_blank" rel="noopener noreferrer" className={site.pillGhost}>
             Open in new tab
+            <ArrowUpRight className={site.pillArrow} />
           </a>
         </div>
 
-        <div
-          style={{
-            width: "100%",
-            aspectRatio: "16 / 9",
-            border: `1px solid ${C.border}`,
-            borderRadius: 10,
-            overflow: "hidden",
-            background: C.card,
-            marginTop: 6,
-          }}
-        >
-          <iframe
-            src={`${PDF}#view=FitH`}
-            title="Aumo pitch deck preview"
-            style={{ width: "100%", height: "100%", border: 0, display: "block" }}
-          />
+        <div className="mt-12 aspect-video w-full overflow-hidden rounded-2xl border border-[var(--s-page-line)] bg-[var(--s-page-raise)]">
+          <iframe src={`${PDF}#view=FitH`} title="Aumo investor deck" className="block h-full w-full border-0" />
         </div>
       </div>
     </main>

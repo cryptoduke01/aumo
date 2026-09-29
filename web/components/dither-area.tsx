@@ -3,20 +3,17 @@
 import { useEffect, useRef } from "react";
 import { Orb } from "./orb";
 
-// A dithered area chart drawn on a tiny <canvas> — no dependency. The area under the curve is
-// filled with an ordered (Bayer 8x8) dither in the brand accent, denser near the line and thinning
-// toward the baseline, for the retro dithered-chart look. The line rides on top. Themeable: reads
-// --accent / --border from the element's computed style, and repaints on theme change.
-const BAYER8 = [
-  [0, 48, 12, 60, 3, 51, 15, 63],
-  [32, 16, 44, 28, 35, 19, 47, 31],
-  [8, 56, 4, 52, 11, 59, 7, 55],
-  [40, 24, 36, 20, 43, 27, 39, 23],
-  [2, 50, 14, 62, 1, 49, 13, 61],
-  [34, 18, 46, 30, 33, 17, 45, 29],
-  [10, 58, 6, 54, 9, 57, 5, 53],
-  [42, 26, 38, 22, 41, 25, 37, 21],
-];
+// An area chart drawn on a tiny <canvas>, no dependency: a Sovereign line over a soft gradient that
+// fades to the baseline, faint gridlines, and a dot on the latest value. Themeable: reads --accent /
+// --border from the element's computed style, and repaints on theme change. (Kept its original
+// name so existing imports and the insight-chart dot alignment stay intact.)
+// "#ffbc3e" -> "rgba(255,188,62,a)"; anything else falls back to the brand gold.
+function withAlpha(color: string, a: number) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(color.trim());
+  const hex = m ? m[1] : "ffbc3e";
+  const n = parseInt(hex, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+}
 
 export function DitherArea({
   values,
@@ -74,26 +71,18 @@ export function DitherArea({
       }
       ctx.globalAlpha = 1;
 
-      // curve height at each x (linear interp between samples)
-      const curveY = (x: number) => {
-        const t = (x / w) * (values.length - 1);
-        const i = Math.min(values.length - 2, Math.floor(t));
-        const f = t - i;
-        return yAt(values[i]) * (1 - f) + yAt(values[i + 1]) * f;
-      };
-
-      // ordered-dither fill under the curve
+      // soft gradient under the curve: Sovereign at the line, fading to nothing at the baseline
+      const grad = ctx.createLinearGradient(0, pad, 0, h);
+      grad.addColorStop(0, withAlpha(accent, 0.26));
+      grad.addColorStop(1, withAlpha(accent, 0));
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      for (let i = 0; i < values.length; i++) ctx.lineTo(xAt(i), yAt(values[i]));
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      ctx.fill();
       ctx.fillStyle = accent;
-      for (let x = 0; x < w; x++) {
-        const top = curveY(x);
-        for (let y = Math.floor(top); y < h - 1; y++) {
-          // density: ~0.9 just under the line, fading to ~0.12 at the baseline
-          const depth = (y - top) / Math.max(1, h - pad - top);
-          const density = 0.9 - depth * 0.78;
-          const threshold = (BAYER8[y & 7][x & 7] + 0.5) / 64;
-          if (density > threshold) ctx.fillRect(x, y, 1, 1);
-        }
-      }
 
       // line on top
       ctx.strokeStyle = accent;

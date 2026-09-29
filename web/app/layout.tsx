@@ -22,11 +22,11 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://aumo.finance"),
   title: "Aumo · autonomous treasury agent",
   description:
-    "Aumo is an autonomous treasury agent for stablecoins on X Layer. It puts idle USDT0 to work in the best risk-adjusted yield across on-chain lending and real-world-asset-backed dollars, within guardrails it cannot break, and proves every move.",
+    "Aumo is an autonomous treasury agent on X Layer. It puts idle USDT0 to work in the best risk-adjusted yield, runs opt-in pools for tokenized stocks, a diversified basket and gold, stays inside guardrails written into the contract, and proves every move.",
   openGraph: {
-    title: "Aumo · put your stablecoins to work",
+    title: "Aumo · the autonomous treasury for stablecoins",
     description:
-      "An autonomous treasury agent for stablecoins. Real yield, on-chain guardrails, every move proved.",
+      "An AI agent that puts idle USDT0 to work on X Layer, with opt-in pools for tokenized stocks and gold. Every move bounded and provable on-chain.",
     url: "https://aumo.finance",
     siteName: "Aumo",
     type: "website",
@@ -34,9 +34,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Aumo · put your stablecoins to work",
+    title: "Aumo · the autonomous treasury for stablecoins",
     description:
-      "An autonomous treasury agent for stablecoins. Real yield, on-chain guardrails, every move proved.",
+      "An AI agent that puts idle USDT0 to work on X Layer, with opt-in pools for tokenized stocks and gold. Every move bounded and provable on-chain.",
     // twitter:image falls back to the generated og:image.
   },
   keywords: [

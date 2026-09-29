@@ -7,6 +7,7 @@ export const contentType = OG_CONTENT_TYPE;
 export default function Image() {
   return renderOgImage(
     "The autonomous treasury for stablecoins",
-    "Deposit stablecoins. An AI agent earns risk-managed real-world-asset and lending yield on X Layer, every move provable on-chain.",
+    "An AI agent puts idle USDT0 to work on X Layer, with opt-in pools for tokenized stocks and gold. Every move bounded and provable on-chain.",
+    "public/visuals/hero.jpg",
   );
 }

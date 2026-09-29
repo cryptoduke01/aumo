@@ -173,14 +173,12 @@ export default function VenuesPage() {
             return (
               <div className="flex flex-col gap-5">
                 {/* Two capabilities as tabs: depositing into venues vs providing liquidity directly. */}
-                <div className="flex rounded-lg border border-border p-1">
+                <div className="seg flex">
                   {tabs.map((t) => (
                     <button
                       key={t.id}
                       onClick={() => setTab(t.id)}
-                      className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                        tab === t.id ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
-                      }`}
+                      className="seg-item flex flex-1 items-center justify-center gap-2" data-active={tab === t.id ? "" : undefined}
                     >
                       <span>{t.label}</span>
                       <span className="tnum text-[11px] text-faint">{t.count}</span>

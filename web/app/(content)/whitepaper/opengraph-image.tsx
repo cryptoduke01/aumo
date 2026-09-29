@@ -8,5 +8,6 @@ export default function Image() {
   return renderOgImage(
     "Whitepaper",
     "Aumo: an autonomous, guardrailed treasury agent for stablecoins, earning real-world-asset yield on X Layer.",
+    "public/visuals/note-whitepaper.jpg",
   );
 }

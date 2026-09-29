@@ -256,7 +256,7 @@ export default function BasketPage() {
 
       {/* deposit / withdraw */}
       <Panel className="flex flex-col gap-4 p-5">
-        <div className="flex items-center gap-1 self-start rounded-lg border border-border p-1">
+        <div className="seg flex items-center self-start">
           {(["deposit", "withdraw"] as const).map((t) => (
             <button
               key={t}
@@ -264,9 +264,7 @@ export default function BasketPage() {
                 setTab(t);
                 setAmount("");
               }}
-              className={`rounded-md px-3 py-1 text-xs capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                tab === t ? "bg-card-2 text-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
+              className="seg-item capitalize" data-active={tab === t ? "" : undefined}
             >
               {t}
             </button>
@@ -295,7 +293,7 @@ export default function BasketPage() {
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-lg tnum text-foreground outline-none focus-visible:border-foreground/40"
+                className="w-full rounded-xl border border-border bg-card-2 px-4 py-4 text-[2rem] font-medium leading-none tracking-[-0.035em] tnum text-foreground outline-none placeholder:text-faint focus-visible:border-primary/50"
               />
               {overMax ? <span className="text-xs text-negative">Amount exceeds your {tab === "deposit" ? "balance" : "position"}.</span> : null}
               {tab === "withdraw" && sharesToRedeem > 0n && estOut !== undefined ? (
