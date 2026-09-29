@@ -15,30 +15,52 @@ export function llmConfigured(cfg: Config): boolean {
  * regardless of which model produced the reply. `model` overrides cfg.model (used by /ask for a
  * cheaper model). Any failure throws, and every caller already falls back to the deterministic core.
  */
+// Groq rate-limits each model separately (tokens per day, per minute). When the requested model is
+// capped, unavailable or erroring, the call walks this chain of other models before giving up, so one
+// model's exhausted daily budget no longer silences the agent. Override with GROQ_FALLBACK_MODELS.
+const GROQ_FALLBACKS = (process.env.GROQ_FALLBACK_MODELS ?? "openai/gpt-oss-20b,llama-3.3-70b-versatile,llama-3.1-8b-instant")
+  .split(",")
+  .map((m) => m.trim())
+  .filter(Boolean);
+
+// Statuses worth retrying on another model: rate or size limits, a missing/decommissioned model, and
+// provider-side failures. Anything else (bad auth) fails the same way on every model.
+const RETRY_ON_NEXT = new Set([400, 404, 413, 429, 500, 502, 503, 504]);
+
 export async function callModel(
   cfg: Config,
-  opts: { system: string; user: string; maxTokens?: number; model?: string },
+  opts: { system: string; user: string; maxTokens?: number; model?: string; reasoningEffort?: "low" | "medium" | "high" },
 ): Promise<string> {
   const model = opts.model ?? cfg.model;
   const maxTokens = opts.maxTokens ?? 1024;
 
   if (cfg.groqKey) {
-    const res = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${cfg.groqKey}` },
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        temperature: 0.2,
-        messages: [
-          { role: "system", content: opts.system },
-          { role: "user", content: opts.user },
-        ],
-      }),
-    });
-    if (!res.ok) throw new Error(`groq ${res.status}: ${(await res.text()).slice(0, 200)}`);
-    const j = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    return j.choices?.[0]?.message?.content ?? "";
+    const chain = [model, ...GROQ_FALLBACKS.filter((m) => m !== model)];
+    let lastErr = "";
+    for (const m of chain) {
+      const res = await fetch(GROQ_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${cfg.groqKey}` },
+        body: JSON.stringify({
+          model: m,
+          max_tokens: maxTokens,
+          temperature: 0.2,
+          // gpt-oss spends max_tokens on reasoning first; callers that want a short answer ask for less.
+          ...(opts.reasoningEffort && m.startsWith("openai/gpt-oss") ? { reasoning_effort: opts.reasoningEffort } : {}),
+          messages: [
+            { role: "system", content: opts.system },
+            { role: "user", content: opts.user },
+          ],
+        }),
+      });
+      if (res.ok) {
+        const j = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+        return j.choices?.[0]?.message?.content ?? "";
+      }
+      lastErr = `groq ${res.status} (${m}): ${(await res.text()).slice(0, 200)}`;
+      if (!RETRY_ON_NEXT.has(res.status)) break;
+    }
+    throw new Error(lastErr);
   }
 
   if (!cfg.anthropicKey) throw new Error("no LLM provider configured (set GROQ_API_KEY or ANTHROPIC_API_KEY)");

@@ -295,7 +295,10 @@ function rateLimited(ip: string, now: number): boolean {
 // answer only changes when its state changes — once per tick. So we cache identical GENERIC questions
 // per state-version and serve most requests without touching the model; we cap total model calls per
 // day as a hard circuit-breaker; and we let /ask run a cheaper model than the money-path reasoning.
-const ASK_MODEL = process.env.ASK_MODEL || undefined; // e.g. claude-haiku-4-5-20251001; else cfg.model
+// On Groq, /ask defaults to a smaller model with its own daily budget, so questions never compete with
+// the money-path reasoning for the same model's token allowance. ASK_MODEL overrides either way.
+const ASK_MODEL =
+  process.env.ASK_MODEL || (process.env.GROQ_API_KEY?.trim() ? "openai/gpt-oss-20b" : undefined);
 // Finite-or-default: a non-numeric env must not become NaN and silently disable the cache TTL or,
 // worse, the daily cost circuit-breaker (`count >= NaN` is always false).
 const envNum = (raw: string | undefined, def: number) => (Number.isFinite(Number(raw)) ? Number(raw) : def);
@@ -424,7 +427,7 @@ async function askAgent(cfg: Config, question: string, address?: string): Promis
     if (hit && now - hit.at < ASK_CACHE_TTL) return hit.answer; // free: no model call
   }
   if (askOverBudget(now)) {
-    return "I'm fielding a lot of questions right now. Give me a minute and ask again, or explore the dashboard in the meantime.";
+    return "I've answered a lot of questions today and hit my limit. Try again later; everything I know is on the dashboard.";
   }
 
   const context = buildContext(cfg);
@@ -441,7 +444,8 @@ async function askAgent(cfg: Config, question: string, address?: string): Promis
   try {
     raw = await callModel(cfg, {
       system: ASK_SYSTEM,
-      maxTokens: 400,
+      maxTokens: 700,
+      reasoningEffort: "low",
       model: ASK_MODEL ?? cfg.model, // /ask can run a cheaper model than the money-path reasoning
       user: `My current state:\n\n${JSON.stringify(grounding, null, 2)}\n\nQuestion: ${question}`,
     });
@@ -449,7 +453,7 @@ async function askAgent(cfg: Config, question: string, address?: string): Promis
     // A model error (rate limit, timeout, provider hiccup) should read as "busy", not a raw error —
     // but log the provider's reason so a persistent failure is diagnosable.
     console.error(`[ask] model call failed: ${e instanceof Error ? e.message : String(e)}`);
-    return "I'm fielding a lot of questions right now. Give me a minute and ask again, or explore the dashboard in the meantime.";
+    return "I can't reach my reasoning model right now. Try again in a few minutes; everything I know is on the dashboard.";
   }
   const answer = raw.trim();
   if (cacheable && answer) {
