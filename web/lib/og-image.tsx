@@ -3,8 +3,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 // One template for every page's link preview (1200x630), in the site's language: a dark
-// photograph with one seam of Sovereign light, the page title set large and tight bottom-left in
-// PP Neue Montreal, the lockup top-left and the domain bottom-right.
+// photograph with one seam of Sovereign light, the page title set large in PP Neue Montreal with a
+// light optical pull on the tracking, and the lockup top-left. The bottom band stays empty because
+// X draws the page title over the card's bottom-left corner.
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
@@ -84,19 +85,20 @@ export function renderOgImage(title: string, subtitle: string, image = "public/v
               // eslint-disable-next-line @next/next/no-img-element
               <img src={mark} width={34} height={34} alt="" />
             ) : null}
-            <span style={{ fontSize: 32, fontWeight: 500, letterSpacing: -1, color: BONE }}>aumo</span>
+            <span style={{ fontSize: 32, fontWeight: 500, letterSpacing: -0.6, color: BONE }}>aumo</span>
           </div>
 
-          {/* title + subtitle, bottom-left */}
+          {/* title + subtitle */}
           <div style={{ display: "flex", flexDirection: "column", maxWidth: 900 }}>
             <div
               style={{
                 display: "flex",
-                fontSize: big ? 92 : 68,
+                fontSize: big ? 88 : 66,
                 fontWeight: 500,
-                lineHeight: 0.96,
-                letterSpacing: big ? -5 : -3.6,
+                lineHeight: 1.0,
+                letterSpacing: big ? -2.4 : -1.7,
                 color: BONE,
+                textWrap: "balance",
               }}
             >
               {title}
@@ -108,23 +110,17 @@ export function renderOgImage(title: string, subtitle: string, image = "public/v
                 fontSize: 26,
                 fontWeight: 400,
                 lineHeight: 1.4,
-                letterSpacing: -0.3,
+                letterSpacing: 0,
                 color: "rgba(241,238,229,0.66)",
-                maxWidth: 780,
+                maxWidth: 860,
               }}
             >
               {subtitle}
             </div>
           </div>
 
-          {/* footer */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ display: "flex", width: 9, height: 9, background: "#ffbc3e" }} />
-              <span style={{ fontSize: 22, color: "rgba(241,238,229,0.72)" }}>Autonomous treasury on X Layer</span>
-            </div>
-            <span style={{ fontSize: 22, color: "rgba(241,238,229,0.72)" }}>aumo.finance</span>
-          </div>
+          {/* keep the bottom band empty: X overlays the page title across the card's bottom-left */}
+          <div style={{ display: "flex", height: 64 }} />
         </div>
       </div>
     ),

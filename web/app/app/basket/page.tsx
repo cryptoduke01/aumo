@@ -293,7 +293,7 @@ export default function BasketPage() {
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                className="w-full rounded-xl border border-border bg-card-2 px-4 py-4 text-[2rem] font-medium leading-none tracking-[-0.035em] tnum text-foreground outline-none placeholder:text-faint focus-visible:border-primary/50"
+                className="w-full rounded-xl border border-border bg-card-2 px-4 py-4 text-[2rem] font-medium leading-none tracking-[-0.018em] tnum text-foreground outline-none placeholder:text-faint focus-visible:border-primary/50"
               />
               {overMax ? <span className="text-xs text-negative">Amount exceeds your {tab === "deposit" ? "balance" : "position"}.</span> : null}
               {tab === "withdraw" && sharesToRedeem > 0n && estOut !== undefined ? (

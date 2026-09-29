@@ -25,7 +25,7 @@ export default function PitchPage() {
         <div className="mt-20">
           <p className={site.eyebrow}>Investor deck</p>
         </div>
-        <h1 className="mt-6 max-w-[16ch] text-balance text-[clamp(2.8rem,5.6vw,5.6rem)] font-medium leading-[0.95] tracking-[-0.055em]">
+        <h1 className="mt-6 max-w-[16ch] text-balance text-[clamp(2.8rem,5.6vw,5.6rem)] font-medium leading-[0.95] tracking-[-0.026em]">
           Aumo, in eleven slides.
         </h1>
         <p className="mt-6 max-w-[40rem] text-[1.08rem] font-normal leading-relaxed text-[var(--s-page-muted)]">

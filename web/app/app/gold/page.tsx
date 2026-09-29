@@ -353,7 +353,7 @@ export default function GoldPage() {
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                  className="field-input tnum w-full min-w-0 bg-transparent text-[2rem] font-medium leading-none tracking-[-0.035em] outline-none placeholder:text-faint"
+                  className="field-input tnum w-full min-w-0 bg-transparent text-[2rem] font-medium leading-none tracking-[-0.018em] outline-none placeholder:text-faint"
                   aria-label={`${tab} amount in USDT0`}
                 />
                 <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">

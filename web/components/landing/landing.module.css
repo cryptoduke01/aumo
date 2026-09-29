@@ -63,12 +63,12 @@
   animation: copyArrival 1.1s var(--s-ease) 0.18s both;
 }
 .heroTitle {
-  max-width: 15ch;
+  max-width: 17.5ch;
   margin: 0 0 1.35rem;
   font-size: clamp(2.6rem, 4.1vw, 4.4rem);
   font-weight: 500;
-  line-height: 0.94;
-  letter-spacing: -0.055em;
+  line-height: 0.96;
+  letter-spacing: var(--track-display);
   text-wrap: balance;
 }
 .heroSub {
@@ -103,12 +103,12 @@
 }
 .thesisStatement {
   align-self: center;
-  max-width: 17ch;
+  max-width: 18.5ch;
   margin: 4rem 0 8rem;
   font-size: clamp(2.7rem, 6.4vw, 7.2rem);
   font-weight: 500;
   line-height: 0.98;
-  letter-spacing: -0.055em;
+  letter-spacing: var(--track-display);
 }
 /* words animate opacity from JS; no will-change, so ~130 words don't each get a GPU layer */
 .word {
@@ -150,7 +150,7 @@
   font-size: clamp(1.3rem, 2vw, 2.3rem);
   font-weight: 500;
   line-height: 1.26;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--track-title);
   text-wrap: pretty;
   will-change: transform;
 }
@@ -401,7 +401,7 @@
   gap: 0.5rem;
   opacity: 0.82;
   font-size: clamp(1.05rem, 1.3vw, 1.3rem);
-  letter-spacing: -0.035em;
+  letter-spacing: var(--track-title);
   white-space: nowrap;
   transition: opacity 0.18s;
 }
@@ -572,12 +572,12 @@
   padding: clamp(1.75rem, 3vw, 3rem);
 }
 .bannerTitle {
-  max-width: 13ch;
+  max-width: 14.5ch;
   margin: 0;
   font-size: clamp(2.3rem, 4.4vw, 4.6rem);
   font-weight: 500;
   line-height: 0.95;
-  letter-spacing: -0.055em;
+  letter-spacing: var(--track-display);
   text-wrap: balance;
 }
 

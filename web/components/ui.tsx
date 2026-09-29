@@ -34,7 +34,7 @@ export function Stat({
   return (
     <div className="flex flex-col gap-1.5 p-5">
       <Label>{label}</Label>
-      <span className="tnum text-[1.9rem] font-medium leading-none tracking-[-0.035em] text-foreground">
+      <span className="tnum text-[1.9rem] font-medium leading-none tracking-[-0.018em] text-foreground">
         {value}
       </span>
       {sub ? <span className="text-xs text-muted-foreground">{sub}</span> : null}

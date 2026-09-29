@@ -64,12 +64,12 @@ export async function GET() {
               <img src={m} width={37} height={37} alt="" />
             </div>
           ) : null}
-          <span style={{ display: "flex", fontSize: 34, fontWeight: 500, letterSpacing: -1 }}>aumo</span>
+          <span style={{ display: "flex", fontSize: 34, fontWeight: 500, letterSpacing: -0.6 }}>aumo</span>
         </div>
 
         {/* headline */}
         <div style={{ display: "flex", flexDirection: "column", position: "relative" }}>
-          <span style={{ display: "flex", fontSize: 72, fontWeight: 500, letterSpacing: -2.6, lineHeight: 1.04, color: "#ffffff", maxWidth: 940 }}>
+          <span style={{ display: "flex", fontSize: 72, fontWeight: 500, letterSpacing: -1.6, lineHeight: 1.04, color: "#ffffff", maxWidth: 940 }}>
             A stablecoin treasury that manages itself.
           </span>
         </div>

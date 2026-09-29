@@ -76,9 +76,9 @@ export async function GET() {
               <img src={m} width={64} height={64} alt="" />
             </div>
           ) : null}
-          <span style={{ fontSize: 56, fontWeight: 500, letterSpacing: -1.5 }}>aumo</span>
+          <span style={{ fontSize: 56, fontWeight: 500, letterSpacing: -0.6 }}>aumo</span>
         </div>
-        <div style={{ display: "flex", fontSize: 44, fontWeight: 500, letterSpacing: -1.2, marginTop: 26, color: "#f2f2f2" }}>
+        <div style={{ display: "flex", fontSize: 44, fontWeight: 500, letterSpacing: -0.6, marginTop: 26, color: "#f2f2f2" }}>
           The autonomous treasury for stablecoins.
         </div>
       </div>

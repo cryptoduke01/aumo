@@ -115,7 +115,7 @@
   font-size: 31.5vw;
   font-weight: 500;
   line-height: 0.8;
-  letter-spacing: -0.075em;
+  letter-spacing: var(--track-wordmark);
   text-transform: lowercase;
   pointer-events: none;
   user-select: none;

@@ -43,7 +43,7 @@
 }
 .ticker {
   font-size: 1.15rem;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--track-title);
 }
 .how {
   padding: clamp(4rem, 8vw, 7rem) var(--gutter);
@@ -56,7 +56,7 @@
   font-size: clamp(2rem, 3.6vw, 3.6rem);
   font-weight: 500;
   line-height: 1;
-  letter-spacing: -0.05em;
+  letter-spacing: var(--track-display);
   text-wrap: balance;
 }
 .howGrid {
@@ -73,7 +73,7 @@
   margin: 0;
   font-size: 1.3rem;
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--track-title);
 }
 .howItem p {
   margin: 0.8rem 0 0;
@@ -144,12 +144,12 @@
   padding: clamp(1.75rem, 3vw, 3rem);
 }
 .bannerTitle {
-  max-width: 14ch;
+  max-width: 15.5ch;
   margin: 0;
   font-size: clamp(2.2rem, 4vw, 4.2rem);
   font-weight: 500;
   line-height: 0.95;
-  letter-spacing: -0.055em;
+  letter-spacing: var(--track-display);
   text-wrap: balance;
 }
 @media (max-width: 900px) {

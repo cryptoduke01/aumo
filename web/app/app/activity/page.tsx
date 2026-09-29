@@ -124,7 +124,7 @@ export default function ActivityPage() {
         <div className="flex flex-col gap-5 p-6 sm:p-8 lg:border-r lg:border-border">
           <div className="flex flex-col gap-3">
             <Label>Decisions recorded</Label>
-            <span className="tnum text-[clamp(3rem,5.6vw,4.75rem)] font-medium leading-[0.9] tracking-[-0.05em]">
+            <span className="tnum text-[clamp(3rem,5.6vw,4.75rem)] font-medium leading-[0.9] tracking-[-0.024em]">
               {records ? stats.total.toLocaleString("en-US") : "—"}
             </span>
             <span className="max-w-md text-sm leading-relaxed text-muted-foreground">
@@ -142,7 +142,7 @@ export default function ActivityPage() {
           ].map((m, i) => (
             <div key={m.label} className={`flex flex-col gap-2 p-5 sm:p-6 ${i % 2 === 0 ? "border-r border-border" : ""} ${i < 2 ? "border-b border-border" : ""}`}>
               <Label>{m.label}</Label>
-              <span className={`tnum text-[1.9rem] font-medium leading-none tracking-[-0.04em] ${m.accent ? "text-accent" : "text-foreground"}`}>{m.value}</span>
+              <span className={`tnum text-[1.9rem] font-medium leading-none tracking-[-0.02em] ${m.accent ? "text-accent" : "text-foreground"}`}>{m.value}</span>
               <span className="text-xs text-muted-foreground">{m.sub}</span>
             </div>
           ))}

@@ -328,7 +328,7 @@ export function BridgeIn() {
             placeholder="0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-            className="field-input tnum w-full min-w-0 bg-transparent text-[1.6rem] font-medium leading-none tracking-[-0.03em] outline-none placeholder:text-faint"
+            className="field-input tnum w-full min-w-0 bg-transparent text-[1.6rem] font-medium leading-none tracking-[-0.015em] outline-none placeholder:text-faint"
             aria-label={`Amount to bridge from ${src.name}`}
           />
           <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">

@@ -148,7 +148,7 @@
 .agentFigure {
   font-size: 1.55rem;
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--track-heading);
   font-variant-numeric: tabular-nums;
 }
 .agentMeta {

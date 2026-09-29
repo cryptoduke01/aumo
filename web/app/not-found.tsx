@@ -14,7 +14,7 @@ export default function NotFound() {
       <main className="flex flex-1 items-end">
         <section className="w-full px-[var(--gutter)] pb-20 pt-32 sm:pt-44">
           <p className={site.eyebrow}>404</p>
-          <h1 className="mt-6 max-w-[16ch] text-balance text-[clamp(2.8rem,6vw,6rem)] font-medium leading-[0.95] tracking-[-0.055em]">
+          <h1 className="mt-6 max-w-[16ch] text-balance text-[clamp(2.8rem,6vw,6rem)] font-medium leading-[0.95] tracking-[-0.026em]">
             This route isn&apos;t on the allowlist.
           </h1>
           <p className="mt-6 max-w-md text-[1.05rem] font-normal leading-relaxed text-[var(--s-page-muted)]">

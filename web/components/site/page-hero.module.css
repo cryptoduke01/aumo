@@ -54,12 +54,12 @@
   letter-spacing: -0.01em;
 }
 .title {
-  max-width: 18ch;
+  max-width: 19.5ch;
   margin: 0;
   font-size: clamp(2.6rem, 5.4vw, 5.6rem);
   font-weight: 500;
   line-height: 0.95;
-  letter-spacing: -0.055em;
+  letter-spacing: var(--track-display);
   text-wrap: balance;
 }
 .lead {

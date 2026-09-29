@@ -158,7 +158,7 @@
   font-size: clamp(1.75rem, 2.45vw, 2.65rem);
   font-weight: 500;
   line-height: 1.08;
-  letter-spacing: -0.05em;
+  letter-spacing: var(--track-display);
 }
 .primaryTag {
   margin-top: 0.3rem;
@@ -195,7 +195,7 @@
   color: var(--s-page-fg);
   font-size: 1.5rem;
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--track-title);
 }
 .sideBody {
   margin: 0.8rem 0 0;
@@ -250,7 +250,7 @@
   padding: 0.35rem 0;
   color: var(--s-page-fg);
   font-size: 1.9rem;
-  letter-spacing: -0.045em;
+  letter-spacing: var(--track-heading);
   line-height: 1.15;
 }
 .sheetActions {

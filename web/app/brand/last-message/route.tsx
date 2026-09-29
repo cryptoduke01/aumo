@@ -49,7 +49,7 @@ export async function GET() {
           }}
         />
         {m ? <img src={m} width={72} height={72} alt="" style={{ borderRadius: 16, marginBottom: 36 }} /> : null}
-        <div style={{ display: "flex", fontSize: 74, fontWeight: 500, letterSpacing: -2, lineHeight: 1.05, maxWidth: 1200 }}>
+        <div style={{ display: "flex", fontSize: 74, fontWeight: 500, letterSpacing: -1.6, lineHeight: 1.05, maxWidth: 1200 }}>
           This is the last message in this thread
         </div>
         <div style={{ display: "flex", fontSize: 30, color: "#9a9a9a", marginTop: 30, maxWidth: 1000, lineHeight: 1.4 }}>

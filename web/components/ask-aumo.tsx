@@ -144,7 +144,7 @@ export function AskAumoPanel({ open, onClose }: { open: boolean; onClose: () => 
               {messages.length === 0 ? (
                 <div className="flex flex-1 flex-col justify-end gap-6">
                   <div className="flex flex-col gap-2">
-                    <span className="text-[1.6rem] font-medium leading-[1.05] tracking-[-0.04em]">
+                    <span className="text-[1.6rem] font-medium leading-[1.05] tracking-[-0.02em]">
                       Ask me why I did what I did.
                     </span>
                     <p className="text-sm leading-relaxed text-muted-foreground">
