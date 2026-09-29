@@ -45,8 +45,9 @@ const GROUPS: Group[] = [
     sideBody:
       "The agent scores venues and moves funds. The contract decides how far it can go: it cannot exceed a cap, touch an unlisted venue, or send money anywhere except back to the pool.",
     secondary: [
-      { href: `${APP}/venues`, label: "Venues", meta: "Live" },
-      { href: `${APP}/insights`, label: "Insights", meta: "Agent" },
+      { href: `${APP}/venues`, label: "Venue passports", meta: "Live" },
+      { href: "/docs#cycle", label: "How the agent decides", meta: "Docs" },
+      { href: "/docs#bridge", label: "Deposit from another chain", meta: "LayerZero" },
     ],
   },
   {
@@ -61,7 +62,11 @@ const GROUPS: Group[] = [
     sideTitle: "Isolated, and at risk by design",
     sideBody:
       "Each market is its own pool under the same guardrails. They hold price exposure you chose, so they are not capital preservation, and the contract only trades them while the market is open.",
-    secondary: [{ href: "/research", label: "Why a basket", meta: "Backtest" }],
+    secondary: [
+      { href: "/research#s13", label: "Why a basket", meta: "Backtest" },
+      { href: "/docs#stocks", label: "Market hours and pricing", meta: "Docs" },
+      { href: "/research#s14", label: "The self-audit behind the pools", meta: "Security" },
+    ],
   },
   {
     key: "resources",

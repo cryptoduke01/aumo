@@ -89,8 +89,8 @@ const JSON_LD = {
   ],
 };
 
-// Set the theme before first paint so there is no flash: saved choice, else system.
-const themeScript = `(function(){try{var t=localStorage.getItem('aumo-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
+// Set the theme before first paint so there is no flash: the reader's saved choice, else dark (Aumo's default).
+const themeScript = `(function(){try{var t=localStorage.getItem('aumo-theme');if(t!=='light'&&t!=='dark'){t='dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

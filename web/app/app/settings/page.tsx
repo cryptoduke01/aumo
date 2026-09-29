@@ -73,7 +73,7 @@ export default function SettingsPage() {
     "rounded-lg border border-border px-3 py-1.5 text-xs transition-colors hover:border-foreground/40 disabled:opacity-40";
 
   return (
-    <div className="mx-auto flex w-full max-w-[58rem] flex-1 flex-col gap-6 px-5 pb-20 sm:px-9">
+    <div className="mx-auto flex w-full max-w-[84rem] flex-1 flex-col gap-6 px-5 pb-20 sm:px-9 [&>*]:w-full [&>*]:max-w-[58rem]">
       <header className="app-header">
         <h1 className="app-title">Settings</h1>
         <span className="app-lead">Your wallet, appearance, and the contracts this app talks to.</span>

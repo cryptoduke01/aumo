@@ -256,14 +256,14 @@ button:disabled {
 .app-header {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
-  padding: clamp(2.75rem, 6vw, 5rem) 0 clamp(1.25rem, 2.5vw, 2rem);
+  gap: 0.9rem;
+  padding: clamp(2rem, 4vw, 3.25rem) 0 clamp(1.1rem, 2vw, 1.75rem);
 }
 .app-title {
   margin: 0;
-  font-size: clamp(2.4rem, 4.4vw, 4rem);
+  font-size: clamp(2.2rem, 3.4vw, 3.25rem);
   font-weight: 500;
-  line-height: 0.95;
+  line-height: 0.96;
   letter-spacing: -0.05em;
   text-wrap: balance;
 }

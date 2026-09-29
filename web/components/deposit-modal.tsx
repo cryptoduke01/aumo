@@ -57,7 +57,7 @@ export function DepositModal({
           aria-labelledby="deposit-modal-title"
         >
           <motion.div
-            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card p-8 text-center"
+            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card p-8 text-center outline-none"
             initial={{ opacity: 0, scale: 0.94, y: 14 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}

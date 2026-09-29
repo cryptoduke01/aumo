@@ -28,7 +28,7 @@ function fontData(weight: "Regular" | "Medium") {
 
 export function renderOgImage(title: string, subtitle: string, image = "public/visuals/hero.jpg") {
   const photo = dataUri(image, "image/jpeg");
-  const mark = dataUri("public/brand/logo/mark.png", "image/png");
+  const mark = dataUri("public/brand/mark-gold.png", "image/png"); // tightly cropped mark
   const big = title.length <= 28;
   return new ImageResponse(
     (
@@ -82,7 +82,7 @@ export function renderOgImage(title: string, subtitle: string, image = "public/v
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             {mark ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={mark} width={40} height={40} alt="" />
+              <img src={mark} width={34} height={34} alt="" />
             ) : null}
             <span style={{ fontSize: 32, fontWeight: 500, letterSpacing: -1, color: BONE }}>aumo</span>
           </div>

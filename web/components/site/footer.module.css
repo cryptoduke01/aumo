@@ -2,7 +2,7 @@
   position: relative;
   overflow: hidden;
   margin-top: auto;
-  padding: 7rem 2.25rem 1.4rem;
+  padding: 6rem 2.25rem 1.4rem;
   color: var(--s-page-fg);
   background: var(--s-page);
   border-top: 1px solid var(--s-page-line);
@@ -13,19 +13,25 @@
   color: inherit;
   text-decoration: none;
 }
+/* one centred block: lockup on the left, four tight columns beside it */
 .main {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2rem;
+  grid-template-columns: auto 1fr;
+  gap: 3rem;
   align-items: start;
-  margin-bottom: 3.5rem;
+  max-width: 68rem;
+  margin: 0 auto 3.5rem;
+}
+.main > .lockup {
+  order: -1;
 }
 .cols {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(4, max-content);
+  justify-content: end;
+  column-gap: clamp(2.5rem, 5vw, 5rem);
 }
 .colTitle {
   margin: 0 0 1rem;
@@ -48,10 +54,11 @@
 .colList a:hover {
   opacity: 0.62;
 }
-.mark {
-  display: block;
-  width: 1.6rem;
-  height: 1.6rem;
+.lockup {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.75rem;
+  line-height: 1;
 }
 .meta {
   position: relative;
@@ -60,6 +67,9 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   margin-bottom: 2.5rem;
+  max-width: 68rem;
+  margin-left: auto;
+  margin-right: auto;
   color: var(--s-page-muted);
   font-size: 0.84rem;
   font-weight: 400;
@@ -119,11 +129,9 @@
   .main {
     grid-template-columns: 1fr;
   }
-  .main > .mark {
-    order: -1;
-  }
   .cols {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
     row-gap: 2.5rem;
   }
 }

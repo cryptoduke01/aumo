@@ -160,66 +160,79 @@ export default function Dashboard() {
     <div className="mx-auto flex w-full max-w-[84rem] flex-1 flex-col gap-5 px-5 pb-20 sm:px-9">
       <Header identity={identity} view={view} setView={setView} isConnected={isConnected} />
 
-      {/* metrics */}
-      <div className={`grid grid-cols-2 gap-4 ${mine ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
-        {mine ? (
-          <>
-            <Metric label="Your position" value={myPosition} currency sub="Redeemable USDT0" accent />
-            <Metric label="Your share" value={mySharePct} suffix="%" frac={2} sub="Of the pool" />
-            <Metric label="Est. annual yield" value={myYield} currency frac={2} sub={identity.chainId === 196 ? "At the live rate" : "Simulated on testnet"} />
-          </>
-        ) : (
-          <>
-            <Metric label="Total assets" value={total} currency sub="Under management" />
-            <Metric label="Idle" value={idle} currency sub="Ready to deploy" />
-            <Metric label="Deployed" value={deployed} currency sub="Working in venues" />
-            <Metric label="Live yield" value={liveYield} suffix="%" frac={2} accent sub="Blended across venues held" />
-          </>
-        )}
-      </div>
-
-      {/* Real-yield-vs-idle benchmark: the honest counter to a simulated "backtest alpha". Every
-          dollar the agent deploys earns real, executed, provable on-chain yield; idle earns nothing. */}
-      {!mine ? (
-        <Panel className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-1">
-            <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Dot /> Real yield, executed on-chain, not a simulation
+      {/* the treasury at a glance: one headline figure, the yield it is earning against holding idle,
+          the best-yield line, and the supporting metrics in a grid beside it */}
+      <section className="grid overflow-hidden rounded-2xl border border-border bg-card lg:grid-cols-[1.35fr_1fr]">
+        <div className="flex flex-col gap-6 p-6 sm:p-8 lg:border-r lg:border-border">
+          <div className="flex flex-col gap-3">
+            <Label>{mine ? "Your position" : "Total assets under management"}</Label>
+            <span className={`tnum text-[clamp(3rem,5.6vw,4.75rem)] font-medium leading-[0.9] tracking-[-0.05em] ${mine ? "text-accent" : "text-foreground"}`}>
+              <Num value={mine ? myPosition : total} currency maximumFractionDigits={mine ? 2 : 0} />
             </span>
-            <span className="max-w-xl text-xs leading-relaxed text-muted-foreground">
-              Idle stablecoins earn nothing. Aumo deploys them into real venues and proves every move on{" "}
-              {identity.chainName}. Deliberately conservative at this size; it scales as the pool grows.
-            </span>
+            {mine ? (
+              <span className="max-w-md text-sm leading-relaxed text-muted-foreground">
+                {hasPosition ? (
+                  <>
+                    Earning about <span className="text-accent"><Num value={myYield} currency maximumFractionDigits={2} />/yr</span> at the
+                    live blended rate. Held idle, the same balance earns $0.
+                  </>
+                ) : positionKnown ? (
+                  <>
+                    You haven&apos;t deposited yet.{" "}
+                    <Link href={`${base}/vault`} className="text-accent hover:opacity-80">Deposit to start earning →</Link>
+                  </>
+                ) : null}
+              </span>
+            ) : (
+              <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm">
+                <span className="text-muted-foreground">
+                  Earning <span className="tnum text-base font-medium text-accent"><Num value={liveYield} suffix="%" maximumFractionDigits={2} /></span>
+                </span>
+                <span className="text-faint">vs 0.00% held idle</span>
+                <span className="text-faint">Real yield, executed on {identity.chainName}</span>
+              </div>
+            )}
           </div>
-          <div className="flex shrink-0 items-center gap-5 self-start sm:self-center">
-            <div className="flex flex-col gap-0.5">
-              <Label>Aumo · deployed</Label>
-              <span className="tnum text-xl font-medium text-accent"><Num value={liveYield} suffix="%" maximumFractionDigits={2} /></span>
+          {!mine ? (
+            <div className="mt-auto flex flex-col gap-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Best available yield{series.length >= 2 ? `, last ${series.length} cycles` : ""}</span>
+                <span className="tnum font-medium text-accent"><Num value={bestNow} suffix="%" maximumFractionDigits={2} /></span>
+              </div>
+              <DitherArea values={series} className="w-full" height={96} />
             </div>
-            <span className="mt-4 text-xs text-faint">vs</span>
-            <div className="flex flex-col gap-0.5">
-              <Label>Held idle</Label>
-              <span className="tnum text-xl font-medium text-muted-foreground">0.00%</span>
+          ) : null}
+        </div>
+        <div className="grid grid-cols-2 border-t border-border lg:border-t-0">
+          {(mine
+            ? [
+                { label: "Your share", value: <Num value={mySharePct} suffix="%" maximumFractionDigits={2} />, sub: "Of the pool" },
+                { label: "Est. annual yield", value: <Num value={myYield} currency maximumFractionDigits={2} />, sub: identity.chainId === 196 ? "At the live rate" : "Simulated on testnet" },
+                { label: "Pool assets", value: <Num value={total} currency maximumFractionDigits={0} />, sub: "Total under management" },
+                { label: "Live yield", value: <Num value={liveYield} suffix="%" maximumFractionDigits={2} />, sub: "Blended across venues", accent: true },
+              ]
+            : [
+                { label: "Idle", value: <Num value={idle} currency maximumFractionDigits={0} />, sub: "Ready to deploy" },
+                { label: "Deployed", value: <Num value={deployed} currency maximumFractionDigits={0} />, sub: "Working in venues" },
+                { label: "Deployed share", value: <Num value={deployedPct} suffix="%" maximumFractionDigits={0} />, sub: "Of the pool at work" },
+                { label: "Live yield", value: <Num value={liveYield} suffix="%" maximumFractionDigits={2} />, sub: "Blended across venues held", accent: true },
+              ]
+          ).map((m, i) => (
+            <div
+              key={m.label}
+              className={`flex flex-col gap-2 p-5 sm:p-6 ${i % 2 === 0 ? "border-r border-border" : ""} ${i < 2 ? "border-b border-border" : ""}`}
+            >
+              <Label>{m.label}</Label>
+              <span className={`tnum text-[1.9rem] font-medium leading-none tracking-[-0.04em] ${m.accent ? "text-accent" : "text-foreground"}`}>{m.value}</span>
+              <span className="text-xs text-muted-foreground">{m.sub}</span>
             </div>
-          </div>
-        </Panel>
-      ) : hasPosition ? (
-        <Panel className="flex flex-col gap-1 p-5">
-          <span className="text-sm text-foreground">
-            Your <Num value={myPosition} currency maximumFractionDigits={2} /> is earning about{" "}
-            <span className="text-accent"><Num value={myYield} currency maximumFractionDigits={2} />/yr</span> at
-            the live blended rate.
-          </span>
-          <span className="text-xs leading-relaxed text-muted-foreground">
-            Held idle in your wallet, the same balance earns $0. Every allocation behind this is on-chain and
-            provable, and yield grows as the pool scales into higher-yield venues.
-          </span>
-        </Panel>
-      ) : null}
+          ))}
+        </div>
+      </section>
 
       {/* charts + guardrails bento. In the private view only the personal allocation shows; the
           yield chart and guardrails are pool/agent-level and belong to the public view. */}
-      <div className={`grid grid-cols-1 gap-4 ${mine ? "" : "lg:grid-cols-3"}`}>
+      <div className={`grid grid-cols-1 gap-4 ${mine ? "" : "lg:grid-cols-[1fr_1.35fr]"}`}>
         <Panel className="flex flex-col p-5">
           <Label>{mine ? "Your allocation" : "Allocation"}</Label>
           {mine && !hasPosition && positionKnown ? (
@@ -253,21 +266,6 @@ export default function Dashboard() {
           )}
         </Panel>
 
-        {!mine ? (
-          <Panel className="flex flex-col p-5">
-            <div className="flex items-center justify-between">
-              <Label>Best available yield</Label>
-              <span className="tnum text-sm font-medium text-accent"><Num value={bestNow} suffix="%" maximumFractionDigits={2} /></span>
-            </div>
-            <div className="mt-4 flex-1">
-              <DitherArea values={series} className="w-full" height={120} />
-            </div>
-            {series.length >= 2 ? (
-              <span className="mt-2 text-[11px] text-faint">Last {series.length} cycles</span>
-            ) : null}
-          </Panel>
-        ) : null}
-
         {!mine && vault ? <GuardrailsCard vault={vault} identity={identity} dec={dec} /> : null}
       </div>
 
@@ -280,7 +278,9 @@ export default function Dashboard() {
         </div>
       ) : null}
 
-      <AskAumo />
+      <div id="ask" className="scroll-mt-24">
+        <AskAumo />
+      </div>
 
       {/* The agent's operational transparency — its latest move, risk scoring, and decision history —
           is the public view. The private view stays focused on the user's own money. */}
@@ -288,18 +288,6 @@ export default function Dashboard() {
       {!mine && latest && latest.plan.risks.length > 0 ? <RiskTable rec={latest} /> : null}
       {!mine ? <Receipts records={records} /> : null}
     </div>
-  );
-}
-
-function Metric({ label, value, sub, suffix, currency, frac = 0, accent }: { label: string; value: number; sub?: string; suffix?: string; currency?: boolean; frac?: number; accent?: boolean }) {
-  return (
-    <Panel className="flex flex-col gap-1.5 p-5">
-      <Label>{label}</Label>
-      <span className={`tnum text-[1.75rem] font-medium leading-none ${accent ? "text-accent" : "text-foreground"}`}>
-        <Num value={value} currency={currency} maximumFractionDigits={frac} suffix={suffix} />
-      </span>
-      {sub ? <span className="text-xs text-muted-foreground">{sub}</span> : null}
-    </Panel>
   );
 }
 

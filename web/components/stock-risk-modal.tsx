@@ -59,7 +59,7 @@ export function StockRiskModal() {
           aria-labelledby="risk-modal-title"
         >
           <motion.div
-            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card p-6"
+            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card p-6 outline-none"
             initial={{ opacity: 0, scale: 0.95, y: 14 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}

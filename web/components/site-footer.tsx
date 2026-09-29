@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AumoMark } from "./mark";
+import { AumoWordmark } from "./mark";
 import s from "./site/footer.module.css";
 
 function XIcon() {
@@ -89,7 +89,9 @@ export function SiteFooter() {
             </div>
           ))}
         </nav>
-        <AumoMark className={s.mark} />
+        <Link href="/" className={s.lockup} aria-label="Aumo home">
+          <AumoWordmark className="!text-[1.75rem]" markClass="size-[1.05em]" />
+        </Link>
       </div>
 
       <div className={s.meta}>

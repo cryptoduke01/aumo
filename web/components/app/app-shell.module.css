@@ -1,0 +1,351 @@
+/* The app frame: a left rail (brand, grouped sections, the live agent) and a working column with
+   a slim glass top bar. Surfaces use the theme tokens so dark and light both hold. */
+.frame {
+  display: grid;
+  grid-template-columns: 15.5rem minmax(0, 1fr);
+  min-height: 100dvh;
+  background: var(--background);
+}
+
+/* ── rail ─────────────────────────────────────────────────────────── */
+.rail {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding: 1.1rem 0.85rem 1rem;
+  border-right: 1px solid var(--border);
+  background: var(--s-page-raise);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.rail::-webkit-scrollbar {
+  display: none;
+}
+.brandRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.55rem 1.1rem;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.1rem;
+  color: var(--foreground);
+}
+.net {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.22rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.netDot {
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.9rem 0 0.4rem;
+}
+.group + .group {
+  border-top: 1px solid var(--border);
+}
+.groupLabel {
+  padding: 0 0.6rem 0.45rem;
+  color: var(--faint);
+  font-size: 0.74rem;
+  font-weight: 500;
+}
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 2.25rem;
+  padding: 0 0.6rem;
+  border-radius: 0.55rem;
+  color: var(--muted-foreground);
+  font-size: 0.92rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition: color 0.16s, background-color 0.16s;
+}
+.item svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+.item:hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+}
+.item[data-active] {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+.item[data-active]::before {
+  content: "";
+  position: absolute;
+  left: -0.85rem;
+  top: 0.45rem;
+  bottom: 0.45rem;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--primary);
+}
+
+.spacer {
+  flex: 1;
+  min-height: 1rem;
+}
+
+/* the live agent: the one thing in the rail that is about the product, not navigation */
+.agent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0 0.1rem 0.8rem;
+  padding: 0.9rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--background);
+  color: var(--foreground);
+  transition: border-color 0.18s;
+}
+.agent:hover {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+}
+.agentHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+}
+.pulse {
+  position: relative;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--primary);
+}
+.pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  animation: pulse 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+.pulse[data-down] {
+  background: var(--negative);
+}
+.pulse[data-down]::after {
+  display: none;
+}
+.agentFigure {
+  font-size: 1.55rem;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.agentMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.76rem;
+}
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.4rem 0;
+}
+.footLinks {
+  display: flex;
+  gap: 0.9rem;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+.footLinks a:hover {
+  color: var(--foreground);
+}
+
+/* ── working column ──────────────────────────────────────────────── */
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3.75rem;
+  padding: 0 1.5rem 0 2.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--s-glass);
+  backdrop-filter: blur(16px) saturate(0.8);
+  -webkit-backdrop-filter: blur(16px) saturate(0.8);
+}
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+}
+.crumbs b {
+  color: var(--foreground);
+  font-weight: 500;
+}
+.crumbSep {
+  color: var(--faint);
+}
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.ask {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.35rem;
+  padding: 0 0.95rem;
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  font-size: 0.88rem;
+  font-weight: 500;
+  --cut: 9px;
+  transition: background-color 0.18s;
+}
+.ask:hover {
+  background: color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+.ask svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--primary);
+}
+.mobileBrand,
+.menuBtn {
+  display: none;
+}
+.content {
+  flex: 1;
+  min-width: 0;
+}
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.4rem 2.25rem 1.6rem;
+  border-top: 1px solid var(--border);
+  color: var(--faint);
+  font-size: 0.8rem;
+}
+.bottom a:hover {
+  color: var(--foreground);
+}
+.bottomLinks {
+  display: flex;
+  gap: 1rem;
+}
+
+/* ── mobile ──────────────────────────────────────────────────────── */
+.sheet {
+  position: fixed;
+  inset: 3.75rem 0 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 1rem 1.5rem;
+  overflow-y: auto;
+  background: var(--background);
+  animation: sheetIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+@keyframes sheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1023px) {
+  .frame {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rail {
+    display: none;
+  }
+  .top {
+    padding: 0 1rem 0 1.25rem;
+  }
+  .crumbs {
+    display: none;
+  }
+  .mobileBrand {
+    display: inline-flex;
+    align-items: center;
+    font-size: 1.05rem;
+  }
+  .menuBtn {
+    display: inline-flex;
+  }
+  .ask span {
+    display: none;
+  }
+  .bottom {
+    padding: 1.2rem 1.25rem 1.4rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse::after,
+  .sheet {
+    animation: none;
+  }
+}
