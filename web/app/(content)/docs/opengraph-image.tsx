@@ -1,3 +1,4 @@
+// card v2 (Sep 2026): lighter tracking scale; bottom band left clear for X's title overlay.
 import { renderOgImage, OG_SIZE, OG_CONTENT_TYPE } from "@/lib/og-image";
 
 export const alt = "Aumo Docs";
