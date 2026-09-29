@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AumoWordmark } from "../mark";
 import { ConnectButton } from "../wallet";
 import { ThemeToggle } from "../theme-toggle";
 import { MenuButton } from "../menu-button";
 import { useAppBase } from "@/lib/use-app-base";
 import { getStatus, timeAgo, type Status } from "@/lib/agent";
+import { AskAumoPanel } from "../ask-aumo";
 import s from "./app-shell.module.css";
 
 const SITE = "https://aumo.finance";
@@ -142,6 +143,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isActive = (seg: string) => (seg === "" ? clean === "/" : clean.startsWith(seg));
   const current = ALL.find((it) => isActive(it.seg));
   const [sheet, setSheet] = useState(false);
+  const [ask, setAsk] = useState(false);
+  const closeAsk = useCallback(() => setAsk(false), []);
   const { status, down } = useAgentStatus();
 
   useEffect(() => setSheet(false), [pathname]);
@@ -153,10 +156,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href={SITE} className={s.brand} aria-label="aumo.finance">
             <AumoWordmark markClass="size-[1.05em]" />
           </Link>
-          <span className={s.net}>
-            <i className={s.netDot} aria-hidden />
-            X Layer
-          </span>
         </div>
         <Nav hrefFor={hrefFor} isActive={isActive} />
         <div className={s.spacer} />
@@ -181,12 +180,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             <b>{current?.label ?? "Overview"}</b>
           </div>
           <div className={s.topActions}>
-            <Link href={`${hrefFor("")}#ask`} className={`${s.ask} chamfer`}>
+            <button type="button" onClick={() => setAsk(true)} className={`${s.ask} chamfer`} aria-haspopup="dialog">
               <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden>
                 <path d="M10 2.5 11.6 8.4 17.5 10l-5.9 1.6L10 17.5l-1.6-5.9L2.5 10l5.9-1.6L10 2.5Z" />
               </svg>
               <span>Ask Aumo</span>
-            </Link>
+            </button>
             <ConnectButton />
             <MenuButton open={sheet} onClick={() => setSheet((o) => !o)} className={s.menuBtn} />
           </div>
@@ -218,6 +217,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
         </footer>
       </div>
+
+      <AskAumoPanel open={ask} onClose={closeAsk} />
     </div>
   );
 }

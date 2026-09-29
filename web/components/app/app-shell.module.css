@@ -33,27 +33,9 @@
 .brand {
   display: inline-flex;
   align-items: center;
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   color: var(--foreground);
 }
-.net {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.22rem 0.55rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--muted-foreground);
-  font-size: 0.72rem;
-  white-space: nowrap;
-}
-.netDot {
-  width: 0.38rem;
-  height: 0.38rem;
-  border-radius: 999px;
-  background: var(--primary);
-}
-
 .group {
   display: flex;
   flex-direction: column;
@@ -235,6 +217,8 @@
   gap: 0.6rem;
 }
 .ask {
+  cursor: pointer;
+  border: 0;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;

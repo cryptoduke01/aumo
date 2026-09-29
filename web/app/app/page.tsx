@@ -20,7 +20,6 @@ import { Num } from "@/components/num";
 import { Donut, type Segment } from "@/components/charts";
 import { DitherArea } from "@/components/dither-area";
 import { Loader } from "@/components/loader";
-import { AskAumo } from "@/components/ask-aumo";
 import { VenueIcon } from "@/components/venue-icon";
 import { RiskAppetite } from "@/components/risk-appetite";
 import { StockStrip } from "@/components/stock-track";
@@ -277,10 +276,6 @@ export default function Dashboard() {
           <RiskAppetite />
         </div>
       ) : null}
-
-      <div id="ask" className="scroll-mt-24">
-        <AskAumo />
-      </div>
 
       {/* The agent's operational transparency — its latest move, risk scoring, and decision history —
           is the public view. The private view stays focused on the user's own money. */}
