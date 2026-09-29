@@ -445,8 +445,10 @@ async function askAgent(cfg: Config, question: string, address?: string): Promis
       model: ASK_MODEL ?? cfg.model, // /ask can run a cheaper model than the money-path reasoning
       user: `My current state:\n\n${JSON.stringify(grounding, null, 2)}\n\nQuestion: ${question}`,
     });
-  } catch {
-    // A model error (rate limit, timeout, provider hiccup) should read as "busy", not a raw error.
+  } catch (e) {
+    // A model error (rate limit, timeout, provider hiccup) should read as "busy", not a raw error —
+    // but log the provider's reason so a persistent failure is diagnosable.
+    console.error(`[ask] model call failed: ${e instanceof Error ? e.message : String(e)}`);
     return "I'm fielding a lot of questions right now. Give me a minute and ask again, or explore the dashboard in the meantime.";
   }
   const answer = raw.trim();
