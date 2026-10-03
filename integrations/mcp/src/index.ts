@@ -6,6 +6,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { createAgentApi } from "./agentApi.js";
 import { createChainReader } from "./chain.js";
 import { loadSettings } from "./config.js";
+import { createRateLimiter, type RateLimiter } from "./rateLimit.js";
 import { createAumoServer, SERVER_NAME, SERVER_VERSION, type Deps } from "./server.js";
 
 // Entry point. stdio by default (what Claude Desktop, Claude Code and most MCP clients spawn).
@@ -22,6 +23,9 @@ Usage:
 Environment:
   AGENT_URL   Aumo agent API (default https://aumo-production.up.railway.app)
   RPC_URL     X Layer RPC (default https://rpc.xlayer.tech)
+  PORT        HTTP port when --port is not given (what Railway and similar hosts set)
+  RATE_LIMIT_PER_MINUTE   HTTP requests per client per minute (default 120)
+  TRUST_PROXY=1           take the client from X-Forwarded-For (only behind a proxy you trust)
 
 No keys are read or needed. The server never signs or broadcasts transactions.`;
 
@@ -52,7 +56,16 @@ function readJson(req: IncomingMessage, cap = 1_000_000): Promise<unknown> {
   });
 }
 
-function startHttp(deps: Deps, host: string, port: number) {
+function clientOf(req: IncomingMessage, trustProxy: boolean): string {
+  if (trustProxy) {
+    const fwd = req.headers["x-forwarded-for"];
+    const first = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  return req.socket.remoteAddress ?? "unknown";
+}
+
+function startHttp(deps: Deps, host: string, port: number, limiter: RateLimiter, trustProxy: boolean) {
   const http = createHttpServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     if (url.pathname === "/health") {
@@ -70,6 +83,13 @@ function startHttp(deps: Deps, host: string, port: number) {
       res.statusCode = 405;
       res.setHeader("allow", "POST");
       res.end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message: "Method not allowed." }, id: null }));
+      return;
+    }
+    if (!limiter.take(clientOf(req, trustProxy))) {
+      res.statusCode = 429;
+      res.setHeader("retry-after", "60");
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message: "Too many requests. Try again in a minute." }, id: null }));
       return;
     }
     // A fresh server and transport per request keeps every call independent (stateless).
@@ -100,7 +120,7 @@ async function main() {
   const { values } = parseArgs({
     options: {
       http: { type: "boolean", default: false },
-      port: { type: "string", default: "3333" },
+      port: { type: "string", default: process.env.PORT || "3333" },
       host: { type: "string", default: "127.0.0.1" },
       help: { type: "boolean", short: "h", default: false },
     },
@@ -116,7 +136,9 @@ async function main() {
   if (values.http) {
     const port = Number(values.port);
     if (!Number.isInteger(port) || port <= 0 || port > 65535) throw new Error(`Invalid --port ${values.port}`);
-    startHttp(deps, values.host, port);
+    const perMinute = Number(process.env.RATE_LIMIT_PER_MINUTE ?? 120);
+    if (!Number.isInteger(perMinute) || perMinute <= 0) throw new Error(`Invalid RATE_LIMIT_PER_MINUTE ${process.env.RATE_LIMIT_PER_MINUTE}`);
+    startHttp(deps, values.host, port, createRateLimiter(perMinute), process.env.TRUST_PROXY === "1");
     return;
   }
 
