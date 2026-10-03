@@ -14,7 +14,7 @@ const RECEIPTS_DIR = mkdtempSync(join(tmpdir(), "aumo-x402-"));
 process.env.RECEIPTS_DIR = RECEIPTS_DIR;
 process.env.PORT = "0";
 const { startServer, buildSignals } = await import("../src/server.js");
-const { loadX402, toBaseUnits, baseAssetFrom } = await import("../src/x402.js");
+const { loadX402, toBaseUnits, baseAssetFrom, okxHeaders, verifyPayment, settlePayment, OKX_FACILITATOR_URL } = await import("../src/x402.js");
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const feed = (name: string) =>
@@ -115,7 +115,7 @@ function cfgFor(venues: VenueFeedFile, over: Partial<Config> = {}): Config {
   };
 }
 
-const X402_KEYS = ["X402_PAY_TO", "X402_FACILITATOR_URL", "X402_PRICE", "X402_PUBLIC_URL"];
+const X402_KEYS = ["X402_PAY_TO", "X402_FACILITATOR_URL", "X402_PRICE", "X402_PUBLIC_URL", "OKX_API_KEY", "OKX_SECRET_KEY", "OKX_PASSPHRASE"];
 
 /** Start the real server with the given x402 env; returns its base URL and a closer. */
 async function serve(env: Record<string, string>, cfg: Config = cfgFor(MAINNET)) {
@@ -194,7 +194,7 @@ test("paid routes answer 404 with a clear message when X402 env is unset; free r
       assert.equal(r.status, 404);
       const body = await r.json();
       assert.match(body.error, /not enabled/);
-      assert.match(body.reason, /X402_PAY_TO and X402_FACILITATOR_URL/);
+      assert.match(body.reason, /X402_PAY_TO must be set/);
       assert.equal(r.headers.get("payment-required"), null);
     }
     const h = await fetch(`${base}/health`);
@@ -473,5 +473,92 @@ test("/v1/ask answers 503, not 402, when the reasoning layer is offline", async 
     assert.equal(fac.calls.length, 0);
   } finally {
     await close();
+  }
+});
+
+// --- OKX hosted facilitator ------------------------------------------------------------------------
+
+const OKX_ENV = { OKX_API_KEY: "test-key", OKX_SECRET_KEY: "test-secret", OKX_PASSPHRASE: "test-pass" };
+
+test("x402 config: OKX credentials alone select OKX's facilitator; partial or missing credentials keep it off", () => {
+  const on = loadX402(cfgFor(MAINNET), { X402_PAY_TO: PAY_TO, ...OKX_ENV });
+  assert.equal(on.enabled, true);
+  if (!on.enabled) return;
+  assert.equal(on.config.facilitatorUrl, OKX_FACILITATOR_URL);
+  assert.deepEqual(on.config.facilitatorAuth, { apiKey: "test-key", secretKey: "test-secret", passphrase: "test-pass" });
+
+  // OKX URL named explicitly but no credentials: off, since every OKX call must be signed.
+  assert.equal(loadX402(cfgFor(MAINNET), { X402_PAY_TO: PAY_TO, X402_FACILITATOR_URL: OKX_FACILITATOR_URL }).enabled, false);
+  // Two of three credentials: off, not silently unsigned.
+  assert.equal(loadX402(cfgFor(MAINNET), { X402_PAY_TO: PAY_TO, OKX_API_KEY: "k", OKX_SECRET_KEY: "s" }).enabled, false);
+  // Credentials never leak to a non-OKX facilitator.
+  const other = loadX402(cfgFor(MAINNET), { ...PAID_ENV, ...OKX_ENV });
+  assert.equal(other.enabled, true);
+  if (other.enabled) assert.equal(other.config.facilitatorAuth, undefined);
+});
+
+test("OKX request signing matches base64(HMAC-SHA256(secret, timestamp + METHOD + path + body))", () => {
+  const h = okxHeaders(
+    { apiKey: "k", secretKey: "s3cret", passphrase: "p" },
+    "POST",
+    "/api/v6/pay/x402/verify",
+    '{"a":1}',
+    new Date("2026-10-04T00:00:00.000Z"),
+  );
+  // Vector computed independently with Python's hmac module.
+  assert.equal(h["OK-ACCESS-SIGN"], "gjmtCaDR9X5aLLeOMld4w8xKL9dedYiX6Ro73/pVqSc=");
+  assert.equal(h["OK-ACCESS-TIMESTAMP"], "2026-10-04T00:00:00.000Z");
+  assert.equal(h["OK-ACCESS-KEY"], "k");
+  assert.equal(h["OK-ACCESS-PASSPHRASE"], "p");
+});
+
+test("OKX facilitator: signed verify and settle, { code, data } unwrapped, settle waits for the chain, API errors are unavailability", async () => {
+  const auth = { apiKey: "test-key", secretKey: "test-secret", passphrase: "test-pass" };
+  const seen: { path: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; raw: string }[] = [];
+  let reply: (path: string) => unknown = (path) =>
+    path.endsWith("/verify")
+      ? { code: "0", msg: "", data: { isValid: true, payer: PAYER } }
+      : { code: "0", msg: "", data: { success: true, transaction: "0xfeed", network: "eip155:196", payer: PAYER, status: "success" } };
+  const okx = createServer(async (req, res) => {
+    const chunks: Buffer[] = [];
+    for await (const c of req) chunks.push(c as Buffer);
+    const raw = Buffer.concat(chunks).toString("utf8");
+    seen.push({ path: req.url ?? "", headers: req.headers, body: JSON.parse(raw), raw });
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify(reply(req.url ?? "")));
+  });
+  okx.listen(0, "127.0.0.1");
+  await once(okx, "listening");
+  const url = `http://127.0.0.1:${(okx.address() as AddressInfo).port}/api/v6/pay/x402`;
+  try {
+    const base = loadX402(cfgFor(MAINNET), PAID_ENV);
+    assert.equal(base.enabled, true);
+    if (!base.enabled) return;
+    const x = { ...base.config, facilitatorUrl: url, facilitatorAuth: auth };
+    const req = { scheme: "exact", network: "eip155:196", amount: "10000", asset: USDT0, payTo: PAY_TO, maxTimeoutSeconds: 120, extra: { name: "USD₮0", version: "1" } };
+    const payment = paymentFor(req) as never;
+
+    const v = await verifyPayment(x, payment, req as never);
+    assert.deepEqual(v, { isValid: true, payer: PAYER });
+    const s = await settlePayment(x, payment, req as never);
+    assert.equal(s.success, true);
+    assert.equal(s.transaction, "0xfeed");
+
+    assert.deepEqual(seen.map((c) => c.path), ["/api/v6/pay/x402/verify", "/api/v6/pay/x402/settle"]);
+    for (const c of seen) {
+      // Re-derive the signature from what actually arrived on the wire.
+      const expect = okxHeaders(auth, "POST", c.path, c.raw, new Date(String(c.headers["ok-access-timestamp"])));
+      assert.equal(c.headers["ok-access-sign"], expect["OK-ACCESS-SIGN"]);
+      assert.equal(c.headers["ok-access-key"], "test-key");
+      assert.equal(c.headers["ok-access-passphrase"], "test-pass");
+    }
+    assert.equal(seen[0]!.body.syncSettle, undefined);
+    assert.equal(seen[1]!.body.syncSettle, true);
+
+    // A non-zero OKX code (bad key, rate limit) is not a verdict on the payment.
+    reply = () => ({ code: "50113", msg: "Invalid Sign", data: [] });
+    await assert.rejects(verifyPayment(x, payment, req as never), /50113/);
+  } finally {
+    okx.close();
   }
 });

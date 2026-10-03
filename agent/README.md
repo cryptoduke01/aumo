@@ -32,7 +32,7 @@ The LLM layer is optional. Without `ANTHROPIC_API_KEY` the agent runs on the det
 
 Other agents can pay per call, in USDT0 on X Layer, for Aumo's read of the market. The server speaks x402 v2, the protocol the OKX Agent Payments Protocol client (`onchainos payment quote` / `pay`) uses, with the `exact` scheme: the buyer signs an EIP-3009 `transferWithAuthorization`, so there is no approval step and no gas for the buyer.
 
-The paid routes are off by default. With `X402_PAY_TO` or `X402_FACILITATOR_URL` unset they answer 404 and nothing else about the server changes. The free routes (`/health`, `/ask`, `/receipts`, `/receipts.csv`, `/attribution`, status) behave exactly as before.
+The paid routes are off by default. Without `X402_PAY_TO` and a facilitator they answer 404 and nothing else about the server changes. The free routes (`/health`, `/ask`, `/receipts`, `/receipts.csv`, `/attribution`, status) behave exactly as before.
 
 ### Routes
 
@@ -59,14 +59,15 @@ Settlement only happens after the work succeeded, and the paid body is only sent
 | Variable | Required | Meaning |
 | --- | --- | --- |
 | `X402_PAY_TO` | yes | Address that receives the payments. |
-| `X402_FACILITATOR_URL` | yes | Base URL of an x402 facilitator that supports `exact` on `eip155:196` for USDT0. The server calls `<url>/verify` and `<url>/settle`. |
+| `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE` | one facilitator | OKX Web3 API credentials (from the OKX Web3 developer portal). With all three set, the server uses OKX's hosted x402 facilitator at `https://web3.okx.com/api/v6/pay/x402`, signs every call (`OK-ACCESS-*` headers, HMAC-SHA256), and asks it to settle synchronously so the receipt carries the transaction hash. OKX pays the settlement gas. |
+| `X402_FACILITATOR_URL` | one facilitator | Base URL of any other x402 facilitator that supports `exact` on `eip155:196` for USDT0. The server calls `<url>/verify` and `<url>/settle`. OKX credentials are never sent to a non-OKX host. |
 | `X402_PRICE` | no | Price per call in USDT0, default `0.01` (sent as `10000` base units, 6 decimals). |
 | `X402_PUBLIC_URL` | no | Public base URL used for `resource.url` in the 402, for example `https://agent.example.com`. Without it the URL comes from the request's Host and X-Forwarded-Proto headers. |
 | `X402_ASSET_EIP712_NAME`, `X402_ASSET_EIP712_VERSION` | no | EIP-712 domain of the asset. Defaults are `USD₮0` and `1`, checked on chain for X Layer USDT0 (its domain separator matches version `1`, not the `2` many clients assume). |
 
 The asset is not configured separately. It is the base asset recorded in the venue config (the `underlying` of the lending venues), which on mainnet is USDT0 `0x779Ded0c9e1022225f8E0630b35a9b54bE713736`. The testnet venue set has no base asset, so the paid routes stay off there. The network is `eip155:<CHAIN_ID>`.
 
-There is no default facilitator. Point `X402_FACILITATOR_URL` at one you have confirmed settles USDT0 on X Layer mainnet before turning this on.
+Set exactly one facilitator. A partial set of OKX credentials, or the OKX URL without them, keeps the paid routes off rather than sending unsigned calls. OKX answers in a `{ code, msg, data }` envelope; a non-zero code (bad key, rate limit) is treated as the facilitator being unavailable (HTTP 502, nobody charged), not as a rejected payment.
 
 ### Example
 

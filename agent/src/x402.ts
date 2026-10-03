@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { isAddress } from "viem";
 import type { Config } from "./config.js";
@@ -13,7 +14,8 @@ import type { Address, VenueMeta } from "./types.js";
  *    v1 header name `X-PAYMENT` is accepted as a carrier too, but the payload itself must be v2.
  *  - On success: HTTP 200 plus `PAYMENT-RESPONSE` = base64(JSON settle response from the facilitator).
  *
- * Verification and settlement go through a standard x402 facilitator (POST /verify, POST /settle). We
+ * Verification and settlement go through an x402 facilitator (POST /verify, POST /settle): OKX's hosted
+ * one on X Layer (signed with an OKX Web3 API key, OKX pays the gas) or any standard facilitator URL. We
  * settle only AFTER the paid work has succeeded, and only send the paid body once settlement succeeds,
  * so a caller is never charged for a failed call and never gets the content without paying.
  */
@@ -35,6 +37,9 @@ export const DEFAULT_ASSET_EIP712_VERSION = "1";
 // How long the buyer's signed authorization stays valid. Covers a model call plus settlement.
 export const MAX_TIMEOUT_SECONDS = 120;
 
+// OKX's hosted x402 facilitator (Agent Payments Protocol). Requests are signed with an OKX Web3 API key.
+export const OKX_FACILITATOR_URL = "https://web3.okx.com/api/v6/pay/x402";
+
 const VERIFY_TIMEOUT_MS = 15_000;
 const SETTLE_TIMEOUT_MS = 60_000;
 
@@ -47,8 +52,15 @@ export interface X402Config {
   price: string; // human, e.g. "0.01"
   amount: string; // base units, e.g. "10000"
   facilitatorUrl: string; // no trailing slash
+  facilitatorAuth?: OkxAuth; // set when the facilitator is OKX's: every call is HMAC-signed
   publicUrl?: string; // optional public base URL used in `resource.url`; no trailing slash
   maxTimeoutSeconds: number;
+}
+
+export interface OkxAuth {
+  apiKey: string;
+  secretKey: string;
+  passphrase: string;
 }
 
 export type X402Setup = { enabled: true; config: X402Config } | { enabled: false; reason: string };
@@ -89,9 +101,17 @@ const trimSlash = (s: string) => s.replace(/\/+$/, "");
  */
 export function loadX402(cfg: Config, env: NodeJS.ProcessEnv = process.env): X402Setup {
   const payTo = env.X402_PAY_TO?.trim();
-  const facilitator = env.X402_FACILITATOR_URL?.trim();
+  const okx = okxAuthFrom(env);
+  if (okx === "partial") {
+    return { enabled: false, reason: "set all three of OKX_API_KEY, OKX_SECRET_KEY and OKX_PASSPHRASE, or none" };
+  }
+  // With OKX credentials and no explicit URL, use OKX's hosted facilitator.
+  const facilitator = env.X402_FACILITATOR_URL?.trim() || (okx ? OKX_FACILITATOR_URL : undefined);
   if (!payTo || !facilitator) {
-    return { enabled: false, reason: "X402_PAY_TO and X402_FACILITATOR_URL must both be set" };
+    return {
+      enabled: false,
+      reason: "X402_PAY_TO must be set, plus OKX_API_KEY/OKX_SECRET_KEY/OKX_PASSPHRASE or X402_FACILITATOR_URL",
+    };
   }
   if (!isAddress(payTo) || /^0x0{40}$/i.test(payTo)) {
     return { enabled: false, reason: "X402_PAY_TO is not a valid non-zero address" };
@@ -103,6 +123,10 @@ export function loadX402(cfg: Config, env: NodeJS.ProcessEnv = process.env): X40
     facilitatorUrl = trimSlash(u.toString());
   } catch {
     return { enabled: false, reason: "X402_FACILITATOR_URL is not a valid http(s) URL" };
+  }
+  const isOkx = new URL(facilitatorUrl).hostname === new URL(OKX_FACILITATOR_URL).hostname;
+  if (isOkx && !okx) {
+    return { enabled: false, reason: "the OKX facilitator needs OKX_API_KEY, OKX_SECRET_KEY and OKX_PASSPHRASE" };
   }
   const price = env.X402_PRICE?.trim() || DEFAULT_PRICE;
   const amount = toBaseUnits(price, ASSET_DECIMALS);
@@ -125,9 +149,36 @@ export function loadX402(cfg: Config, env: NodeJS.ProcessEnv = process.env): X40
       price,
       amount,
       facilitatorUrl,
+      facilitatorAuth: isOkx && okx ? okx : undefined,
       publicUrl: publicUrl ? trimSlash(publicUrl) : undefined,
       maxTimeoutSeconds: MAX_TIMEOUT_SECONDS,
     },
+  };
+}
+
+/** OKX Web3 API credentials from env: all three, none (undefined), or a partial set (an error). */
+function okxAuthFrom(env: NodeJS.ProcessEnv): OkxAuth | undefined | "partial" {
+  const apiKey = env.OKX_API_KEY?.trim();
+  const secretKey = env.OKX_SECRET_KEY?.trim();
+  const passphrase = env.OKX_PASSPHRASE?.trim();
+  const set = [apiKey, secretKey, passphrase].filter(Boolean).length;
+  if (set === 0) return undefined;
+  if (set < 3) return "partial";
+  return { apiKey: apiKey!, secretKey: secretKey!, passphrase: passphrase! };
+}
+
+/**
+ * OKX API request signing: base64(HMAC-SHA256(secret, timestamp + METHOD + requestPath + body)), with an
+ * ISO-8601 millisecond timestamp. Same scheme as OKX's own x402 SDK (OKXFacilitatorClient).
+ */
+export function okxHeaders(auth: OkxAuth, method: "GET" | "POST", requestPath: string, body = "", now = new Date()) {
+  const timestamp = now.toISOString();
+  const sign = createHmac("sha256", auth.secretKey).update(timestamp + method + requestPath + body).digest("base64");
+  return {
+    "OK-ACCESS-KEY": auth.apiKey,
+    "OK-ACCESS-SIGN": sign,
+    "OK-ACCESS-TIMESTAMP": timestamp,
+    "OK-ACCESS-PASSPHRASE": auth.passphrase,
   };
 }
 
@@ -291,12 +342,19 @@ async function postFacilitator(
   payload: PaymentPayloadV2,
   requirements: PaymentRequirements,
 ): Promise<Record<string, unknown>> {
+  const url = new URL(`${x.facilitatorUrl}/${op}`);
+  const request: Record<string, unknown> = { x402Version: X402_VERSION, paymentPayload: payload, paymentRequirements: requirements };
+  // OKX settles asynchronously by default; ask it to wait for the chain so the receipt carries the tx hash.
+  if (x.facilitatorAuth && op === "settle") request.syncSettle = true;
+  const json = JSON.stringify(request);
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (x.facilitatorAuth) Object.assign(headers, okxHeaders(x.facilitatorAuth, "POST", url.pathname + url.search, json));
   let res: Response;
   try {
-    res = await fetch(`${x.facilitatorUrl}/${op}`, {
+    res = await fetch(url, {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ x402Version: X402_VERSION, paymentPayload: payload, paymentRequirements: requirements }),
+      headers,
+      body: json,
       signal: AbortSignal.timeout(op === "verify" ? VERIFY_TIMEOUT_MS : SETTLE_TIMEOUT_MS),
     });
   } catch (e) {
@@ -310,6 +368,16 @@ async function postFacilitator(
     throw new FacilitatorUnavailable(`facilitator ${op} returned non-JSON (HTTP ${res.status})`);
   }
   if (!isObj(body)) throw new FacilitatorUnavailable(`facilitator ${op} returned an unexpected body (HTTP ${res.status})`);
+  // OKX wraps results as { code, msg, data }. A non-zero code is an API-level failure (auth, rate limit),
+  // not a verdict on the payment, so it counts as the facilitator being unavailable.
+  if ("code" in body && !("isValid" in body) && !("success" in body)) {
+    if (String(body.code) !== "0") {
+      throw new FacilitatorUnavailable(`facilitator ${op} error ${String(body.code)}: ${String(body.msg ?? "")}`);
+    }
+    const data = Array.isArray(body.data) ? body.data[0] : body.data;
+    if (!isObj(data)) throw new FacilitatorUnavailable(`facilitator ${op} returned no data`);
+    return data;
+  }
   return body;
 }
 
