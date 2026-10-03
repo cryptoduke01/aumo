@@ -70,3 +70,17 @@ test("baseDeny (e.g. stress-fragile) is preserved through synthesis", () => {
   const out = synthesizePanel(s, b, [v({ role: "macro", regime: "calm" })], new Set([VENUE_B.toLowerCase()]), 0.6);
   assert.ok(out.panel?.vetoes.includes(VENUE_B.toLowerCase()), "stress deny carried into the panel result");
 });
+
+test("specialist replies are normalised instead of turning into abstentions", async () => {
+  const { parseVerdict } = await import("../src/brain/panel.js");
+  const a = parseVerdict('Sure. {"concern": 1.4, "vetoes": "0xabc", "regime": "Calm", "note": null}');
+  assert.equal(a.concern, 1, "concern is clamped to 1");
+  assert.deepEqual(a.vetoes, ["0xabc"], "a single veto string becomes a list");
+  assert.equal(a.regime, "calm", "regime is case-normalised");
+  assert.equal(a.note, "");
+  const b = parseVerdict('{"concern": "0.3", "regime": "relaxed", "vetoes": [1, "0xdef"]}');
+  assert.equal(b.concern, 0.3);
+  assert.equal(b.regime, undefined, "an unknown regime is dropped, never loosened");
+  assert.deepEqual(b.vetoes, ["0xdef"], "non-string vetoes are ignored");
+  assert.throws(() => parseVerdict("no json here"), "a reply with no JSON still fails");
+});

@@ -19,13 +19,30 @@ import { callModel, llmConfigured } from "./llm.js";
 
 const REGIME_RANK: Record<Regime, number> = { defensive: 0, cautious: 1, calm: 2 };
 
+// Lenient on purpose. A specialist that writes "Calm", a concern of 1.2, or a single veto as a string
+// still said something useful; rejecting the whole reply turned those into abstentions. Values are
+// normalised here, and the merge below stays tighten-only whatever the model returns.
 const Verdict = z.object({
-  concern: z.number().min(0).max(1).default(0),
-  vetoes: z.array(z.string()).default([]),
-  regime: z.enum(["calm", "cautious", "defensive"]).optional(),
-  note: z.string().default(""),
+  concern: z.preprocess(
+    (v) => (typeof v === "string" ? Number(v) : v),
+    z.number().catch(0).transform((n) => (Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0)),
+  ),
+  vetoes: z.preprocess(
+    (v) => (v == null ? [] : Array.isArray(v) ? v : [v]),
+    z.array(z.unknown()).transform((a) => a.filter((x): x is string => typeof x === "string")),
+  ),
+  regime: z.preprocess(
+    (v) => (typeof v === "string" ? v.trim().toLowerCase() : v),
+    z.enum(["calm", "cautious", "defensive"]).optional().catch(undefined),
+  ),
+  note: z.preprocess((v) => (v == null ? "" : String(v)), z.string()),
 });
 type VerdictT = z.infer<typeof Verdict>;
+
+/** Parse one specialist reply into a verdict; throws only when there is no usable JSON at all. */
+export function parseVerdict(text: string): VerdictT {
+  return Verdict.parse(JSON.parse(extractJson(text)));
+}
 
 export interface RoleVerdict extends VerdictT {
   role: string;
@@ -111,17 +128,25 @@ function macroView(snap: MarketSnapshot, base: Plan) {
 async function consult(cfg: Config, role: string, view: unknown): Promise<RoleVerdict> {
   const abstain: RoleVerdict = { role, ok: false, concern: 0, vetoes: [], note: "abstained" };
   if (!llmConfigured(cfg)) return abstain;
-  try {
-    const text = await callModel(cfg, {
-      system: PANEL_SYSTEM[role as keyof typeof PANEL_SYSTEM],
-      maxTokens: 400,
-      user: `${JSON.stringify(view, null, 2)}\n\nRespond with the JSON object only.`,
-    });
-    const parsed = Verdict.parse(JSON.parse(extractJson(text)));
-    return { role, ok: true, ...parsed };
-  } catch {
-    return abstain; // an abstaining specialist never loosens the plan
+  const user = `${JSON.stringify(view, null, 2)}\n\nRespond with the JSON object only.`;
+  // The panel runs on a reasoning model, and its hidden reasoning spends the same token budget as the
+  // reply. At 400 tokens the JSON often came back truncated or empty, which read as an abstention, so
+  // ask for low reasoning effort, give the reply room, and retry once with more room if it still
+  // came back without parseable JSON.
+  for (const maxTokens of [900, 1600]) {
+    try {
+      const text = await callModel(cfg, {
+        system: PANEL_SYSTEM[role as keyof typeof PANEL_SYSTEM],
+        maxTokens,
+        reasoningEffort: "low",
+        user,
+      });
+      return { role, ok: true, ...parseVerdict(text) };
+    } catch (err) {
+      console.error(`[panel] ${role} reply unusable (max ${maxTokens} tokens): ${err instanceof Error ? err.message : String(err)}`.slice(0, 400));
+    }
   }
+  return abstain; // an abstaining specialist never loosens the plan
 }
 
 /**
