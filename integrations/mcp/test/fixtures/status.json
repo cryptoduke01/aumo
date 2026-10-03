@@ -1,0 +1,36 @@
+{
+  "agent": {
+    "name": "Aumo",
+    "codename": "aumo-agent",
+    "mandate": "Put idle stablecoins to work in tokenized real-world-asset yield, within on-chain guardrails, and prove every move.",
+    "version": "0.1.0",
+    "build": "unversioned",
+    "chainId": 196,
+    "chainName": "X Layer",
+    "vault": "0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F",
+    "agentAddress": "0x2647904345d00Ef30d831935b913E5df1D58af67",
+    "hasReasoningLayer": true,
+    "signer": "hotkey",
+    "policy": {
+      "appetite": "moderate",
+      "maxConcentration": 0.6,
+      "execute": true
+    }
+  },
+  "decisions": {
+    "total": 5109,
+    "rebalanced": 185,
+    "held": 4924
+  },
+  "latest": {
+    "takenAt": "2026-10-03T01:35:52.329Z",
+    "policyFingerprint": "0x422a5cdd439301a55abb768a6ba4f51c2225d98c8819e7b832625d4752923f55",
+    "source": "risk-engine+panel",
+    "regime": "cautious",
+    "summary": "Hold. No move improves the risk-adjusted position within a cautious regime and moderate appetite. Liquidity: All venues have worstCaseExitSharePct far below 25%, so no exit-size risk. Macro: High utilization on Aave v3 suggests holding additional idle to mitigate potential liquidity risk.",
+    "idle": "0",
+    "deployed": "10689",
+    "symbol": "USD₮0",
+    "moves": []
+  }
+}

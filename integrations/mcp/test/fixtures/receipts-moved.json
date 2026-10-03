@@ -1,0 +1,1842 @@
+[
+  {
+    "takenAt": "2026-09-25T19:53:09.655Z",
+    "agent": {
+      "name": "Aumo",
+      "codename": "aumo-agent",
+      "mandate": "Put idle stablecoins to work in tokenized real-world-asset yield, within on-chain guardrails, and prove every move.",
+      "version": "0.1.0",
+      "build": "unversioned",
+      "chainId": 196,
+      "chainName": "X Layer",
+      "vault": "0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F",
+      "agentAddress": "0x2647904345d00Ef30d831935b913E5df1D58af67",
+      "hasReasoningLayer": true,
+      "signer": "hotkey",
+      "policy": {
+        "appetite": "moderate",
+        "maxConcentration": 0.6,
+        "execute": true
+      }
+    },
+    "policyFingerprint": "0x422a5cdd439301a55abb768a6ba4f51c2225d98c8819e7b832625d4752923f55",
+    "vault": "0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F",
+    "snapshot": {
+      "vault": {
+        "address": "0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F",
+        "asset": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+        "owner": "0x9471A4ea01f51d01749D9E9696b973faf27a96AE",
+        "agent": "0x2647904345d00Ef30d831935b913E5df1D58af67",
+        "decimals": 6,
+        "symbol": "USD₮0",
+        "idle": "636035",
+        "totalDeployed": "3369526",
+        "totalAssets": "4035609",
+        "totalSupply": "97469165",
+        "maxMoveSize": "100000000",
+        "perVenueCap": "500000000",
+        "maxTotalDeployed": "1000000000",
+        "paused": false,
+        "maxEpochLoss": "10000000",
+        "lossEpochLength": "86400",
+        "maxEpochDeploy": "2000000000",
+        "deployEpochLength": "86400"
+      },
+      "venues": [
+        {
+          "address": "0x9c7Bb0972D0480335Ba1A9041D57d883d96BED1A",
+          "name": "Aave v3 (USDT0)",
+          "kind": "lending",
+          "underlying": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+          "apyBps": 341,
+          "tvlUsd": 77037296.290946,
+          "liquidityUsd": 9996641.137783,
+          "utilization": 0.8705080304079101,
+          "protocolRisk": 0.08,
+          "pegDeviationBps": 0,
+          "feed": {
+            "source": "aave",
+            "pool": "0xE3F3Caefdd7180F884c01E57f65Df979Af84f116",
+            "underlying": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736"
+          },
+          "pegVerified": false,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "0",
+          "liveBalance": "0"
+        },
+        {
+          "address": "0x468c8106deDe0853E8746D488C999c2940725B3d",
+          "name": "USDG (RWA-backed)",
+          "kind": "rwa",
+          "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+          "apyBps": 196,
+          "tvlUsd": 1601447.758915,
+          "liquidityUsd": 604244.681633,
+          "utilization": 0.622952943157449,
+          "protocolRisk": 0.14,
+          "pegDeviationBps": 2,
+          "feed": {
+            "source": "aave",
+            "pool": "0xE3F3Caefdd7180F884c01E57f65Df979Af84f116",
+            "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8"
+          },
+          "pegSource": {
+            "kind": "univ3Twap",
+            "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA",
+            "yieldToken": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+            "twapWindowSec": 300
+          },
+          "pegVerified": true,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "0",
+          "liveBalance": "0"
+        },
+        {
+          "address": "0x127644F456Fc63C7226E7f4F2Ce4F169A1165C65",
+          "name": "Pendle PT-USDG (fixed, Oct 2026)",
+          "kind": "rwa",
+          "term": true,
+          "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+          "apyBps": 322,
+          "tvlUsd": 4791885.659197411,
+          "liquidityUsd": 4250658.047769,
+          "utilization": 0,
+          "protocolRisk": 0.16,
+          "pegDeviationBps": 2,
+          "feed": {
+            "source": "pendle",
+            "oracle": "0x5542be50420E88dd7D5B4a3D488FA6ED82F6DAc2",
+            "market": "0xcFB506cb34DD340e80d3dF8764182a5187636032",
+            "sy": "0x1F336F899f77B084133bc14a81170837ED618D1b",
+            "pt": "0x9a09a9E491DB3dd8Ada5B1B889991AC9Ad5fd362",
+            "twapWindowSec": 900
+          },
+          "pegSource": {
+            "kind": "univ3Twap",
+            "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA",
+            "yieldToken": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+            "twapWindowSec": 300
+          },
+          "note": "Pendle PT-USDG market 0xcFB506cb34DD340e80d3dF8764182a5187636032 (Router V4, PT oracle 0x5542be50420E88dd7D5B4a3D488FA6ED82F6DAc2), SY 0x1F336F899f77B084133bc14a81170837ED618D1b, PT 0x9a09a9E491DB3dd8Ada5B1B889991AC9Ad5fd362. Fixed yield to maturity 2026-10-29. APY, TVL, and exit liquidity are now read live on-chain each cycle via feed.source=pendle (implied APY from the PT oracle, reserves from the market); the static values here are only a fallback if that read fails. Peg to USDG measured live from the USDT0/USDG v3 pool (pegSource); pegVerified is EARNED from a TWAP each cycle, never hardcoded.",
+          "maturityTs": 1793232000,
+          "pegVerified": true,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "1001116",
+          "liveBalance": "996011"
+        },
+        {
+          "address": "0x483aC413349951b34bFC9a8f0311A70F35e80F38",
+          "name": "USDG/USDT0 LP (Uniswap v3)",
+          "kind": "rwa",
+          "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+          "apyBps": 0,
+          "tvlUsd": 6999142.183791,
+          "liquidityUsd": 6999142.183791,
+          "utilization": 0,
+          "protocolRisk": 0.1,
+          "pegDeviationBps": 2,
+          "feed": {
+            "source": "univ3lp",
+            "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA"
+          },
+          "pegSource": {
+            "kind": "univ3Twap",
+            "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA",
+            "yieldToken": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+            "twapWindowSec": 300
+          },
+          "note": "Full-range USDG/USDT0 liquidity on Uniswap v3 (0.01% pool 0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA, fee 100, tickSpacing 1). Adapter 0x483aC413349951b34bFC9a8f0311A70F35e80F38 deployed + allowlisted on mainnet 2026-08-22, 3-pass Kensho-audited, fork-verified. The position is valued LIVE on-chain each cycle (adapter.balanceOf via the pool's peg-band-clamped sqrt price plus fees); peg to USDG is measured live (pegSource), pegVerified EARNED from a TWAP. APY is now read LIVE via feed.source=univ3lp (annualized growth of the pool's feeGrowthGlobal between hourly readings); the apyBps here is only a cold-start fallback until a full window accrues. TVL/liquidity are the pool's real reserves. Base trading fees on a pegged pair are thin, so until X Layer's RWA liquidity incentives land (eligible-asset list drops 2026-08-24) the agent correctly holds this near zero — deliberate, not idle; PENDING 2026-08-24 incentives to make it competitive.",
+          "pegVerified": true,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "0",
+          "liveBalance": "0"
+        },
+        {
+          "address": "0xd14f133D2ad6a7CF32cdaB5166eC95d58048fC10",
+          "name": "Spark Savings USDT (spUSDT)",
+          "kind": "lending",
+          "underlying": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+          "apyBps": 344,
+          "tvlUsd": 588258.856564,
+          "liquidityUsd": 588258.856564,
+          "utilization": 0,
+          "protocolRisk": 0.12,
+          "pegDeviationBps": 0,
+          "feed": {
+            "source": "erc4626",
+            "vault": "0xc358c90D32375721Cb3924320Fdc2F8B694347Ca"
+          },
+          "note": "Spark Savings USDT (spUSDT) ERC-4626 vault 0xc358c90D32375721Cb3924320Fdc2F8B694347Ca on X Layer (asset()==USDT0, so no swap leg). Sky/Spark savings via OKX Onchain Earn, flexible redemption, ~3.2% quoted APR. Aumo adapter (Erc4626Adapter) 0xd14f133D2ad6a7CF32cdaB5166eC95d58048fC10 deployed + fork-proven 2026-09-11. underlying tagged USDT0 so the correlated-underlying cap groups it with Aave (balances the USDG side). kind lending = base-asset-denominated yield position like aUSDT0, no separate peg. apyBps 320 is a documented fallback from the Spark/OKX quote; a live erc4626 growth feed (convertToAssets delta) is the follow-up to score it on real yield. GATED until the pool owner runs setVenueAllowed(adapter, true); venueAllowed was false at time of writing, so the agent will list but not allocate until then.",
+          "pegVerified": false,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "2368410",
+          "liveBalance": "2403563"
+        }
+      ],
+      "takenAt": "2026-09-25T19:53:09.655Z",
+      "history": {
+        "0x9c7bb0972d0480335ba1a9041d57d883d96bed1a": [
+          {
+            "utilization": 0.8572997217864181,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11216904.509512,
+            "tvlUsd": 78458321.99319,
+            "apyBps": 331
+          },
+          {
+            "utilization": 0.857300320916469,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11216872.118175,
+            "tvlUsd": 78458366.372473,
+            "apyBps": 331
+          },
+          {
+            "utilization": 0.8547324013138362,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11418414.717348,
+            "tvlUsd": 78458776.455734,
+            "apyBps": 329
+          },
+          {
+            "utilization": 0.8547531326885176,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11416533.975318,
+            "tvlUsd": 78456969.697054,
+            "apyBps": 329
+          },
+          {
+            "utilization": 0.8547555770102261,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11416332.143076,
+            "tvlUsd": 78456841.427979,
+            "apyBps": 329
+          },
+          {
+            "utilization": 0.8547557881053292,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11416334.569365,
+            "tvlUsd": 78456915.411967,
+            "apyBps": 329
+          }
+        ],
+        "0x468c8106dede0853e8746d488c999c2940725b3d": [
+          {
+            "utilization": 0.6235374142016145,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 602839.87122,
+            "tvlUsd": 1600204.05612,
+            "apyBps": 197
+          },
+          {
+            "utilization": 0.6235454798606405,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 602819.878361,
+            "tvlUsd": 1600184.965658,
+            "apyBps": 197
+          },
+          {
+            "utilization": 0.6235228261674903,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 602878.721237,
+            "tvlUsd": 1600244.709933,
+            "apyBps": 197
+          },
+          {
+            "utilization": 0.6230916527801498,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 603986.782723,
+            "tvlUsd": 1601353.67438,
+            "apyBps": 196
+          },
+          {
+            "utilization": 0.6230896985445448,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 603992.511859,
+            "tvlUsd": 1601360.305275,
+            "apyBps": 196
+          },
+          {
+            "utilization": 0.6230459619078333,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 604105.631858,
+            "tvlUsd": 1601474.32798,
+            "apyBps": 196
+          }
+        ],
+        "0x127644f456fc63c7226e7f4f2ce4f169a1165c65": [
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791882.710940865,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791883.201957894,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791883.692432206,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791884.183993286,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791884.675011651,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250658.047769,
+            "tvlUsd": 4791885.168179551,
+            "apyBps": 322
+          }
+        ],
+        "0x483ac413349951b34bfc9a8f0311a70f35e80f38": [
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 7008171.805121,
+            "tvlUsd": 7008171.805121,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 7008171.80866,
+            "tvlUsd": 7008171.80866,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 6998641.327955,
+            "tvlUsd": 6998641.327955,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 6998641.988917,
+            "tvlUsd": 6998641.988917,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 6998642.097098,
+            "tvlUsd": 6998642.097098,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 6998642.341995,
+            "tvlUsd": 6998642.341995,
+            "apyBps": 0
+          }
+        ],
+        "0xd14f133d2ad6a7cf32cdab5166ec95d58048fc10": [
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588253.012823,
+            "tvlUsd": 588253.012823,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588253.592923,
+            "tvlUsd": 588253.592923,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588254.172382,
+            "tvlUsd": 588254.172382,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588257.11561,
+            "tvlUsd": 588257.11561,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588257.695713,
+            "tvlUsd": 588257.695713,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588258.276459,
+            "tvlUsd": 588258.276459,
+            "apyBps": 344
+          }
+        ]
+      },
+      "momentumCalibration": 1
+    },
+    "plan": {
+      "regime": "cautious",
+      "appetite": "moderate",
+      "moves": [],
+      "idleBefore": "636035",
+      "idleAfter": "636035",
+      "totalDeployedAfter": "3369526",
+      "risks": [
+        {
+          "address": "0x9c7Bb0972D0480335Ba1A9041D57d883d96BED1A",
+          "name": "Aave v3 (USDT0)",
+          "apyBps": 341,
+          "protocolRisk": 0.08,
+          "liquidityRisk": 0.5221418070019322,
+          "pegRisk": 0,
+          "utilizationRisk": 0.35254015203955047,
+          "concentrationRisk": 0.4934466607798508,
+          "momentumRisk": 0.0429794069524322,
+          "correlatedExposure": 0.4934466607798508,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.2632080516772655,
+          "band": "moderate",
+          "riskAdjustedApyBps": 251,
+          "notes": []
+        },
+        {
+          "address": "0x468c8106deDe0853E8746D488C999c2940725B3d",
+          "name": "USDG (RWA-backed)",
+          "apyBps": 196,
+          "protocolRisk": 0.14,
+          "liquidityRisk": 0.37361309042923146,
+          "pegRisk": 0.013333333333333334,
+          "utilizationRisk": 0,
+          "concentrationRisk": 0.3057047439796822,
+          "momentumRisk": 0,
+          "correlatedExposure": 0.3057047439796822,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.16864041367194277,
+          "band": "low",
+          "riskAdjustedApyBps": 163,
+          "notes": []
+        },
+        {
+          "address": "0x127644F456Fc63C7226E7f4F2Ce4F169A1165C65",
+          "name": "Pendle PT-USDG (fixed, Oct 2026)",
+          "apyBps": 322,
+          "protocolRisk": 0.16,
+          "liquidityRisk": 0.06776810662587031,
+          "pegRisk": 0.013333333333333334,
+          "utilizationRisk": 0,
+          "concentrationRisk": 0.3681876271513528,
+          "momentumRisk": 7.059762300679988e-8,
+          "correlatedExposure": 0.3681876271513528,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.10442746662791298,
+          "band": "low",
+          "riskAdjustedApyBps": 288,
+          "notes": []
+        },
+        {
+          "address": "0x483aC413349951b34bFC9a8f0311A70F35e80F38",
+          "name": "USDG/USDT0 LP (Uniswap v3)",
+          "apyBps": 0,
+          "protocolRisk": 0.1,
+          "liquidityRisk": 0,
+          "pegRisk": 0.013333333333333334,
+          "utilizationRisk": 0,
+          "concentrationRisk": 0.3057047439796822,
+          "momentumRisk": 0,
+          "correlatedExposure": 0.3057047439796822,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.06323714106463489,
+          "band": "low",
+          "riskAdjustedApyBps": 0,
+          "notes": []
+        },
+        {
+          "address": "0xd14f133D2ad6a7CF32cdaB5166eC95d58048fC10",
+          "name": "Spark Savings USDT (spUSDT)",
+          "apyBps": 344,
+          "protocolRisk": 0.12,
+          "liquidityRisk": 0.000001610454291387164,
+          "pegRisk": 0,
+          "utilizationRisk": 0,
+          "concentrationRisk": 0.641266778860689,
+          "momentumRisk": 0,
+          "correlatedExposure": 0.641266778860689,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.10012708049964174,
+          "band": "low",
+          "riskAdjustedApyBps": 310,
+          "notes": [
+            "high correlated concentration"
+          ]
+        }
+      ],
+      "summary": "Hold. No move improves the risk-adjusted position within a cautious regime and moderate appetite. Liquidity: All venues have worstCaseExitSharePct far below the 25% threshold, so no exit-size risk identified. Macro: High utilization on Aave v3 and moderate band warrant holding additional idle capital.",
+      "source": "risk-engine+panel",
+      "stress": {
+        "fragile": [],
+        "fragileNames": [],
+        "recommendedRegime": "calm",
+        "fragility": 0,
+        "scenarios": [
+          {
+            "name": "liquidity crunch (-50% exit liquidity)",
+            "worstBand": "low",
+            "breaches": []
+          },
+          {
+            "name": "peg shock (+150bps on RWA)",
+            "worstBand": "moderate",
+            "breaches": []
+          },
+          {
+            "name": "utilization spike (lending → 95%)",
+            "worstBand": "moderate",
+            "breaches": []
+          }
+        ],
+        "notes": []
+      },
+      "reflection": {
+        "flagged": 0,
+        "hits": 0,
+        "hitRate": 0,
+        "calibration": 1,
+        "lessons": []
+      },
+      "panel": {
+        "regime": "cautious",
+        "vetoes": [],
+        "verdicts": [
+          {
+            "role": "peg",
+            "ok": false,
+            "concern": 0,
+            "vetoes": [],
+            "note": "abstained"
+          },
+          {
+            "role": "liquidity",
+            "ok": true,
+            "concern": 0,
+            "vetoes": [],
+            "note": "All venues have worstCaseExitSharePct far below the 25% threshold, so no exit-size risk identified."
+          },
+          {
+            "role": "macro",
+            "ok": true,
+            "concern": 0.32,
+            "vetoes": [],
+            "regime": "cautious",
+            "note": "High utilization on Aave v3 and moderate band warrant holding additional idle capital."
+          }
+        ]
+      },
+      "critic": {
+        "approved": true,
+        "vetoes": [],
+        "concerns": [],
+        "doubt": false
+      }
+    },
+    "execution": null
+  },
+  {
+    "takenAt": "2026-09-25T19:38:06.698Z",
+    "agent": {
+      "name": "Aumo",
+      "codename": "aumo-agent",
+      "mandate": "Put idle stablecoins to work in tokenized real-world-asset yield, within on-chain guardrails, and prove every move.",
+      "version": "0.1.0",
+      "build": "unversioned",
+      "chainId": 196,
+      "chainName": "X Layer",
+      "vault": "0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F",
+      "agentAddress": "0x2647904345d00Ef30d831935b913E5df1D58af67",
+      "hasReasoningLayer": true,
+      "signer": "hotkey",
+      "policy": {
+        "appetite": "moderate",
+        "maxConcentration": 0.6,
+        "execute": true
+      }
+    },
+    "policyFingerprint": "0x422a5cdd439301a55abb768a6ba4f51c2225d98c8819e7b832625d4752923f55",
+    "vault": "0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F",
+    "snapshot": {
+      "vault": {
+        "address": "0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F",
+        "asset": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+        "owner": "0x9471A4ea01f51d01749D9E9696b973faf27a96AE",
+        "agent": "0x2647904345d00Ef30d831935b913E5df1D58af67",
+        "decimals": 6,
+        "symbol": "USD₮0",
+        "idle": "636035",
+        "totalDeployed": "3369526",
+        "totalAssets": "4035606",
+        "totalSupply": "97469165",
+        "maxMoveSize": "100000000",
+        "perVenueCap": "500000000",
+        "maxTotalDeployed": "1000000000",
+        "paused": false,
+        "maxEpochLoss": "10000000",
+        "lossEpochLength": "86400",
+        "maxEpochDeploy": "2000000000",
+        "deployEpochLength": "86400"
+      },
+      "venues": [
+        {
+          "address": "0x9c7Bb0972D0480335Ba1A9041D57d883d96BED1A",
+          "name": "Aave v3 (USDT0)",
+          "kind": "lending",
+          "underlying": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+          "apyBps": 329,
+          "tvlUsd": 78456915.411967,
+          "liquidityUsd": 11416334.569365,
+          "utilization": 0.8547557881053292,
+          "protocolRisk": 0.08,
+          "pegDeviationBps": 0,
+          "feed": {
+            "source": "aave",
+            "pool": "0xE3F3Caefdd7180F884c01E57f65Df979Af84f116",
+            "underlying": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736"
+          },
+          "pegVerified": false,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "0",
+          "liveBalance": "0"
+        },
+        {
+          "address": "0x468c8106deDe0853E8746D488C999c2940725B3d",
+          "name": "USDG (RWA-backed)",
+          "kind": "rwa",
+          "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+          "apyBps": 196,
+          "tvlUsd": 1601474.32798,
+          "liquidityUsd": 604105.631858,
+          "utilization": 0.6230459619078333,
+          "protocolRisk": 0.14,
+          "pegDeviationBps": 2,
+          "feed": {
+            "source": "aave",
+            "pool": "0xE3F3Caefdd7180F884c01E57f65Df979Af84f116",
+            "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8"
+          },
+          "pegSource": {
+            "kind": "univ3Twap",
+            "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA",
+            "yieldToken": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+            "twapWindowSec": 300
+          },
+          "pegVerified": true,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "0",
+          "liveBalance": "0"
+        },
+        {
+          "address": "0x127644F456Fc63C7226E7f4F2Ce4F169A1165C65",
+          "name": "Pendle PT-USDG (fixed, Oct 2026)",
+          "kind": "rwa",
+          "term": true,
+          "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+          "apyBps": 322,
+          "tvlUsd": 4791885.168179551,
+          "liquidityUsd": 4250658.047769,
+          "utilization": 0,
+          "protocolRisk": 0.16,
+          "pegDeviationBps": 2,
+          "feed": {
+            "source": "pendle",
+            "oracle": "0x5542be50420E88dd7D5B4a3D488FA6ED82F6DAc2",
+            "market": "0xcFB506cb34DD340e80d3dF8764182a5187636032",
+            "sy": "0x1F336F899f77B084133bc14a81170837ED618D1b",
+            "pt": "0x9a09a9E491DB3dd8Ada5B1B889991AC9Ad5fd362",
+            "twapWindowSec": 900
+          },
+          "pegSource": {
+            "kind": "univ3Twap",
+            "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA",
+            "yieldToken": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+            "twapWindowSec": 300
+          },
+          "note": "Pendle PT-USDG market 0xcFB506cb34DD340e80d3dF8764182a5187636032 (Router V4, PT oracle 0x5542be50420E88dd7D5B4a3D488FA6ED82F6DAc2), SY 0x1F336F899f77B084133bc14a81170837ED618D1b, PT 0x9a09a9E491DB3dd8Ada5B1B889991AC9Ad5fd362. Fixed yield to maturity 2026-10-29. APY, TVL, and exit liquidity are now read live on-chain each cycle via feed.source=pendle (implied APY from the PT oracle, reserves from the market); the static values here are only a fallback if that read fails. Peg to USDG measured live from the USDT0/USDG v3 pool (pegSource); pegVerified is EARNED from a TWAP each cycle, never hardcoded.",
+          "maturityTs": 1793232000,
+          "pegVerified": true,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "1001116",
+          "liveBalance": "996010"
+        },
+        {
+          "address": "0x483aC413349951b34bFC9a8f0311A70F35e80F38",
+          "name": "USDG/USDT0 LP (Uniswap v3)",
+          "kind": "rwa",
+          "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+          "apyBps": 0,
+          "tvlUsd": 6998642.341995,
+          "liquidityUsd": 6998642.341995,
+          "utilization": 0,
+          "protocolRisk": 0.1,
+          "pegDeviationBps": 2,
+          "feed": {
+            "source": "univ3lp",
+            "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA"
+          },
+          "pegSource": {
+            "kind": "univ3Twap",
+            "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA",
+            "yieldToken": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+            "twapWindowSec": 300
+          },
+          "note": "Full-range USDG/USDT0 liquidity on Uniswap v3 (0.01% pool 0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA, fee 100, tickSpacing 1). Adapter 0x483aC413349951b34bFC9a8f0311A70F35e80F38 deployed + allowlisted on mainnet 2026-08-22, 3-pass Kensho-audited, fork-verified. The position is valued LIVE on-chain each cycle (adapter.balanceOf via the pool's peg-band-clamped sqrt price plus fees); peg to USDG is measured live (pegSource), pegVerified EARNED from a TWAP. APY is now read LIVE via feed.source=univ3lp (annualized growth of the pool's feeGrowthGlobal between hourly readings); the apyBps here is only a cold-start fallback until a full window accrues. TVL/liquidity are the pool's real reserves. Base trading fees on a pegged pair are thin, so until X Layer's RWA liquidity incentives land (eligible-asset list drops 2026-08-24) the agent correctly holds this near zero — deliberate, not idle; PENDING 2026-08-24 incentives to make it competitive.",
+          "pegVerified": true,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "0",
+          "liveBalance": "0"
+        },
+        {
+          "address": "0xd14f133D2ad6a7CF32cdaB5166eC95d58048fC10",
+          "name": "Spark Savings USDT (spUSDT)",
+          "kind": "lending",
+          "underlying": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+          "apyBps": 344,
+          "tvlUsd": 588258.276459,
+          "liquidityUsd": 588258.276459,
+          "utilization": 0,
+          "protocolRisk": 0.12,
+          "pegDeviationBps": 0,
+          "feed": {
+            "source": "erc4626",
+            "vault": "0xc358c90D32375721Cb3924320Fdc2F8B694347Ca"
+          },
+          "note": "Spark Savings USDT (spUSDT) ERC-4626 vault 0xc358c90D32375721Cb3924320Fdc2F8B694347Ca on X Layer (asset()==USDT0, so no swap leg). Sky/Spark savings via OKX Onchain Earn, flexible redemption, ~3.2% quoted APR. Aumo adapter (Erc4626Adapter) 0xd14f133D2ad6a7CF32cdaB5166eC95d58048fC10 deployed + fork-proven 2026-09-11. underlying tagged USDT0 so the correlated-underlying cap groups it with Aave (balances the USDG side). kind lending = base-asset-denominated yield position like aUSDT0, no separate peg. apyBps 320 is a documented fallback from the Spark/OKX quote; a live erc4626 growth feed (convertToAssets delta) is the follow-up to score it on real yield. GATED until the pool owner runs setVenueAllowed(adapter, true); venueAllowed was false at time of writing, so the agent will list but not allocate until then.",
+          "pegVerified": false,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "2368410",
+          "liveBalance": "2403561"
+        }
+      ],
+      "takenAt": "2026-09-25T19:38:06.698Z",
+      "history": {
+        "0x9c7bb0972d0480335ba1a9041d57d883d96bed1a": [
+          {
+            "utilization": 0.8573042474296326,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11216517.801302,
+            "tvlUsd": 78458158.349206,
+            "apyBps": 331
+          },
+          {
+            "utilization": 0.8572997217864181,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11216904.509512,
+            "tvlUsd": 78458321.99319,
+            "apyBps": 331
+          },
+          {
+            "utilization": 0.857300320916469,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11216872.118175,
+            "tvlUsd": 78458366.372473,
+            "apyBps": 331
+          },
+          {
+            "utilization": 0.8547324013138362,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11418414.717348,
+            "tvlUsd": 78458776.455734,
+            "apyBps": 329
+          },
+          {
+            "utilization": 0.8547531326885176,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11416533.975318,
+            "tvlUsd": 78456969.697054,
+            "apyBps": 329
+          },
+          {
+            "utilization": 0.8547555770102261,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11416332.143076,
+            "tvlUsd": 78456841.427979,
+            "apyBps": 329
+          }
+        ],
+        "0x468c8106dede0853e8746d488c999c2940725b3d": [
+          {
+            "utilization": 0.623571961136822,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 602750.51122,
+            "tvlUsd": 1600113.793675,
+            "apyBps": 197
+          },
+          {
+            "utilization": 0.6235374142016145,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 602839.87122,
+            "tvlUsd": 1600204.05612,
+            "apyBps": 197
+          },
+          {
+            "utilization": 0.6235454798606405,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 602819.878361,
+            "tvlUsd": 1600184.965658,
+            "apyBps": 197
+          },
+          {
+            "utilization": 0.6235228261674903,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 602878.721237,
+            "tvlUsd": 1600244.709933,
+            "apyBps": 197
+          },
+          {
+            "utilization": 0.6230916527801498,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 603986.782723,
+            "tvlUsd": 1601353.67438,
+            "apyBps": 196
+          },
+          {
+            "utilization": 0.6230896985445448,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 603992.511859,
+            "tvlUsd": 1601360.305275,
+            "apyBps": 196
+          }
+        ],
+        "0x127644f456fc63c7226e7f4f2ce4f169a1165c65": [
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791882.219924282,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791882.710940865,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791883.201957894,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791883.692432206,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791884.183993286,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791884.675011651,
+            "apyBps": 322
+          }
+        ],
+        "0x483ac413349951b34bfc9a8f0311a70f35e80f38": [
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 7008170.30617,
+            "tvlUsd": 7008170.30617,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 7008171.805121,
+            "tvlUsd": 7008171.805121,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 7008171.80866,
+            "tvlUsd": 7008171.80866,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 6998641.327955,
+            "tvlUsd": 6998641.327955,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 6998641.988917,
+            "tvlUsd": 6998641.988917,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 6998642.097098,
+            "tvlUsd": 6998642.097098,
+            "apyBps": 0
+          }
+        ],
+        "0xd14f133d2ad6a7cf32cdab5166ec95d58048fc10": [
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588252.432724,
+            "tvlUsd": 588252.432724,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588253.012823,
+            "tvlUsd": 588253.012823,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588253.592923,
+            "tvlUsd": 588253.592923,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588254.172382,
+            "tvlUsd": 588254.172382,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588257.11561,
+            "tvlUsd": 588257.11561,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588257.695713,
+            "tvlUsd": 588257.695713,
+            "apyBps": 344
+          }
+        ]
+      },
+      "momentumCalibration": 1
+    },
+    "plan": {
+      "regime": "cautious",
+      "appetite": "moderate",
+      "moves": [],
+      "idleBefore": "636035",
+      "idleAfter": "636035",
+      "totalDeployedAfter": "3369526",
+      "risks": [
+        {
+          "address": "0x9c7Bb0972D0480335Ba1A9041D57d883d96BED1A",
+          "name": "Aave v3 (USDT0)",
+          "apyBps": 329,
+          "protocolRisk": 0.08,
+          "liquidityRisk": 0.5126934737919329,
+          "pegRisk": 0,
+          "utilizationRisk": 0.27377894052664553,
+          "concentrationRisk": 0.4934466607798508,
+          "momentumRisk": 0,
+          "correlatedExposure": 0.4934466607798508,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.2425848756049651,
+          "band": "low",
+          "riskAdjustedApyBps": 249,
+          "notes": []
+        },
+        {
+          "address": "0x468c8106deDe0853E8746D488C999c2940725B3d",
+          "name": "USDG (RWA-backed)",
+          "apyBps": 196,
+          "protocolRisk": 0.14,
+          "liquidityRisk": 0.37366894193552963,
+          "pegRisk": 0.013333333333333334,
+          "utilizationRisk": 0,
+          "concentrationRisk": 0.3057047439796822,
+          "momentumRisk": 0,
+          "correlatedExposure": 0.3057047439796822,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.1686543765485173,
+          "band": "low",
+          "riskAdjustedApyBps": 163,
+          "notes": []
+        },
+        {
+          "address": "0x127644F456Fc63C7226E7f4F2Ce4F169A1165C65",
+          "name": "Pendle PT-USDG (fixed, Oct 2026)",
+          "apyBps": 322,
+          "protocolRisk": 0.16,
+          "liquidityRisk": 0.06776805208879312,
+          "pegRisk": 0.013333333333333334,
+          "utilizationRisk": 0,
+          "concentrationRisk": 0.3681876271513528,
+          "momentumRisk": 4.279610673248632e-8,
+          "correlatedExposure": 0.3681876271513528,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.10442744882341624,
+          "band": "low",
+          "riskAdjustedApyBps": 288,
+          "notes": []
+        },
+        {
+          "address": "0x483aC413349951b34bFC9a8f0311A70F35e80F38",
+          "name": "USDG/USDT0 LP (Uniswap v3)",
+          "apyBps": 0,
+          "protocolRisk": 0.1,
+          "liquidityRisk": 0,
+          "pegRisk": 0.013333333333333334,
+          "utilizationRisk": 0,
+          "concentrationRisk": 0.3057047439796822,
+          "momentumRisk": 0,
+          "correlatedExposure": 0.3057047439796822,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.06323714106463489,
+          "band": "low",
+          "riskAdjustedApyBps": 0,
+          "notes": []
+        },
+        {
+          "address": "0xd14f133D2ad6a7CF32cdaB5166eC95d58048fC10",
+          "name": "Spark Savings USDT (spUSDT)",
+          "apyBps": 344,
+          "protocolRisk": 0.12,
+          "liquidityRisk": 0.0000016104558795205134,
+          "pegRisk": 0,
+          "utilizationRisk": 0,
+          "concentrationRisk": 0.641266778860689,
+          "momentumRisk": 0,
+          "correlatedExposure": 0.641266778860689,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.10012708050003877,
+          "band": "low",
+          "riskAdjustedApyBps": 310,
+          "notes": [
+            "high correlated concentration"
+          ]
+        }
+      ],
+      "summary": "Hold. No move improves the risk-adjusted position within a cautious regime and moderate appetite. Macro: Elevated to cautious regime to retain a larger idle buffer due to high utilization on Aave and limited diversification across venues.",
+      "source": "risk-engine+panel",
+      "stress": {
+        "fragile": [],
+        "fragileNames": [],
+        "recommendedRegime": "calm",
+        "fragility": 0,
+        "scenarios": [
+          {
+            "name": "liquidity crunch (-50% exit liquidity)",
+            "worstBand": "low",
+            "breaches": []
+          },
+          {
+            "name": "peg shock (+150bps on RWA)",
+            "worstBand": "moderate",
+            "breaches": []
+          },
+          {
+            "name": "utilization spike (lending → 95%)",
+            "worstBand": "moderate",
+            "breaches": []
+          }
+        ],
+        "notes": []
+      },
+      "reflection": {
+        "flagged": 0,
+        "hits": 0,
+        "hitRate": 0,
+        "calibration": 1,
+        "lessons": []
+      },
+      "panel": {
+        "regime": "cautious",
+        "vetoes": [],
+        "verdicts": [
+          {
+            "role": "peg",
+            "ok": false,
+            "concern": 0,
+            "vetoes": [],
+            "note": "abstained"
+          },
+          {
+            "role": "liquidity",
+            "ok": false,
+            "concern": 0,
+            "vetoes": [],
+            "note": "abstained"
+          },
+          {
+            "role": "macro",
+            "ok": true,
+            "concern": 0.42,
+            "vetoes": [],
+            "regime": "cautious",
+            "note": "Elevated to cautious regime to retain a larger idle buffer due to high utilization on Aave and limited diversification across venues."
+          }
+        ]
+      },
+      "critic": {
+        "approved": true,
+        "vetoes": [],
+        "concerns": [],
+        "doubt": false
+      }
+    },
+    "execution": null
+  },
+  {
+    "takenAt": "2026-09-25T19:23:00.453Z",
+    "agent": {
+      "name": "Aumo",
+      "codename": "aumo-agent",
+      "mandate": "Put idle stablecoins to work in tokenized real-world-asset yield, within on-chain guardrails, and prove every move.",
+      "version": "0.1.0",
+      "build": "unversioned",
+      "chainId": 196,
+      "chainName": "X Layer",
+      "vault": "0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F",
+      "agentAddress": "0x2647904345d00Ef30d831935b913E5df1D58af67",
+      "hasReasoningLayer": true,
+      "signer": "hotkey",
+      "policy": {
+        "appetite": "moderate",
+        "maxConcentration": 0.6,
+        "execute": true
+      }
+    },
+    "policyFingerprint": "0x422a5cdd439301a55abb768a6ba4f51c2225d98c8819e7b832625d4752923f55",
+    "vault": "0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F",
+    "snapshot": {
+      "vault": {
+        "address": "0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F",
+        "asset": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+        "owner": "0x9471A4ea01f51d01749D9E9696b973faf27a96AE",
+        "agent": "0x2647904345d00Ef30d831935b913E5df1D58af67",
+        "decimals": 6,
+        "symbol": "USD₮0",
+        "idle": "1637516",
+        "totalDeployed": "2368410",
+        "totalAssets": "4041074",
+        "totalSupply": "97469165",
+        "maxMoveSize": "100000000",
+        "perVenueCap": "500000000",
+        "maxTotalDeployed": "1000000000",
+        "paused": false,
+        "maxEpochLoss": "10000000",
+        "lossEpochLength": "86400",
+        "maxEpochDeploy": "2000000000",
+        "deployEpochLength": "86400"
+      },
+      "venues": [
+        {
+          "address": "0x9c7Bb0972D0480335Ba1A9041D57d883d96BED1A",
+          "name": "Aave v3 (USDT0)",
+          "kind": "lending",
+          "underlying": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+          "apyBps": 329,
+          "tvlUsd": 78456841.427979,
+          "liquidityUsd": 11416332.143076,
+          "utilization": 0.8547555770102261,
+          "protocolRisk": 0.08,
+          "pegDeviationBps": 0,
+          "feed": {
+            "source": "aave",
+            "pool": "0xE3F3Caefdd7180F884c01E57f65Df979Af84f116",
+            "underlying": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736"
+          },
+          "pegVerified": false,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "0",
+          "liveBalance": "0"
+        },
+        {
+          "address": "0x468c8106deDe0853E8746D488C999c2940725B3d",
+          "name": "USDG (RWA-backed)",
+          "kind": "rwa",
+          "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+          "apyBps": 196,
+          "tvlUsd": 1601360.305275,
+          "liquidityUsd": 603992.511859,
+          "utilization": 0.6230896985445448,
+          "protocolRisk": 0.14,
+          "pegDeviationBps": 2,
+          "feed": {
+            "source": "aave",
+            "pool": "0xE3F3Caefdd7180F884c01E57f65Df979Af84f116",
+            "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8"
+          },
+          "pegSource": {
+            "kind": "univ3Twap",
+            "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA",
+            "yieldToken": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+            "twapWindowSec": 300
+          },
+          "pegVerified": true,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "0",
+          "liveBalance": "0"
+        },
+        {
+          "address": "0x127644F456Fc63C7226E7f4F2Ce4F169A1165C65",
+          "name": "Pendle PT-USDG (fixed, Oct 2026)",
+          "kind": "rwa",
+          "term": true,
+          "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+          "apyBps": 322,
+          "tvlUsd": 4791884.675011651,
+          "liquidityUsd": 4250657.046699,
+          "utilization": 0,
+          "protocolRisk": 0.16,
+          "pegDeviationBps": 2,
+          "feed": {
+            "source": "pendle",
+            "oracle": "0x5542be50420E88dd7D5B4a3D488FA6ED82F6DAc2",
+            "market": "0xcFB506cb34DD340e80d3dF8764182a5187636032",
+            "sy": "0x1F336F899f77B084133bc14a81170837ED618D1b",
+            "pt": "0x9a09a9E491DB3dd8Ada5B1B889991AC9Ad5fd362",
+            "twapWindowSec": 900
+          },
+          "pegSource": {
+            "kind": "univ3Twap",
+            "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA",
+            "yieldToken": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+            "twapWindowSec": 300
+          },
+          "note": "Pendle PT-USDG market 0xcFB506cb34DD340e80d3dF8764182a5187636032 (Router V4, PT oracle 0x5542be50420E88dd7D5B4a3D488FA6ED82F6DAc2), SY 0x1F336F899f77B084133bc14a81170837ED618D1b, PT 0x9a09a9E491DB3dd8Ada5B1B889991AC9Ad5fd362. Fixed yield to maturity 2026-10-29. APY, TVL, and exit liquidity are now read live on-chain each cycle via feed.source=pendle (implied APY from the PT oracle, reserves from the market); the static values here are only a fallback if that read fails. Peg to USDG measured live from the USDT0/USDG v3 pool (pegSource); pegVerified is EARNED from a TWAP each cycle, never hardcoded.",
+          "maturityTs": 1793232000,
+          "pegVerified": true,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "0",
+          "liveBalance": "0"
+        },
+        {
+          "address": "0x483aC413349951b34bFC9a8f0311A70F35e80F38",
+          "name": "USDG/USDT0 LP (Uniswap v3)",
+          "kind": "rwa",
+          "underlying": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+          "apyBps": 0,
+          "tvlUsd": 6998642.097098,
+          "liquidityUsd": 6998642.097098,
+          "utilization": 0,
+          "protocolRisk": 0.1,
+          "pegDeviationBps": 2,
+          "feed": {
+            "source": "univ3lp",
+            "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA"
+          },
+          "pegSource": {
+            "kind": "univ3Twap",
+            "pool": "0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA",
+            "yieldToken": "0x4ae46a509F6b1D9056937BA4500cb143933D2dc8",
+            "twapWindowSec": 300
+          },
+          "note": "Full-range USDG/USDT0 liquidity on Uniswap v3 (0.01% pool 0x0cBe0dBE1400e57f371a38BD3b9bC80F7C3676dA, fee 100, tickSpacing 1). Adapter 0x483aC413349951b34bFC9a8f0311A70F35e80F38 deployed + allowlisted on mainnet 2026-08-22, 3-pass Kensho-audited, fork-verified. The position is valued LIVE on-chain each cycle (adapter.balanceOf via the pool's peg-band-clamped sqrt price plus fees); peg to USDG is measured live (pegSource), pegVerified EARNED from a TWAP. APY is now read LIVE via feed.source=univ3lp (annualized growth of the pool's feeGrowthGlobal between hourly readings); the apyBps here is only a cold-start fallback until a full window accrues. TVL/liquidity are the pool's real reserves. Base trading fees on a pegged pair are thin, so until X Layer's RWA liquidity incentives land (eligible-asset list drops 2026-08-24) the agent correctly holds this near zero — deliberate, not idle; PENDING 2026-08-24 incentives to make it competitive.",
+          "pegVerified": true,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "0",
+          "liveBalance": "0"
+        },
+        {
+          "address": "0xd14f133D2ad6a7CF32cdaB5166eC95d58048fC10",
+          "name": "Spark Savings USDT (spUSDT)",
+          "kind": "lending",
+          "underlying": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+          "apyBps": 344,
+          "tvlUsd": 588257.695713,
+          "liquidityUsd": 588257.695713,
+          "utilization": 0,
+          "protocolRisk": 0.12,
+          "pegDeviationBps": 0,
+          "feed": {
+            "source": "erc4626",
+            "vault": "0xc358c90D32375721Cb3924320Fdc2F8B694347Ca"
+          },
+          "note": "Spark Savings USDT (spUSDT) ERC-4626 vault 0xc358c90D32375721Cb3924320Fdc2F8B694347Ca on X Layer (asset()==USDT0, so no swap leg). Sky/Spark savings via OKX Onchain Earn, flexible redemption, ~3.2% quoted APR. Aumo adapter (Erc4626Adapter) 0xd14f133D2ad6a7CF32cdaB5166eC95d58048fC10 deployed + fork-proven 2026-09-11. underlying tagged USDT0 so the correlated-underlying cap groups it with Aave (balances the USDG side). kind lending = base-asset-denominated yield position like aUSDT0, no separate peg. apyBps 320 is a documented fallback from the Spark/OKX quote; a live erc4626 growth feed (convertToAssets delta) is the follow-up to score it on real yield. GATED until the pool owner runs setVenueAllowed(adapter, true); venueAllowed was false at time of writing, so the agent will list but not allocate until then.",
+          "pegVerified": false,
+          "feedVerified": true,
+          "allowed": true,
+          "allocatedPrincipal": "2368410",
+          "liveBalance": "2403558"
+        }
+      ],
+      "takenAt": "2026-09-25T19:23:00.453Z",
+      "history": {
+        "0x9c7bb0972d0480335ba1a9041d57d883d96bed1a": [
+          {
+            "utilization": 0.8524123940906214,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11666708.734373,
+            "tvlUsd": 78908015.91479,
+            "apyBps": 327
+          },
+          {
+            "utilization": 0.8573042474296326,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11216517.801302,
+            "tvlUsd": 78458158.349206,
+            "apyBps": 331
+          },
+          {
+            "utilization": 0.8572997217864181,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11216904.509512,
+            "tvlUsd": 78458321.99319,
+            "apyBps": 331
+          },
+          {
+            "utilization": 0.857300320916469,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11216872.118175,
+            "tvlUsd": 78458366.372473,
+            "apyBps": 331
+          },
+          {
+            "utilization": 0.8547324013138362,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11418414.717348,
+            "tvlUsd": 78458776.455734,
+            "apyBps": 329
+          },
+          {
+            "utilization": 0.8547531326885176,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 11416533.975318,
+            "tvlUsd": 78456969.697054,
+            "apyBps": 329
+          }
+        ],
+        "0x468c8106dede0853e8746d488c999c2940725b3d": [
+          {
+            "utilization": 0.6236335533896867,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 602591.772459,
+            "tvlUsd": 1599954.152434,
+            "apyBps": 197
+          },
+          {
+            "utilization": 0.623571961136822,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 602750.51122,
+            "tvlUsd": 1600113.793675,
+            "apyBps": 197
+          },
+          {
+            "utilization": 0.6235374142016145,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 602839.87122,
+            "tvlUsd": 1600204.05612,
+            "apyBps": 197
+          },
+          {
+            "utilization": 0.6235454798606405,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 602819.878361,
+            "tvlUsd": 1600184.965658,
+            "apyBps": 197
+          },
+          {
+            "utilization": 0.6235228261674903,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 602878.721237,
+            "tvlUsd": 1600244.709933,
+            "apyBps": 197
+          },
+          {
+            "utilization": 0.6230916527801498,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 603986.782723,
+            "tvlUsd": 1601353.67438,
+            "apyBps": 196
+          }
+        ],
+        "0x127644f456fc63c7226e7f4f2ce4f169a1165c65": [
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791881.728908145,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791882.219924282,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791882.710940865,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791883.201957894,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791883.692432206,
+            "apyBps": 322
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 4250657.046699,
+            "tvlUsd": 4791884.183993286,
+            "apyBps": 322
+          }
+        ],
+        "0x483ac413349951b34bfc9a8f0311a70f35e80f38": [
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 7008169.379252,
+            "tvlUsd": 7008169.379252,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 7008170.30617,
+            "tvlUsd": 7008170.30617,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 7008171.805121,
+            "tvlUsd": 7008171.805121,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 7008171.80866,
+            "tvlUsd": 7008171.80866,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 6998641.327955,
+            "tvlUsd": 6998641.327955,
+            "apyBps": 0
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 2,
+            "pegVerified": true,
+            "liquidityUsd": 6998641.988917,
+            "tvlUsd": 6998641.988917,
+            "apyBps": 0
+          }
+        ],
+        "0xd14f133d2ad6a7cf32cdab5166ec95d58048fc10": [
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588251.852626,
+            "tvlUsd": 588251.852626,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588252.432724,
+            "tvlUsd": 588252.432724,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588253.012823,
+            "tvlUsd": 588253.012823,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588253.592923,
+            "tvlUsd": 588253.592923,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588254.172382,
+            "tvlUsd": 588254.172382,
+            "apyBps": 344
+          },
+          {
+            "utilization": 0,
+            "pegDeviationBps": 0,
+            "pegVerified": false,
+            "liquidityUsd": 588257.11561,
+            "tvlUsd": 588257.11561,
+            "apyBps": 344
+          }
+        ]
+      },
+      "momentumCalibration": 1
+    },
+    "plan": {
+      "regime": "calm",
+      "appetite": "moderate",
+      "moves": [
+        {
+          "venue": "0x127644F456Fc63C7226E7f4F2Ce4F169A1165C65",
+          "venueName": "Pendle PT-USDG (fixed, Oct 2026)",
+          "action": "allocate",
+          "amount": "1001481",
+          "reasonTag": "calm|ra:296",
+          "rationale": "Deploy into Pendle PT-USDG (fixed, Oct 2026) at 3.22% APY, haircut to 2.96% risk-adjusted (risk 8/100, band low). Sized to the 60% concentration cap and per-move limit under a calm regime.",
+          "band": "low",
+          "riskScore": 0.07943323300574988,
+          "riskAdjustedApyBps": 296
+        }
+      ],
+      "idleBefore": "1637516",
+      "idleAfter": "636035",
+      "totalDeployedAfter": "3369891",
+      "risks": [
+        {
+          "address": "0x9c7Bb0972D0480335Ba1A9041D57d883d96BED1A",
+          "name": "Aave v3 (USDT0)",
+          "apyBps": 329,
+          "protocolRisk": 0.08,
+          "liquidityRisk": 0.5126934100178694,
+          "pegRisk": 0,
+          "utilizationRisk": 0.2737778850511302,
+          "concentrationRisk": 0.44341994834652465,
+          "momentumRisk": 0,
+          "correlatedExposure": 0.44341994834652465,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.23758203009678935,
+          "band": "low",
+          "riskAdjustedApyBps": 251,
+          "notes": []
+        },
+        {
+          "address": "0x468c8106deDe0853E8746D488C999c2940725B3d",
+          "name": "USDG (RWA-backed)",
+          "apyBps": 196,
+          "protocolRisk": 0.14,
+          "liquidityRisk": 0.3736952103023647,
+          "pegRisk": 0.013333333333333334,
+          "utilizationRisk": 0,
+          "concentrationRisk": 0.11824531955907325,
+          "momentumRisk": 0,
+          "correlatedExposure": 0.11824531955907325,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.14991500119816517,
+          "band": "low",
+          "riskAdjustedApyBps": 167,
+          "notes": []
+        },
+        {
+          "address": "0x127644F456Fc63C7226E7f4F2Ce4F169A1165C65",
+          "name": "Pendle PT-USDG (fixed, Oct 2026)",
+          "apyBps": 322,
+          "protocolRisk": 0.16,
+          "liquidityRisk": 0.06776802845047622,
+          "pegRisk": 0.013333333333333334,
+          "utilizationRisk": 0,
+          "concentrationRisk": 0.11824531955907325,
+          "momentumRisk": 1.8180371230691605e-7,
+          "correlatedExposure": 0.11824531955907325,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.07943323300574988,
+          "band": "low",
+          "riskAdjustedApyBps": 296,
+          "notes": []
+        },
+        {
+          "address": "0x483aC413349951b34bFC9a8f0311A70F35e80F38",
+          "name": "USDG/USDT0 LP (Uniswap v3)",
+          "apyBps": 0,
+          "protocolRisk": 0.1,
+          "liquidityRisk": 0,
+          "pegRisk": 0.013333333333333334,
+          "utilizationRisk": 0,
+          "concentrationRisk": 0.11824531955907325,
+          "momentumRisk": 0,
+          "correlatedExposure": 0.11824531955907325,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.04449119862257399,
+          "band": "low",
+          "riskAdjustedApyBps": 0,
+          "notes": []
+        },
+        {
+          "address": "0xd14f133D2ad6a7CF32cdaB5166eC95d58048fC10",
+          "name": "Spark Savings USDT (spUSDT)",
+          "apyBps": 344,
+          "protocolRisk": 0.12,
+          "liquidityRisk": 0.000001610457469411843,
+          "pegRisk": 0,
+          "utilizationRisk": 0,
+          "concentrationRisk": 0.5912265977953662,
+          "momentumRisk": 0,
+          "correlatedExposure": 0.5912265977953662,
+          "dataStale": false,
+          "redemptionGated": false,
+          "riskScore": 0.09512306239390397,
+          "band": "low",
+          "riskAdjustedApyBps": 311,
+          "notes": []
+        }
+      ],
+      "summary": "calm regime, moderate appetite: 1 deploy. Liquidity: No venues exceed 25% worstCaseExitSharePct; exit risk is negligible.",
+      "source": "risk-engine+panel",
+      "stress": {
+        "fragile": [],
+        "fragileNames": [],
+        "recommendedRegime": "calm",
+        "fragility": 0,
+        "scenarios": [
+          {
+            "name": "liquidity crunch (-50% exit liquidity)",
+            "worstBand": "low",
+            "breaches": []
+          },
+          {
+            "name": "peg shock (+150bps on RWA)",
+            "worstBand": "moderate",
+            "breaches": []
+          },
+          {
+            "name": "utilization spike (lending → 95%)",
+            "worstBand": "moderate",
+            "breaches": []
+          }
+        ],
+        "notes": []
+      },
+      "reflection": {
+        "flagged": 0,
+        "hits": 0,
+        "hitRate": 0,
+        "calibration": 1,
+        "lessons": []
+      },
+      "panel": {
+        "regime": "calm",
+        "vetoes": [],
+        "verdicts": [
+          {
+            "role": "peg",
+            "ok": false,
+            "concern": 0,
+            "vetoes": [],
+            "note": "abstained"
+          },
+          {
+            "role": "liquidity",
+            "ok": true,
+            "concern": 0,
+            "vetoes": [],
+            "note": "No venues exceed 25% worstCaseExitSharePct; exit risk is negligible."
+          },
+          {
+            "role": "macro",
+            "ok": false,
+            "concern": 0,
+            "vetoes": [],
+            "note": "abstained"
+          }
+        ]
+      },
+      "critic": {
+        "approved": true,
+        "vetoes": [],
+        "concerns": [],
+        "doubt": false
+      }
+    },
+    "execution": [
+      {
+        "move": {
+          "venue": "0x127644F456Fc63C7226E7f4F2Ce4F169A1165C65",
+          "venueName": "Pendle PT-USDG (fixed, Oct 2026)",
+          "action": "allocate",
+          "amount": "1001481",
+          "reasonTag": "calm|ra:296",
+          "rationale": "Deploy into Pendle PT-USDG (fixed, Oct 2026) at 3.22% APY, haircut to 2.96% risk-adjusted (risk 8/100, band low). Sized to the 60% concentration cap and per-move limit under a calm regime.",
+          "band": "low",
+          "riskScore": 0.07943323300574988,
+          "riskAdjustedApyBps": 296
+        },
+        "hash": "0x767b5e3505822551fde1dd562e47b0344786115cb06a979083ca4e7ea5446afd",
+        "status": "confirmed"
+      }
+    ]
+  }
+]
