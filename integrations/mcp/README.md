@@ -73,6 +73,16 @@ The HTTP mode is stateless (each POST is handled on its own) and binds to `127.0
 claude mcp add --transport http aumo http://127.0.0.1:3333/mcp
 ```
 
+### Hosting a public endpoint
+
+`railway.json` in this folder runs the HTTP mode on Railway: create a service from this repo with root directory `integrations/mcp`, and it builds, listens on Railway's `PORT`, binds `0.0.0.0`, and health-checks `/health`. Agents then connect by URL with nothing to install:
+
+```bash
+claude mcp add --transport http aumo https://<your-service>.up.railway.app/mcp
+```
+
+Each client gets `RATE_LIMIT_PER_MINUTE` requests a minute (default 120), then HTTP 429. Behind Railway's proxy set `TRUST_PROXY=1` so the limit applies per caller rather than per proxy.
+
 ### From source
 
 ```bash
@@ -88,6 +98,9 @@ node dist/index.js
 | --- | --- | --- |
 | `AGENT_URL` | `https://aumo-production.up.railway.app` | The Aumo agent's public API. |
 | `RPC_URL` | `https://rpc.xlayer.tech` | X Layer RPC for on-chain reads and dry runs. |
+| `PORT` | `3333` | HTTP port when `--port` is not given. |
+| `RATE_LIMIT_PER_MINUTE` | `120` | HTTP mode: requests per client per minute. |
+| `TRUST_PROXY` | unset | HTTP mode: `1` takes the client from `X-Forwarded-For` (only behind a proxy you trust). |
 
 The pool (`0x8a98A4A868e5FBAc05B9d1dC0742BD008354114F`) and USDT0 (`0x779Ded0c9e1022225f8E0630b35a9b54bE713736`) addresses are the X Layer mainnet deployment the web app uses. No key, token, or secret is read or needed.
 
