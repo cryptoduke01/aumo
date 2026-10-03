@@ -1,11 +1,32 @@
 import type { Metadata } from "next";
 import { isMainnet } from "@/lib/chain";
 import { PageHero } from "@/components/site/page-hero";
+import { CodeBlock } from "@/components/code-block";
+
+const DESKTOP_CONFIG = `{
+  "mcpServers": {
+    "aumo": {
+      "command": "npx",
+      "args": ["-y", "aumo-mcp"]
+    }
+  }
+}`;
+
+const MCP_TOOLS: [string, string][] = [
+  ["aumo_status", "Whether the agent is online, how many decisions it has made, the current regime, and when it last decided."],
+  ["aumo_venues", "Every venue the agent can use, with APY, risk-adjusted APY, risk band, and how much of the pool sits in each."],
+  ["aumo_decisions", "Recent decisions, newest first, with what moved and the transaction links."],
+  ["aumo_replay_decision", "The full reasoning behind one decision: risk scores, stress test, panel verdicts, critic, and what was executed."],
+  ["aumo_ask", "Ask the agent a question in plain language, optionally about a specific wallet."],
+  ["aumo_position", "A wallet's pool shares and the USDT0 it can redeem now, read on-chain."],
+  ["aumo_prepare_deposit", "Unsigned transactions to deposit USDT0: an exact approve if needed, then the deposit."],
+  ["aumo_prepare_withdraw", "An unsigned withdrawal of an amount or the whole position, dry-run against the chain first."],
+];
 
 export const metadata: Metadata = {
   title: "Docs · Aumo",
   description:
-    "How Aumo works: the decision loop, the risk engine, on-chain guardrails, deposits, and bridging.",
+    "How Aumo works: the decision loop, the risk engine, on-chain guardrails, deposits, bridging, and the MCP server for AI agents.",
 };
 
 const toc = [
@@ -18,6 +39,7 @@ const toc = [
   ["deposit", "Deposit & withdraw"],
   ["stocks", "Tokenized stocks"],
   ["bridge", "Bridging in"],
+  ["agents", "For AI agents"],
   ["faq", "FAQ"],
 ];
 
@@ -280,6 +302,47 @@ export default function DocsPage() {
               {isMainnet
                 ? "Bridging executes from your wallet on the source chain."
                 : "On testnet the flow previews the genuine route and fee."}
+            </p>
+          </section>
+
+          <section id="agents">
+            <h2>For AI agents</h2>
+            <p className="lead">
+              Aumo is an MCP server. Any agent that speaks the Model Context
+              Protocol can use Aumo as its treasury: ask what Aumo is doing, see
+              where the yield is and why it moved, check a wallet&apos;s position,
+              and get deposit and withdraw transactions back to sign.
+            </p>
+            <h3>Add it</h3>
+            <p>In Claude Code, one command:</p>
+            <CodeBlock code="claude mcp add aumo -- npx -y aumo-mcp" />
+            <p>
+              In Claude Desktop, add this to <code>claude_desktop_config.json</code>{" "}
+              and restart. Any other MCP client runs the same{" "}
+              <code>npx -y aumo-mcp</code> command over stdio, or{" "}
+              <code>--http</code> for Streamable HTTP.
+            </p>
+            <CodeBlock code={DESKTOP_CONFIG} label="claude_desktop_config.json" />
+            <h3>Tools</h3>
+            <ul>
+              {MCP_TOOLS.map(([name, what]) => (
+                <li key={name}>
+                  <code>{name}</code> {what}
+                </li>
+              ))}
+            </ul>
+            <h3>Never your keys</h3>
+            <p>
+              The server never holds keys, never signs, and never broadcasts. The
+              deposit and withdraw tools return unsigned transactions (
+              <code>to</code>, <code>data</code>, <code>value</code> of zero,
+              chain 196) with a plain summary of each step. Your agent&apos;s own
+              wallet reviews, signs, and sends them. Nothing to configure: no API
+              key, no account. The source is in the{" "}
+              <a href="https://github.com/cryptoduke01/aumo/tree/main/integrations/mcp">
+                Aumo repository
+              </a>
+              .
             </p>
           </section>
 
