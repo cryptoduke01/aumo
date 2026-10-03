@@ -7,6 +7,8 @@
   display: grid;
   align-items: end;
   min-height: min(78svh, 46rem);
+  /* the photo is scaled 1.015 for its arrival; clip it so narrow screens never scroll sideways */
+  overflow-x: clip;
   color: var(--s-page-fg);
   background: var(--s-page);
   font-family: var(--font-sans);
