@@ -23,17 +23,19 @@ Every prepared transaction has `to`, `data`, `value` (always `"0"`), `chainId` (
 
 ## Install
 
-Requires Node 20 or newer.
+Requires Node 20 or newer. Nothing to clone: `npx` fetches the server from npm.
+
+### Claude Code
 
 ```bash
-cd integrations/mcp
-npm install
-npm run build
+claude mcp add aumo -- npx -y aumo-mcp
 ```
 
-This produces `dist/index.js`. In the snippets below, replace `/path/to/aumo` with the absolute path to your checkout.
+Add `--scope user` to make it available in every project. To point at a different RPC, pass it as an env var:
 
-## Configure a client
+```bash
+claude mcp add aumo -e RPC_URL=https://rpc.xlayer.tech -- npx -y aumo-mcp
+```
 
 ### Claude Desktop
 
@@ -43,23 +45,11 @@ Add this to `claude_desktop_config.json` (on macOS: `~/Library/Application Suppo
 {
   "mcpServers": {
     "aumo": {
-      "command": "node",
-      "args": ["/path/to/aumo/integrations/mcp/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "aumo-mcp"]
     }
   }
 }
-```
-
-### Claude Code
-
-```bash
-claude mcp add aumo -- node /path/to/aumo/integrations/mcp/dist/index.js
-```
-
-Add `--scope user` to make it available in every project. To point at a different RPC, pass it as an env var:
-
-```bash
-claude mcp add aumo -e RPC_URL=https://rpc.xlayer.tech -- node /path/to/aumo/integrations/mcp/dist/index.js
 ```
 
 ### Any other MCP client
@@ -67,13 +57,13 @@ claude mcp add aumo -e RPC_URL=https://rpc.xlayer.tech -- node /path/to/aumo/int
 Over stdio, run the same command:
 
 ```bash
-node /path/to/aumo/integrations/mcp/dist/index.js
+npx -y aumo-mcp
 ```
 
 Over HTTP, start the server with `--http` and point the client at `/mcp`:
 
 ```bash
-node /path/to/aumo/integrations/mcp/dist/index.js --http --port 3333
+npx -y aumo-mcp --http --port 3333
 # Streamable HTTP endpoint: http://127.0.0.1:3333/mcp
 ```
 
@@ -81,6 +71,15 @@ The HTTP mode is stateless (each POST is handled on its own) and binds to `127.0
 
 ```bash
 claude mcp add --transport http aumo http://127.0.0.1:3333/mcp
+```
+
+### From source
+
+```bash
+cd integrations/mcp
+npm install
+npm run build
+node dist/index.js
 ```
 
 ## Settings
@@ -109,6 +108,7 @@ npm run typecheck   # tsc --noEmit
 npm run smoke       # starts the server over stdio and calls aumo_status and aumo_venues live
 npm run smoke -- --all   # calls every tool live (aumo_ask sends one real question)
 npm start           # run from source with tsx
+npm pack            # build and pack the npm tarball (what `npm publish` uploads)
 ```
 
 Test fixtures in `test/fixtures` are real responses captured from the live agent API.

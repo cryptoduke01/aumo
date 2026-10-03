@@ -1,19 +1,46 @@
 {
-  "name": "@aumo/mcp",
+  "name": "aumo-mcp",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "MCP server that lets any AI agent use Aumo as its treasury layer: read the agent's state and decisions, check positions, and prepare unsigned deposit and withdraw transactions on X Layer.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "treasury",
+    "stablecoin",
+    "usdt0",
+    "x-layer",
+    "defi",
+    "aumo"
+  ],
+  "homepage": "https://aumo.finance",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cryptoduke01/aumo.git",
+    "directory": "integrations/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/cryptoduke01/aumo/issues"
+  },
+  "license": "MIT",
   "bin": {
     "aumo-mcp": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "start": "tsx src/index.ts",
     "start:http": "tsx src/index.ts --http --port 3333",
     "build": "tsc -p tsconfig.build.json",
     "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm test"
   },
   "engines": {
     "node": ">=20"
