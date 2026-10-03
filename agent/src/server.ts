@@ -10,6 +10,7 @@ import { readDepositorPosition } from "./chain/vault.js";
 import { RECEIPTS_FILE } from "./act/receipts.js";
 import { computeAttribution } from "./proof/attribution.js";
 import { callModel, llmConfigured } from "./brain/llm.js";
+import { handlePaid, loadX402, paidCors, type PaidResult, type PaidRoute } from "./x402.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Same env-resolved path the writer uses (RECEIPTS_DIR), so a persistent volume is read back correctly.
@@ -153,6 +154,7 @@ interface Decision {
     appetite?: string;
     moves?: Array<Record<string, unknown>>;
     risks?: Array<Record<string, unknown>>;
+    idleAfter?: string;
   };
   snapshot?: {
     vault?: {
@@ -215,6 +217,102 @@ function buildContext(cfg: Config) {
       : null,
     recentDecisions: recent.slice(1).map((r) => ({ takenAt: r.takenAt, summary: r.plan?.summary })),
     strategy: strategyFor(cfg.chainId),
+  };
+}
+
+const bigOf = (x: unknown): bigint => {
+  try {
+    return BigInt(String(x ?? 0));
+  } catch {
+    return 0n;
+  }
+};
+const round = (n: number, dp: number) => Number(n.toFixed(dp));
+
+/**
+ * The paid, machine-readable view of the agent's latest decision (GET /v1/signals). Same source as
+ * buildContext(): the latest receipt's venue snapshot joined with that decision's risk scores. Nothing
+ * is read live and nothing is estimated beyond what the receipt records:
+ *  - exitLiquiditySharePct is our principal in the venue over its withdrawable liquidity, the same
+ *    ratio the liquidity panelist sees (ourExitSharePct in brain/panel.ts);
+ *  - targetAllocation applies the decision's moves to the snapshot positions with the critic's own
+ *    accounting (a plain deallocate frees at most the principal held; a rotation leg moves its full
+ *    amount), and the idle target is the plan's idleAfter.
+ * Amounts are in the pool asset (USDT0), APYs in percent, peg deviation in basis points.
+ */
+export function buildSignals(latest: Decision, chainId: number) {
+  const vault = latest.snapshot?.vault;
+  const unit = 10 ** (vault?.decimals ?? 6);
+  const amt = (v: bigint) => round(Number(v) / unit, 6);
+  const risks = latest.plan?.risks ?? [];
+  const riskFor = (v: Record<string, unknown>) =>
+    risks.find((r) => typeof r.address === "string" && typeof v.address === "string" && r.address.toLowerCase() === v.address.toLowerCase()) ??
+    risks.find((r) => String(r.name) === String(v.name));
+  const snapVenues = latest.snapshot?.venues ?? [];
+
+  const venues = snapVenues.map((v) => {
+    const r = riskFor(v);
+    const principal = bigOf(v.allocatedPrincipal);
+    const liq = typeof v.liquidityUsd === "number" ? v.liquidityUsd : 0;
+    return {
+      name: v.name ?? null,
+      address: v.address ?? null,
+      kind: v.kind ?? null,
+      allowlisted: typeof v.allowed === "boolean" ? v.allowed : null,
+      apyPct: r && typeof r.apyBps === "number" ? r.apyBps / 100 : null,
+      riskAdjustedApyPct: r && typeof r.riskAdjustedApyBps === "number" ? r.riskAdjustedApyBps / 100 : null,
+      riskBand: r?.band ?? null,
+      pegDeviationBps: typeof v.pegDeviationBps === "number" ? v.pegDeviationBps : null,
+      pegVerified: typeof v.pegVerified === "boolean" ? v.pegVerified : null,
+      exitLiquiditySharePct: liq > 0 ? round((Number(principal) / unit / liq) * 100, 4) : null,
+    };
+  });
+
+  // Net principal change per venue from this decision's moves.
+  const net = new Map<string, bigint>();
+  let netTotal = 0n;
+  for (const m of latest.plan?.moves ?? []) {
+    const key = String(m.venue ?? "").toLowerCase();
+    const held = bigOf(snapVenues.find((v) => String(v.address ?? "").toLowerCase() === key)?.allocatedPrincipal);
+    const size = bigOf(m.amount);
+    const delta =
+      m.action === "allocate" ? size : m.action === "deallocate" ? -(m.rebalance || size <= held ? size : held) : 0n;
+    net.set(key, (net.get(key) ?? 0n) + delta);
+    netTotal += delta;
+  }
+  const idleNow = bigOf(vault?.idle);
+  const idleTarget = latest.plan?.idleAfter != null ? bigOf(latest.plan.idleAfter) : idleNow - netTotal;
+  const targets = snapVenues.map((v) => {
+    const current = bigOf(v.allocatedPrincipal);
+    const after = current + (net.get(String(v.address ?? "").toLowerCase()) ?? 0n);
+    return { name: v.name ?? null, address: v.address ?? null, current, target: after > 0n ? after : 0n };
+  });
+  const total = targets.reduce((a, t) => a + t.target, idleTarget > 0n ? idleTarget : 0n);
+  const pct = (x: bigint) => (total > 0n ? round((Number(x) / Number(total)) * 100, 2) : null);
+
+  return {
+    takenAt: latest.takenAt ?? null,
+    policyFingerprint: latest.policyFingerprint ?? null,
+    chainId,
+    vault: vault?.address ?? null,
+    assetSymbol: vault?.symbol ?? null,
+    regime: latest.plan?.regime ?? null,
+    appetite: latest.plan?.appetite ?? null,
+    source: latest.plan?.source ?? null,
+    summary: latest.plan?.summary ?? null,
+    venues,
+    targetAllocation: {
+      idle: { current: amt(idleNow), target: amt(idleTarget), targetSharePct: pct(idleTarget > 0n ? idleTarget : 0n) },
+      venues: targets
+        .map((t) => ({
+          name: t.name,
+          address: t.address,
+          current: amt(t.current),
+          target: amt(t.target),
+          targetSharePct: pct(t.target),
+        }))
+        .sort((a, b) => b.target - a.target),
+    },
   };
 }
 
@@ -415,7 +513,22 @@ async function readYourEquity(cfg: Config, address: Address) {
 }
 
 async function askAgent(cfg: Config, question: string, address?: string): Promise<string> {
-  if (!llmConfigured(cfg)) return "My reasoning layer is offline right now, so I can only answer through the dashboard. Try again shortly.";
+  return (await answerQuestion(cfg, question, address, false)).answer;
+}
+
+/**
+ * The /ask core, shared by the free route and the paid /v1/ask. `ok` is false whenever the reply is a
+ * fallback message rather than a model answer, so the paid route can refuse to settle (no charge).
+ * A paid call skips the free daily cap and does not count toward it: the cap is the cost breaker
+ * for unpaid traffic, and a paid call covers its own cost.
+ */
+async function answerQuestion(
+  cfg: Config,
+  question: string,
+  address: string | undefined,
+  paid: boolean,
+): Promise<{ ok: boolean; answer: string }> {
+  if (!llmConfigured(cfg)) return { ok: false, answer: "My reasoning layer is offline right now, so I can only answer through the dashboard. Try again shortly." };
   const now = Date.now();
 
   // Cache only GENERIC (no-wallet) questions. A depositor's own position can change between ticks
@@ -424,10 +537,10 @@ async function askAgent(cfg: Config, question: string, address?: string): Promis
   const key = cacheable ? `${stateVersion()}|${normQ(question)}` : "";
   if (cacheable) {
     const hit = askCache.get(key);
-    if (hit && now - hit.at < ASK_CACHE_TTL) return hit.answer; // free: no model call
+    if (hit && now - hit.at < ASK_CACHE_TTL) return { ok: true, answer: hit.answer }; // free: no model call
   }
-  if (askOverBudget(now)) {
-    return "I've answered a lot of questions today and hit my limit. Try again later; everything I know is on the dashboard.";
+  if (!paid && askOverBudget(now)) {
+    return { ok: false, answer: "I've answered a lot of questions today and hit my limit. Try again later; everything I know is on the dashboard." };
   }
 
   const context = buildContext(cfg);
@@ -439,7 +552,7 @@ async function askAgent(cfg: Config, question: string, address?: string): Promis
     ...(you ? { you } : {}),
     ...(yourStocks ? { yourStocks } : {}),
   };
-  askCalls.count++;
+  if (!paid) askCalls.count++;
   let raw: string;
   try {
     raw = await callModel(cfg, {
@@ -453,15 +566,48 @@ async function askAgent(cfg: Config, question: string, address?: string): Promis
     // A model error (rate limit, timeout, provider hiccup) should read as "busy", not a raw error —
     // but log the provider's reason so a persistent failure is diagnosable.
     console.error(`[ask] model call failed: ${e instanceof Error ? e.message : String(e)}`);
-    return "I can't reach my reasoning model right now. Try again in a few minutes; everything I know is on the dashboard.";
+    return { ok: false, answer: "I can't reach my reasoning model right now. Try again in a few minutes; everything I know is on the dashboard." };
   }
   const answer = raw.trim();
   if (cacheable && answer) {
     if (askCache.size >= ASK_CACHE_MAX) askCache.delete(askCache.keys().next().value!); // evict oldest
     askCache.set(key, { answer, at: now });
   }
-  return answer;
+  return { ok: answer.length > 0, answer };
 }
+
+// --- paid (x402) routes ---------------------------------------------------------------------------
+
+const PAID_SIGNALS: PaidRoute = {
+  path: "/v1/signals",
+  description:
+    "Aumo treasury signals for the USDT0 pool on X Layer: regime, risk appetite, per-venue APY and risk-adjusted APY, risk band, allowlist status, peg deviation, exit-liquidity share, and the target allocation from the agent's latest decision.",
+  outputSchema: { input: { type: "http", method: "GET" } },
+};
+
+const PAID_ASK: PaidRoute = {
+  path: "/v1/ask",
+  description:
+    "Ask Aumo, the treasury and risk agent for stablecoins on X Layer, about its strategy, venues, or current risk view. Answers are grounded in its latest recorded decision.",
+  outputSchema: {
+    input: {
+      type: "http",
+      method: "POST",
+      bodyType: "json",
+      body: {
+        type: "object",
+        properties: {
+          question: { type: "string", description: "Your question, up to 500 characters." },
+          address: { type: "string", description: "Optional wallet address, to ask about that wallet's own position." },
+        },
+        required: ["question"],
+      },
+    },
+    output: { type: "object", properties: { answer: { type: "string" } } },
+  },
+};
+
+const isPaidPath = (p: string) => p === PAID_SIGNALS.path || p === PAID_ASK.path;
 
 /**
  * Read-only status surface plus an interactive Q&A endpoint. Makes the living
@@ -471,6 +617,13 @@ async function askAgent(cfg: Config, question: string, address?: string): Promis
 export function startServer(cfg: Config) {
   const port = Number(process.env.PORT ?? 8080);
   const identity = buildIdentity(cfg);
+  // Paid x402 routes are off unless X402_PAY_TO and X402_FACILITATOR_URL are both set (and valid).
+  const x402 = loadX402(cfg);
+  console.log(
+    x402.enabled
+      ? `x402 paid endpoints on: ${PAID_SIGNALS.path}, ${PAID_ASK.path} at ${x402.config.price} per call (${x402.config.amount} base units of ${x402.config.asset} on ${x402.config.network}), payTo ${x402.config.payTo}`
+      : `x402 paid endpoints off: ${x402.reason}`,
+  );
 
   const cors = (res: ServerResponse) => {
     res.setHeader("access-control-allow-origin", "*");
@@ -482,6 +635,7 @@ export function startServer(cfg: Config) {
     const url = new URL(req.url ?? "/", "http://localhost");
     res.setHeader("content-type", "application/json");
     cors(res);
+    if (isPaidPath(url.pathname)) paidCors(res); // only the paid routes get the payment headers
 
     if (req.method === "OPTIONS") {
       res.statusCode = 204;
@@ -541,6 +695,79 @@ export function startServer(cfg: Config) {
     if (url.pathname === "/attribution") {
       const dec = Number((readRecent(1)[0] as Decision | undefined)?.snapshot?.vault?.decimals ?? 6);
       res.end(JSON.stringify(computeAttribution(dec), null, 2));
+      return;
+    }
+
+    // Paid x402 routes. Availability is checked before the 402 so nobody is asked to pay for nothing.
+    if (isPaidPath(url.pathname)) {
+      const fail = (status: number, body: unknown, allow?: string) => {
+        res.statusCode = status;
+        if (allow) res.setHeader("allow", allow);
+        res.end(JSON.stringify(body));
+      };
+      if (!x402.enabled) {
+        fail(404, { error: "Paid x402 endpoints are not enabled on this deployment.", reason: x402.reason });
+        return;
+      }
+      const ip = clientIp(req);
+
+      if (url.pathname === PAID_SIGNALS.path) {
+        if (req.method !== "GET") {
+          fail(405, { error: "Use GET." }, "GET");
+          return;
+        }
+        const latest = readRecent(1)[0] as Decision | undefined;
+        if (!latest) {
+          fail(503, { error: "No decision has been recorded yet, so there are no signals to sell. You were not charged." });
+          return;
+        }
+        await handlePaid(req, res, x402.config, PAID_SIGNALS, ip, async () => ({
+          status: 200,
+          body: buildSignals(latest, cfg.chainId),
+        }));
+        return;
+      }
+
+      // /v1/ask: POST is the paid call; an unpaid GET also gets the 402 so a GET probe can read the terms.
+      if (req.method !== "POST" && req.method !== "GET") {
+        fail(405, { error: "Use POST with a JSON body like {\"question\": \"...\"}." }, "POST");
+        return;
+      }
+      if (!llmConfigured(cfg)) {
+        fail(503, { error: "My reasoning layer is offline right now. You were not charged." });
+        return;
+      }
+      let question = "";
+      let address: string | undefined;
+      const validate = async (): Promise<PaidResult | null> => {
+        if (req.method !== "POST") {
+          res.setHeader("allow", "POST");
+          return { status: 405, body: { error: "Send the paid question as POST with a JSON body like {\"question\": \"...\"}. You were not charged." } };
+        }
+        try {
+          const parsed = JSON.parse((await readBody(req)) || "{}");
+          question = String(parsed.question ?? "").trim().slice(0, 500);
+          address = typeof parsed.address === "string" ? parsed.address.trim() : undefined;
+        } catch {
+          return { status: 400, body: { error: "Send a JSON body like {\"question\": \"...\"} (at most 4 KB). You were not charged." } };
+        }
+        if (!question) return { status: 400, body: { error: "Ask me something. You were not charged." } };
+        return null;
+      };
+      await handlePaid(
+        req,
+        res,
+        x402.config,
+        PAID_ASK,
+        ip,
+        async () => {
+          const out = await answerQuestion(cfg, question, address, true);
+          return out.ok
+            ? { status: 200, body: { answer: out.answer } }
+            : { status: 502, body: { error: out.answer, charged: false } };
+        },
+        validate,
+      );
       return;
     }
 
